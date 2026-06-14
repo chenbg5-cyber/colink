@@ -1739,7 +1739,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>תאריך יעד <span class="required">*</span></label>
+        <label>תאריך יעד <span class="required" id="taskDateRequired">*</span></label>
         <input type="date" id="taskDate">
       </div>
     </div>
@@ -2553,6 +2553,7 @@ function populateKidSelects() {
 function toggleRecurring() {
   const checked = document.getElementById('taskRecurring').checked;
   document.getElementById('recurringFreqGroup').style.display = checked ? 'block' : 'none';
+  document.getElementById('taskDateRequired').style.display = checked ? 'none' : '';
   if (!checked) {
     document.getElementById('recurringDaysGroup').style.display = 'none';
     document.getElementById('recurringEveryGroup').style.display = 'none';
@@ -3062,7 +3063,7 @@ function addTask() {
   const recurring = document.getElementById('taskRecurring').checked;
   const recurringFreq = document.getElementById('taskRecurringFreq').value;
 
-  if (!title || !res || !forChild || !date || !category) {
+  if (!title || !res || !forChild || (!date && !recurring) || !category) {
     showToast('נא למלא את כל השדות הנדרשים');
     return;
   }
