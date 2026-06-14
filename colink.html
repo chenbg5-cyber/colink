@@ -2871,7 +2871,7 @@ function updateDashboard() {
             ${isDone ? '✓' : ''}
           </div>
           <div class="list-item-content">
-            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}</div>
+            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''}</div>
             <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
           </div>
         </div>
