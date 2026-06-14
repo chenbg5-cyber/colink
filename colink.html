@@ -1771,12 +1771,22 @@
     </div>
     <div class="form-group" id="recurringFreqGroup" style="display:none;">
       <label>תדירות משימה <span class="required">*</span></label>
-      <select id="taskRecurringFreq" onchange="toggleRecurringDays()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+      <select id="taskRecurringFreq" onchange="toggleRecurringDetails()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
         <option value="">בחר/י תדירות</option>
-        <option value="יומי">יומי</option>
-        <option value="שבועי">שבועי</option>
-        <option value="חודשי">חודשי</option>
+        <option value="יומי">כל יום</option>
+        <option value="כל X ימים">כל X ימים</option>
+        <option value="שבועי">שבועי - בימים מסוימים</option>
+        <option value="כל X שבועות">כל X שבועות</option>
+        <option value="חודשי">חודשי - ביום מסוים</option>
+        <option value="כל X חודשים">כל X חודשים</option>
       </select>
+    </div>
+    <div class="form-group" id="recurringEveryGroup" style="display:none;">
+      <label id="recurringEveryLabel">כל כמה?</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" id="recurringEveryN" min="2" max="30" value="2" style="width:70px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;text-align:center;">
+        <span id="recurringEveryUnit">ימים</span>
+      </div>
     </div>
     <div class="form-group" id="recurringDaysGroup" style="display:none;">
       <label>באילו ימים?</label>
@@ -1789,6 +1799,10 @@
         <label class="day-chip"><input type="checkbox" value="5" class="recurring-day-cb"><span>ו׳</span></label>
         <label class="day-chip"><input type="checkbox" value="6" class="recurring-day-cb"><span>ש׳</span></label>
       </div>
+    </div>
+    <div class="form-group" id="recurringMonthDayGroup" style="display:none;">
+      <label>באיזה יום בחודש?</label>
+      <input type="number" id="recurringMonthDay" min="1" max="31" value="1" style="width:70px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;text-align:center;">
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addTask()">הוספה</button>
@@ -2539,6 +2553,29 @@ function populateKidSelects() {
 function toggleRecurring() {
   const checked = document.getElementById('taskRecurring').checked;
   document.getElementById('recurringFreqGroup').style.display = checked ? 'block' : 'none';
+  if (!checked) {
+    document.getElementById('recurringDaysGroup').style.display = 'none';
+    document.getElementById('recurringEveryGroup').style.display = 'none';
+    document.getElementById('recurringMonthDayGroup').style.display = 'none';
+  }
+}
+
+function toggleRecurringDetails() {
+  const freq = document.getElementById('taskRecurringFreq').value;
+  document.getElementById('recurringDaysGroup').style.display = freq === 'שבועי' ? 'block' : 'none';
+  document.getElementById('recurringMonthDayGroup').style.display = freq === 'חודשי' ? 'block' : 'none';
+  const everyGroup = document.getElementById('recurringEveryGroup');
+  const label = document.getElementById('recurringEveryLabel');
+  const unit = document.getElementById('recurringEveryUnit');
+  if (freq === 'כל X ימים') {
+    everyGroup.style.display = 'block'; label.textContent = 'כל כמה ימים?'; unit.textContent = 'ימים';
+  } else if (freq === 'כל X שבועות') {
+    everyGroup.style.display = 'block'; label.textContent = 'כל כמה שבועות?'; unit.textContent = 'שבועות';
+  } else if (freq === 'כל X חודשים') {
+    everyGroup.style.display = 'block'; label.textContent = 'כל כמה חודשים?'; unit.textContent = 'חודשים';
+  } else {
+    everyGroup.style.display = 'none';
+  }
 }
 
 let currentEventFilter = 'all';
@@ -3034,12 +3071,27 @@ function addTask() {
     return;
   }
 
+  let recurringDetail = '';
+  if (recurring) {
+    if (recurringFreq === 'כל X ימים') recurringDetail = 'כל ' + document.getElementById('recurringEveryN').value + ' ימים';
+    else if (recurringFreq === 'כל X שבועות') recurringDetail = 'כל ' + document.getElementById('recurringEveryN').value + ' שבועות';
+    else if (recurringFreq === 'כל X חודשים') recurringDetail = 'כל ' + document.getElementById('recurringEveryN').value + ' חודשים';
+    else if (recurringFreq === 'שבועי') {
+      const days = [...document.querySelectorAll('.recurring-day-cb:checked')].map(cb => ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'][cb.value]);
+      recurringDetail = days.length ? 'שבועי · ' + days.join(', ') : 'שבועי';
+    } else if (recurringFreq === 'חודשי') {
+      recurringDetail = 'חודשי · יום ' + document.getElementById('recurringMonthDay').value;
+    } else {
+      recurringDetail = recurringFreq;
+    }
+  }
+
   const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
   children.forEach((child, i) => {
     appData.tasks.push({
       id: Date.now() + i,
       title, desc, responsibility: res, forChild: child, priority, date, category, status,
-      recurring, recurringFreq: recurring ? recurringFreq : '',
+      recurring, recurringFreq: recurring ? recurringDetail : '',
       createdAt: new Date().toISOString()
     });
   });
@@ -3056,6 +3108,9 @@ function addTask() {
   document.getElementById('taskStatus').value = 'pending';
   document.getElementById('taskRecurring').checked = false;
   document.getElementById('recurringFreqGroup').style.display = 'none';
+  document.getElementById('recurringDaysGroup').style.display = 'none';
+  document.getElementById('recurringEveryGroup').style.display = 'none';
+  document.getElementById('recurringMonthDayGroup').style.display = 'none';
   renderTasks();
   updateDashboard();
   showToast('משימה נוספה בהצלחה ✅');
