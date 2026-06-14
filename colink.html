@@ -1513,7 +1513,7 @@
       <div class="card card-compact">
         <div class="card-compact-header">
           <h3>המשימות שלי</h3>
-          <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">+</button>
+          <button class="btn btn-primary btn-sm" onclick="openNewTask()">+</button>
         </div>
         <div id="dashTodayChecklist"></div>
       </div>
@@ -1547,7 +1547,7 @@
     <div class="page" id="page-assignments">
       <div class="page-header">
         <h1>משימות</h1>
-        <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">+ משימה חדשה</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewTask()">+ משימה חדשה</button>
       </div>
       <div class="tabs">
         <button class="tab-btn active" onclick="filterTasks('all', this)">הכל</button>
@@ -1702,7 +1702,8 @@
 <!-- Task Modal -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
-    <h2>משימה חדשה</h2>
+    <input type="hidden" id="taskEditId" value="">
+    <h2 id="taskModalTitle">משימה חדשה</h2>
     <div class="form-group">
       <label>שם משימה <span class="required">*</span></label>
       <input type="text" id="taskTitle" placeholder="מה צריך לעשות?">
@@ -3087,18 +3088,31 @@ function addTask() {
     }
   }
 
-  const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
-  children.forEach((child, i) => {
-    appData.tasks.push({
-      id: Date.now() + i,
-      title, desc, responsibility: res, forChild: child, priority, date, category, status,
-      recurring, recurringFreq: recurring ? recurringDetail : '',
-      createdAt: new Date().toISOString()
+  const editId = document.getElementById('taskEditId').value;
+  if (editId) {
+    const task = appData.tasks.find(t => t.id === parseInt(editId));
+    if (task) {
+      task.title = title; task.desc = desc; task.responsibility = res;
+      task.forChild = forChild; task.priority = priority; task.date = date;
+      task.category = category; task.status = status;
+      task.recurring = recurring; task.recurringFreq = recurring ? recurringDetail : '';
+    }
+  } else {
+    const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
+    children.forEach((child, i) => {
+      appData.tasks.push({
+        id: Date.now() + i,
+        title, desc, responsibility: res, forChild: child, priority, date, category, status,
+        recurring, recurringFreq: recurring ? recurringDetail : '',
+        createdAt: new Date().toISOString()
+      });
     });
-  });
+  }
 
   saveData();
   closeModal('taskModal');
+  document.getElementById('taskEditId').value = '';
+  document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
   document.getElementById('taskTitle').value = '';
   document.getElementById('taskDesc').value = '';
   document.getElementById('taskRes').value = '';
@@ -3123,8 +3137,33 @@ function changeTaskStatus(id, newStatus) {
 }
 
 function deleteTask(id) {
+  if (!confirm('למחוק את המשימה?')) return;
   appData.tasks = appData.tasks.filter(t => t.id !== id);
   saveData(); renderTasks(); updateDashboard();
+}
+
+function openNewTask() {
+  document.getElementById('taskEditId').value = '';
+  document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
+  openModal('taskModal');
+}
+
+function editTask(id) {
+  const t = appData.tasks.find(task => task.id === id);
+  if (!t) return;
+  document.getElementById('taskEditId').value = id;
+  document.getElementById('taskModalTitle').textContent = 'עריכת משימה';
+  document.getElementById('taskTitle').value = t.title;
+  document.getElementById('taskDesc').value = t.desc || '';
+  document.getElementById('taskRes').value = t.responsibility || '';
+  document.getElementById('taskFor').value = t.forChild || '';
+  document.getElementById('taskPriority').value = t.priority || '';
+  document.getElementById('taskDate').value = t.date || '';
+  document.getElementById('taskCategory').value = t.category || '';
+  document.getElementById('taskStatus').value = t.status || 'pending';
+  document.getElementById('taskRecurring').checked = !!t.recurring;
+  toggleRecurring();
+  openModal('taskModal');
 }
 
 function filterTasks(filter, btn) {
@@ -3152,8 +3191,10 @@ function renderTasks() {
     return;
   }
 
+  const myRole = getMyRole();
   container.innerHTML = tasks.map(t => {
     const isDone = t.status === 'done';
+    const canEdit = t.responsibility === myRole || t.responsibility === 'משותפת';
     return `
       <div class="list-item">
         <div class="list-item-content">
@@ -3170,7 +3211,8 @@ function renderTasks() {
             <option value="inprocess" ${t.status==='inprocess'?'selected':''}>בתהליך</option>
             <option value="done" ${t.status==='done'?'selected':''}>בוצע</option>
           </select>
-          <button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">🗑️</button>
+          ${canEdit ? `<button class="icon-btn" onclick="editTask(${t.id})" title="עריכה">✎</button>` : ''}
+          ${canEdit ? `<button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">✕</button>` : ''}
         </div>
       </div>
     `;
