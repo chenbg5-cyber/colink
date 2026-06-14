@@ -2615,6 +2615,7 @@ function populateKidSelects() {
   if (expChild) {
     const val = expChild.value;
     expChild.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
+      (appData.kids.length > 1 ? '<option value="כל הילדים">כל הילדים</option>' : '') +
       appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
     expChild.value = val;
   }
