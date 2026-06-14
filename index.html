@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>איקס עיגול</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+    }
+
+    .status {
+      font-size: 1.3rem;
+      color: #555;
+      margin-bottom: 20px;
+      min-height: 35px;
+      font-weight: bold;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      background: #f0f0f5;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: none;
+    }
+
+    .cell:hover:not(.taken) {
+      background: #e0e0eb;
+      transform: scale(1.03);
+    }
+
+    .cell.x { color: #e74c3c; }
+    .cell.o { color: #3498db; }
+
+    .cell.winning {
+      background: #ffd700;
+      animation: pulse 0.6s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f8fc;
+      border-radius: 12px;
+    }
+
+    .score-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .score-label {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .score-label.x { color: #e74c3c; }
+    .score-label.o { color: #3498db; }
+    .score-label.tie { color: #95a5a6; }
+
+    .score-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .reset-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .reset-btn:hover { transform: translateY(-2px); }
+    .reset-btn:active { transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>איקס עיגול</h1>
+    <div class="status" id="status">תור: X</div>
+
+    <div class="scoreboard">
+      <div class="score-item">
+        <span class="score-label x">X</span>
+        <span class="score-value" id="scoreX">0</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label tie">תיקו</span>
+        <span class="score-value" id="scoreTie">0</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label o">O</span>
+        <span class="score-value" id="scoreO">0</span>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <button class="cell" data-index="0"></button>
+      <button class="cell" data-index="1"></button>
+      <button class="cell" data-index="2"></button>
+      <button class="cell" data-index="3"></button>
+      <button class="cell" data-index="4"></button>
+      <button class="cell" data-index="5"></button>
+      <button class="cell" data-index="6"></button>
+      <button class="cell" data-index="7"></button>
+      <button class="cell" data-index="8"></button>
+    </div>
+
+    <button class="reset-btn" id="resetBtn">משחק חדש</button>
+  </div>
+
+  <script>
+    const WIN_LINES = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    let board = Array(9).fill('');
+    let currentPlayer = 'X';
+    let gameActive = true;
+    let scores = { X: 0, O: 0, tie: 0 };
+
+    const statusEl = document.getElementById('status');
+    const cells = document.querySelectorAll('.cell');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function updateStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function checkWinner() {
+      for (const line of WIN_LINES) {
+        const [a, b, c] = line;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          return { winner: board[a], line };
+        }
+      }
+      if (board.every(cell => cell)) return { winner: 'tie', line: [] };
+      return null;
+    }
+
+    function handleCellClick(e) {
+      const index = parseInt(e.target.dataset.index);
+      if (!gameActive || board[index]) return;
+
+      board[index] = currentPlayer;
+      e.target.textContent = currentPlayer;
+      e.target.classList.add('taken', currentPlayer.toLowerCase());
+
+      const result = checkWinner();
+      if (result) {
+        gameActive = false;
+        if (result.winner === 'tie') {
+          scores.tie++;
+          updateStatus('תיקו!');
+        } else {
+          scores[result.winner]++;
+          updateStatus(`${result.winner} ניצח!`);
+          result.line.forEach(i => cells[i].classList.add('winning'));
+        }
+        updateScores();
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        updateStatus(`תור: ${currentPlayer}`);
+      }
+    }
+
+    function updateScores() {
+      document.getElementById('scoreX').textContent = scores.X;
+      document.getElementById('scoreO').textContent = scores.O;
+      document.getElementById('scoreTie').textContent = scores.tie;
+    }
+
+    function resetGame() {
+      board = Array(9).fill('');
+      currentPlayer = 'X';
+      gameActive = true;
+      cells.forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'cell';
+      });
+      updateStatus('תור: X');
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    resetBtn.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>

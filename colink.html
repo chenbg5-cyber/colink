@@ -1,0 +1,3656 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#6C5CE7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CoLink">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>CoLink - ניהול משפחה משותף</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body { -webkit-user-select: none; user-select: none; overscroll-behavior: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    input, textarea, select { -webkit-user-select: text; user-select: text; }
+
+    :root {
+      --primary: #6C5CE7;
+      --primary-light: #A29BFE;
+      --primary-dark: #5A4BD1;
+      --secondary: #00CEC9;
+      --accent: #FD79A8;
+      --bg: #F8F9FE;
+      --card: #FFFFFF;
+      --text: #2D3436;
+      --text-light: #636E72;
+      --text-muted: #B2BEC3;
+      --border: #E8ECF4;
+      --success: #00B894;
+      --warning: #FDCB6E;
+      --danger: #E17055;
+      --sidebar-width: 280px;
+    }
+
+    body {
+      font-family: 'Rubik', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============ ONBOARDING ============ */
+    .onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 50%, #00CEC9 100%);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s;
+    }
+
+    .onboarding-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    .onboarding-card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 540px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    .onboarding-card::-webkit-scrollbar { width: 6px; }
+    .onboarding-card::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 3px; }
+
+    .ob-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .ob-logo span { color: var(--secondary); }
+
+    .ob-subtitle {
+      text-align: center;
+      color: var(--text-light);
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    .ob-progress {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 30px;
+      justify-content: center;
+    }
+
+    .ob-progress-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all 0.3s;
+    }
+
+    .ob-progress-dot.active { background: var(--primary); transform: scale(1.2); }
+    .ob-progress-dot.done { background: var(--success); }
+
+    .ob-step { display: none; animation: slideUp 0.3s ease; }
+    .ob-step.active { display: block; }
+
+    .ob-step h2 {
+      font-size: 1.2rem;
+      margin-bottom: 18px;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .ob-choice-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .ob-choice-btn {
+      flex: 1;
+      padding: 24px 16px;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .ob-choice-btn:hover { border-color: var(--primary-light); background: #F8F7FF; }
+    .ob-choice-btn.selected { border-color: var(--primary); background: #F0EEFF; }
+
+    .ob-choice-btn .icon { font-size: 1.5rem; margin-bottom: 6px; }
+    .ob-choice-btn .label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .ob-choice-btn .desc { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .form-group label .required { color: var(--danger); }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      transition: border-color 0.3s;
+      background: white;
+      direction: rtl;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-group input.error,
+    .form-group select.error,
+    select.error { border-color: var(--danger); }
+
+    .weekend-answer.selected, .weekend-day-btn.selected, .weekend-day-btn-fixed.selected {
+      outline: 3px solid var(--primary);
+      outline-offset: 2px;
+      font-weight: 600;
+      background: var(--primary);
+      color: white;
+    }
+    .form-group .error-msg { color: var(--danger); font-size: 0.8rem; margin-top: 4px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-secondary:hover { background: #F0EEFF; }
+
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #00A383; }
+
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { opacity: 0.9; }
+
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; }
+
+    .ob-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: center;
+    }
+
+    /* Custody day picker */
+    .custody-picker {
+      margin-bottom: 20px;
+    }
+
+    .custody-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .custody-day {
+      padding: 12px 4px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: inherit;
+      background: white;
+    }
+
+    .custody-day:hover { border-color: var(--primary-light); }
+    .custody-day.mine { background: var(--primary); color: white; border-color: var(--primary); }
+    .custody-day.partner { background: var(--secondary); color: white; border-color: var(--secondary); }
+    .alt-day.mine { background: var(--accent); border-color: var(--accent); }
+
+    .custody-day .day-name { font-size: 0.75rem; font-weight: 600; }
+    .custody-day .day-label { font-size: 0.65rem; margin-top: 4px; }
+
+    .custody-legend {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 12px;
+      font-size: 0.85rem;
+    }
+
+    .custody-legend span::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .custody-legend .me::before { background: var(--primary); }
+    .custody-legend .other::before { background: var(--secondary); }
+
+    /* Kids form */
+    .kid-card {
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .kid-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .kid-card-header h3 { color: var(--primary); font-size: 1.1rem; }
+
+    .remove-kid-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px;
+    }
+
+    .add-kid-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px dashed var(--primary-light);
+      border-radius: 16px;
+      background: transparent;
+      color: var(--primary);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.3s;
+    }
+
+    .add-kid-btn:hover { background: #F0EEFF; border-color: var(--primary); }
+
+    .collapsible-section {
+      margin-top: 12px;
+    }
+
+    .collapsible-toggle {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      padding: 4px 0;
+    }
+
+    .collapsible-content {
+      display: none;
+      margin-top: 12px;
+    }
+
+    .collapsible-content.open { display: block; }
+
+    /* Family code display */
+    .family-code-display {
+      text-align: center;
+      padding: 30px;
+    }
+
+    .family-code-display .code {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 8px;
+      background: #F0EEFF;
+      padding: 20px 30px;
+      border-radius: 16px;
+      display: inline-block;
+      margin: 16px 0;
+      direction: ltr;
+    }
+
+    .family-code-display p {
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+
+    .copy-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .copy-btn:hover { background: var(--primary-dark); }
+
+    /* ============ MAIN APP ============ */
+    .app-container {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .app-container.active { display: flex; }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: white;
+      border-left: 1px solid var(--border);
+      height: 100vh;
+      position: fixed;
+      right: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-greeting {
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .sidebar-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .sidebar-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .sidebar-family {
+      font-size: 0.85rem;
+      color: var(--primary);
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-light);
+      font-weight: 400;
+      font-size: 0.88rem;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: right;
+      font-family: inherit;
+    }
+
+    .nav-item:hover { background: #F8F7FF; color: var(--primary); }
+    .nav-item.active { background: #F0EEFF; color: var(--primary); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 1rem; width: 24px; text-align: center; opacity: 0.7; }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 8px 0;
+    }
+
+    /* Main content */
+    .main-content {
+      margin-right: var(--sidebar-width);
+      flex: 1;
+      padding: 30px;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .page-header h1 { font-size: 1.3rem; font-weight: 600; color: var(--text); }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+
+    .card h3 {
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Dashboard */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stat-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .stat-icon.purple { background: #F0EEFF; }
+    .stat-icon.green { background: #E6FFF8; }
+    .stat-icon.orange { background: #FFF3E0; }
+    .stat-icon.pink { background: #FFF0F6; }
+
+    .stat-info .stat-value { font-size: 1.3rem; font-weight: 600; }
+    .stat-info .stat-label { font-size: 0.75rem; color: var(--text-light); }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      text-align: right;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #FAFAFE; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: #FFF3E0; color: #E17055; }
+    .badge-approved { background: #E6FFF8; color: #00B894; }
+    .badge-rejected { background: #FFE8E8; color: #D63031; }
+    .badge-new { background: #F0EEFF; color: var(--primary); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 520px;
+      width: 95%;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal h2 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: flex-start;
+    }
+
+    /* Calendar */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .cal-header h3 { font-size: 1.1rem; }
+
+    .cal-nav-btn {
+      background: none;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 8px 0;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      min-height: 48px;
+    }
+
+    .cal-day:hover { background: #F8F7FF; }
+    .cal-day.today { background: var(--primary); color: white; font-weight: 700; }
+    .cal-day.holiday { border: 2px solid var(--warning); }
+    .cal-day.empty { cursor: default; }
+
+    .cal-day .holiday-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--warning);
+      position: absolute;
+      bottom: 4px;
+    }
+
+    .cal-day.custody-me { background: rgba(108,92,231,0.1); }
+    .cal-day.custody-partner { background: rgba(0,206,201,0.1); }
+    .cal-day.today.custody-me { background: var(--primary); }
+
+    /* Events & tasks list */
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .list-item:hover { border-color: var(--primary-light); background: #FAFAFE; }
+
+    .list-item-check {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .list-item-check.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .list-item-content { flex: 1; }
+    .list-item-title { font-weight: 500; font-size: 0.95rem; }
+    .list-item-title.done { text-decoration: line-through; color: var(--text-muted); }
+    .list-item-meta { font-size: 0.8rem; color: var(--text-light); margin-top: 2px; }
+
+    .list-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover { background: #F0EEFF; }
+
+    /* Empty states */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Kid profile card */
+    .kid-profile {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 12px;
+    }
+
+    .kid-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .kid-avatar.boy { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .kid-avatar.girl { background: linear-gradient(135deg, #f093fb, #f5576c); }
+    .kid-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .kid-photo-upload {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .kid-photo-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      position: relative;
+    }
+    .kid-photo-preview.boy { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .kid-photo-preview.girl { background: linear-gradient(135deg, #f093fb, #f5576c); }
+    .kid-photo-preview.empty { background: linear-gradient(135deg, #a8b8d8, #c3cfe2); }
+    .kid-photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .kid-photo-preview:hover::after {
+      content: '📷';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      border-radius: 50%;
+    }
+
+    .kid-info { flex: 1; }
+    .kid-info h4 { font-size: 1.1rem; margin-bottom: 8px; }
+
+    .kid-detail {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-left: 16px;
+      margin-bottom: 4px;
+    }
+
+    /* Expense status */
+    .expense-status {
+      display: flex;
+      gap: 8px;
+    }
+
+    .expense-status button {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: white;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .expense-status button:hover { border-color: var(--primary); }
+    .expense-status button.active-approve { background: var(--success); color: white; border-color: var(--success); }
+    .expense-status button.active-reject { background: var(--danger); color: white; border-color: var(--danger); }
+
+    /* Holiday cards */
+    .holiday-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+
+    .holiday-card .holiday-info h4 { font-size: 0.95rem; margin-bottom: 4px; }
+    .holiday-card .holiday-info p { font-size: 0.8rem; color: var(--text-light); }
+
+    .holiday-with {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .holiday-with.me { background: #F0EEFF; color: var(--primary); }
+    .holiday-with.partner { background: #E0FFFE; color: #00B4A8; }
+    .holiday-with.split { background: #FFF3E0; color: #E17055; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      z-index: 10000;
+      transition: transform 0.3s;
+      font-family: inherit;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Mobile hamburger */
+    .mobile-header {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      background: white;
+      padding: 12px 20px;
+      z-index: 99;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hamburger {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .mobile-logo { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-right: 0; padding: 80px 16px 20px; }
+      .mobile-header { display: flex; }
+      .form-row { grid-template-columns: 1fr; }
+      .custody-week { gap: 4px; }
+      .custody-day { padding: 8px 2px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: #F0F0F5;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      color: var(--text-light);
+    }
+
+    .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-light);
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+
+    .file-input-label:hover { border-color: var(--primary); color: var(--primary); }
+    .file-input-label input { display: none; }
+
+    /* Dashboard top row */
+    .dash-top-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .dash-mini-card {
+      flex: 1;
+      padding: 14px;
+      margin-bottom: 0;
+      min-width: 0;
+    }
+
+    /* Custody Today Card */
+    .custody-today-card.with-me {
+      background: linear-gradient(135deg, #F0EEFF, #E8E4FF);
+      border: 1.5px solid var(--primary-light);
+    }
+
+    .custody-today-card.with-partner {
+      background: linear-gradient(135deg, #E0FFFE, #D4F8F6);
+      border: 1.5px solid #A0E8E4;
+    }
+
+    .custody-today-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .custody-today-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .custody-today-icon.with-me {
+      background: var(--primary);
+      box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+    }
+
+    .custody-today-icon.with-partner {
+      background: var(--secondary);
+      box-shadow: 0 2px 8px rgba(0, 206, 201, 0.3);
+    }
+
+    .custody-today-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .custody-today-label {
+      font-size: 0.65rem;
+      color: var(--text-light);
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .custody-today-status {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Weekend card variants */
+    .weekend-me {
+      background: linear-gradient(135deg, #F0EEFF, #E8E4FF);
+      border: 1.5px solid var(--primary-light);
+    }
+
+    .weekend-partner {
+      background: linear-gradient(135deg, #E0FFFE, #D4F8F6);
+      border: 1.5px solid #A0E8E4;
+    }
+
+    .weekend-split {
+      background: linear-gradient(135deg, #FFF3E0, #FFECB3);
+      border: 1.5px solid var(--warning);
+    }
+
+    .custody-today-icon.split {
+      background: var(--warning);
+      box-shadow: 0 2px 8px rgba(253, 203, 110, 0.4);
+    }
+
+    /* Dashboard greeting */
+    .dash-greeting {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .dash-greeting span {
+      color: var(--primary);
+    }
+
+    /* Stats row - compact horizontal */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .stat-chip {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .stat-chip-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .stat-chip-icon.purple { background: #F0EEFF; }
+    .stat-chip-icon.green { background: #E6FFF8; }
+    .stat-chip-icon.orange { background: #FFF3E0; }
+    .stat-chip-icon.pink { background: #FFF0F6; }
+
+    .stat-chip-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .stat-chip-value {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .stat-chip-label {
+      font-size: 0.6rem;
+      color: var(--text-light);
+      white-space: nowrap;
+    }
+
+    .stat-chip-plus {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    /* Compact cards */
+    .card-compact {
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .card-compact h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0;
+    }
+
+    .card-compact-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-compact-header .btn-sm {
+      padding: 4px 12px;
+      font-size: 1rem;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ ONBOARDING ============ -->
+<div class="onboarding-overlay" id="onboarding">
+  <div class="onboarding-card">
+    <div class="ob-logo">Co<span>Link</span></div>
+    <div class="ob-subtitle">ניהול משפחתי משותף בקלות</div>
+
+    <div class="ob-progress" id="obProgress">
+      <div class="ob-progress-dot active"></div>
+      <div class="ob-progress-dot"></div>
+      <div class="ob-progress-dot"></div>
+      <div class="ob-progress-dot"></div>
+      <div class="ob-progress-dot"></div>
+    </div>
+
+    <!-- Step 1: Choose mode -->
+    <div class="ob-step active" id="obStep1">
+      <h2>ברוכים הבאים</h2>
+      <div class="ob-choice-group">
+        <button class="ob-choice-btn" onclick="selectMode('new')">
+          <div class="icon" style="font-size:1.5rem;opacity:0.6">⌂</div>
+          <div class="label">יצירת משפחה חדשה</div>
+          <div class="desc">אני ההורה הראשון שנרשם</div>
+        </button>
+        <button class="ob-choice-btn" onclick="selectMode('join')">
+          <div class="icon" style="font-size:1.5rem;opacity:0.6">⟡</div>
+          <div class="label">הצטרפות למשפחה</div>
+          <div class="desc">קיבלתי קוד מההורה השני</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Personal details -->
+    <div class="ob-step" id="obStep2">
+      <h2>פרטים אישיים</h2>
+      <div class="form-group">
+        <label>שם מלא <span class="required">*</span></label>
+        <input type="text" id="obName" placeholder="שם פרטי ומשפחה">
+      </div>
+      <div class="form-group">
+        <label>אימייל <span class="required">*</span></label>
+        <input type="email" id="obEmail" placeholder="email@example.com" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>טלפון <span class="required">*</span></label>
+        <input type="tel" id="obPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>תפקיד <span class="required">*</span></label>
+        <select id="obRole">
+          <option value="">בחר/י תפקיד</option>
+          <option value="אמא">אמא</option>
+          <option value="אבא">אבא</option>
+          <option value="אפוטרופוס">אפוטרופוס</option>
+        </select>
+      </div>
+      <div class="form-group" id="obPartnerEmailGroup">
+        <label>אימייל ההורה השני <span class="required">*</span></label>
+        <input type="email" id="obPartnerEmail" placeholder="email@example.com" dir="ltr">
+      </div>
+      <div class="form-group" id="obFamilyCodeGroup" style="display:none;">
+        <label>קוד משפחה <span class="required">*</span></label>
+        <input type="text" id="obFamilyCode" placeholder="הזן את הקוד שקיבלת" dir="ltr" maxlength="6" style="text-align:center; font-size:1.5rem; letter-spacing:6px;">
+      </div>
+      <div class="ob-actions">
+        <button class="btn btn-secondary" onclick="obBack()">חזרה</button>
+        <button class="btn btn-primary" onclick="obNext(2)">המשך</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Custody days -->
+    <div class="ob-step" id="obStep3">
+      <h2>ימי משמורת</h2>
+      <p style="text-align:center;color:var(--text-light);margin-bottom:16px;">לחצ/י על הימים שבהם הילדים אצלך (ימי חול)</p>
+      <div class="custody-picker">
+        <div class="custody-week" id="custodyWeek" style="grid-template-columns:repeat(5,1fr);">
+          <button class="custody-day" data-day="0" onclick="toggleCustody(this)"><div class="day-name">א׳</div><div class="day-label">ראשון</div></button>
+          <button class="custody-day" data-day="1" onclick="toggleCustody(this)"><div class="day-name">ב׳</div><div class="day-label">שני</div></button>
+          <button class="custody-day" data-day="2" onclick="toggleCustody(this)"><div class="day-name">ג׳</div><div class="day-label">שלישי</div></button>
+          <button class="custody-day" data-day="3" onclick="toggleCustody(this)"><div class="day-name">ד׳</div><div class="day-label">רביעי</div></button>
+          <button class="custody-day" data-day="4" onclick="toggleCustody(this)"><div class="day-name">ה׳</div><div class="day-label">חמישי</div></button>
+        </div>
+        <div class="custody-legend">
+          <span class="me">אצלי</span>
+          <span class="other">אצל ההורה השני</span>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <h3 style="text-align:center;margin-bottom:12px;">סידור סופ״ש</h3>
+        <div class="form-group" style="max-width:300px;margin:0 auto;">
+          <label>סוג סופ״ש</label>
+          <select id="obWeekendMode" onchange="onWeekendModeChange()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+            <option value="">בחר/י</option>
+            <option value="alternating">משתנה</option>
+            <option value="fixed">קבוע</option>
+            <option value="other">אחר</option>
+          </select>
+        </div>
+        <div id="weekendAlternatingQ" style="display:none;margin-top:16px;text-align:center;">
+          <div style="margin-bottom:16px;">
+            <p style="font-weight:500;margin-bottom:8px;">אילו ימי סופ״ש מתחלפים?</p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+              <button class="btn btn-secondary weekend-day-btn" data-wday="5" onclick="toggleWeekendDay(this)" style="min-width:70px;">שישי</button>
+              <button class="btn btn-secondary weekend-day-btn" data-wday="6" onclick="toggleWeekendDay(this)" style="min-width:70px;">שבת</button>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">ניתן לבחור שישי בלבד, שבת בלבד, או שניהם</p>
+          </div>
+          <div style="margin-bottom:16px;">
+            <p style="font-weight:500;margin-bottom:8px;">בחר/י תאריך סופ״ש שבו הילדים אצלך</p>
+            <p style="color:var(--text-light);font-size:0.82rem;margin-bottom:10px;">כדי לדעת את סדר ההתחלפות, בחר/י תאריך של שישי שבו הילדים אצלך</p>
+            <input type="date" id="obWeekendRefDate" onchange="onWeekendRefDateChange(this.value)" style="padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;text-align:center;">
+          </div>
+          <div style="margin-top:20px;text-align:center;">
+            <p style="font-weight:500;margin-bottom:8px;">האם יש ימי חול שמשתנים לפי הסופ״ש?</p>
+            <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:12px;">למשל: מי שהילדים אצלו בסופ״ש, ביום רביעי הם לא איתו</p>
+            <div class="custody-week" id="alternatingDaysPicker" style="grid-template-columns:repeat(5,1fr);max-width:350px;margin:0 auto;">
+              <button class="custody-day alt-day" data-day="0" onclick="toggleAlternatingDay(this)"><div class="day-name">א׳</div><div class="day-label">ראשון</div></button>
+              <button class="custody-day alt-day" data-day="1" onclick="toggleAlternatingDay(this)"><div class="day-name">ב׳</div><div class="day-label">שני</div></button>
+              <button class="custody-day alt-day" data-day="2" onclick="toggleAlternatingDay(this)"><div class="day-name">ג׳</div><div class="day-label">שלישי</div></button>
+              <button class="custody-day alt-day" data-day="3" onclick="toggleAlternatingDay(this)"><div class="day-name">ד׳</div><div class="day-label">רביעי</div></button>
+              <button class="custody-day alt-day" data-day="4" onclick="toggleAlternatingDay(this)"><div class="day-name">ה׳</div><div class="day-label">חמישי</div></button>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.75rem;margin-top:8px;">לחצ/י על ימים שמתחלפים (אפשר לדלג)</p>
+          </div>
+        </div>
+        <div id="weekendFixedQ" style="display:none;margin-top:16px;text-align:center;">
+          <div style="margin-bottom:16px;">
+            <p style="font-weight:500;margin-bottom:8px;">אילו ימי סופ״ש?</p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+              <button class="btn btn-secondary weekend-day-btn-fixed" data-wday="5" onclick="toggleWeekendDayFixed(this)" style="min-width:70px;">שישי</button>
+              <button class="btn btn-secondary weekend-day-btn-fixed" data-wday="6" onclick="toggleWeekendDayFixed(this)" style="min-width:70px;">שבת</button>
+            </div>
+          </div>
+          <p style="font-weight:500;margin-bottom:12px;">הילדים בסופ״ש תמיד אצל:</p>
+          <div style="display:flex;gap:12px;justify-content:center;">
+            <button class="btn btn-primary weekend-answer" onclick="setWeekendFixed('me')" style="min-width:80px;">אצלי</button>
+            <button class="btn btn-secondary weekend-answer" onclick="setWeekendFixed('partner')" style="min-width:80px;">אצל ההורה השני</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-actions">
+        <button class="btn btn-secondary" onclick="obBack()">חזרה</button>
+        <button class="btn btn-primary" onclick="obNext(3)">המשך</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Kids details -->
+    <div class="ob-step" id="obStep4">
+      <h2>פרטי הילדים</h2>
+      <div id="kidsContainer">
+        <!-- Kid cards will be added here -->
+      </div>
+      <button class="add-kid-btn" onclick="addKidCard()">+ הוספת ילד/ה</button>
+      <div class="ob-actions">
+        <button class="btn btn-secondary" onclick="obBack()">חזרה</button>
+        <button class="btn btn-primary" onclick="obNext(4)">סיום הרשמה</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Success + Family Code -->
+    <div class="ob-step" id="obStep5">
+      <div class="family-code-display">
+        <h2>ההרשמה הושלמה!</h2>
+        <p id="familyCodeMsg">הקוד המשפחתי שלכם:</p>
+        <div class="code" id="familyCodeValue"></div>
+        <p>שלחו את הקוד להורה השני כדי שיוכל להצטרף</p>
+        <button class="copy-btn" onclick="copyFamilyCode()">העתקת הקוד</button>
+        <div class="ob-actions" style="margin-top:30px;">
+          <button class="btn btn-primary" onclick="enterApp()" style="width:100%;">כניסה לאפליקציה ←</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div class="app-container" id="appContainer">
+
+  <!-- Mobile header -->
+  <div class="mobile-header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="mobile-logo">CoLink</div>
+    <div></div>
+  </div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-greeting">שלום</div>
+      <div class="sidebar-name" id="sidebarName"></div>
+      <div class="sidebar-date" id="sidebarDate"></div>
+      <div class="sidebar-family" id="sidebarFamily"></div>
+    </div>
+    <div class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">▦</span> דשבורד
+      </button>
+      <button class="nav-item" onclick="showPage('kids', this)">
+        <span class="nav-icon">◉</span> הילדים שלנו
+      </button>
+      <button class="nav-item" onclick="showPage('assignments', this)">
+        <span class="nav-icon">☐</span> משימות
+      </button>
+      <button class="nav-item" onclick="showPage('events', this)">
+        <span class="nav-icon">◆</span> אירועים
+      </button>
+      <button class="nav-item" onclick="showPage('custody', this)">
+        <span class="nav-icon">⇄</span> פרטי משמורת
+      </button>
+      <button class="nav-item" onclick="showPage('expenses', this)">
+        <span class="nav-icon">₪</span> הוצאות
+      </button>
+      <button class="nav-item" onclick="showPage('holidays', this)">
+        <span class="nav-icon">✡</span> חגים
+      </button>
+      <button class="nav-item" onclick="showPage('calendar', this)">
+        <span class="nav-icon">▣</span> יומן
+      </button>
+      <button class="nav-item" onclick="showPage('profile', this)">
+        <span class="nav-icon">○</span> הפרופיל שלי
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">← יציאה</button>
+    </div>
+  </nav>
+
+  <!-- Main content area -->
+  <main class="main-content">
+
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="dash-greeting" id="dashGreeting"></div>
+
+      <!-- Top row: custody today + next weekend -->
+      <div class="dash-top-row">
+        <div class="card dash-mini-card custody-today-card" id="custodyTodayCard">
+          <div class="custody-today-content" id="custodyTodayContent"></div>
+        </div>
+        <div class="card dash-mini-card" id="dashNextWeekend">
+          <div id="nextWeekendContent"></div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-chip" onclick="showPage('assignments', document.querySelectorAll('.nav-item')[2])">
+          <span class="stat-chip-icon purple" style="font-size:1.1rem;">▤</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statTodayTasks">0</span>
+            <span class="stat-chip-label">להיום</span>
+          </div>
+        </div>
+        <div class="stat-chip" onclick="showPage('assignments', document.querySelectorAll('.nav-item')[2])">
+          <span class="stat-chip-icon green" style="font-size:1.1rem;">☑</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statTotalTasks">0</span>
+            <span class="stat-chip-label">משימות</span>
+          </div>
+        </div>
+        <div class="stat-chip" onclick="openBirthdayTask()">
+          <span class="stat-chip-icon orange" style="font-size:1.1rem;">★</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statFriendsBirthday">0</span>
+            <span class="stat-chip-label">ימי הולדת חברים</span>
+          </div>
+          <span class="stat-chip-plus">+</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-icon pink" style="font-size:1.1rem;">♥</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statKidsBirthday">-</span>
+            <span class="stat-chip-label">יום הולדת הילדים</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today assignments checklist -->
+      <div class="card card-compact">
+        <div class="card-compact-header">
+          <h3>המשימות שלי</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">+</button>
+        </div>
+        <div id="dashTodayChecklist"></div>
+      </div>
+
+      <!-- Upcoming events -->
+      <div class="card card-compact">
+        <div class="card-compact-header">
+          <h3>אירועים קרובים</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+</button>
+        </div>
+        <div id="dashEvents"></div>
+      </div>
+
+      <!-- Card 9: Our kids -->
+      <div class="card">
+        <h3>הילדים שלנו</h3>
+        <div id="dashKids"></div>
+      </div>
+    </div>
+
+    <!-- Our Kids -->
+    <div class="page" id="page-kids">
+      <div class="page-header">
+        <h1>הילדים שלנו</h1>
+        <button class="btn btn-primary btn-sm" onclick="openKidModal()">+ הוספת ילד/ה</button>
+      </div>
+      <div id="kidsDisplay"></div>
+    </div>
+
+    <!-- Assignments -->
+    <div class="page" id="page-assignments">
+      <div class="page-header">
+        <h1>משימות</h1>
+        <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">+ משימה חדשה</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterTasks('all', this)">הכל</button>
+        <button class="tab-btn" onclick="filterTasks('pending', this)">ממתין</button>
+        <button class="tab-btn" onclick="filterTasks('inprocess', this)">בתהליך</button>
+        <button class="tab-btn" onclick="filterTasks('done', this)">בוצע</button>
+      </div>
+      <div id="tasksList"></div>
+    </div>
+
+    <!-- Events -->
+    <div class="page" id="page-events">
+      <div class="page-header">
+        <h1>אירועים</h1>
+        <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+ אירוע חדש</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterEvents('all', this)">הכל</button>
+        <button class="tab-btn" onclick="filterEvents('upcoming', this)">קרובים</button>
+        <button class="tab-btn" onclick="filterEvents('past', this)">עברו</button>
+      </div>
+      <div id="eventsList"></div>
+    </div>
+
+    <!-- Custody -->
+    <div class="page" id="page-custody">
+      <div class="page-header">
+        <h1>פרטי משמורת</h1>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('custodyChangeModal')">בקשת שינוי</button>
+      </div>
+      <div class="card">
+        <h3>ימי חול</h3>
+        <p id="custodyEditHint" style="font-size:0.82rem;color:var(--text-light);margin-bottom:12px;"></p>
+        <div class="custody-week" id="custodyDisplay" style="max-width:350px;grid-template-columns:repeat(5,1fr);"></div>
+        <div class="custody-legend" style="margin-top:12px;">
+          <span class="me">אצלי</span>
+          <span class="other">אצל ההורה השני</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>סידור סופ״ש</h3>
+        <div id="custodyWeekendEditor"></div>
+      </div>
+      <div class="card">
+        <h3>בקשות שינוי</h3>
+        <div id="custodyChangesList"></div>
+      </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="page" id="page-expenses">
+      <div class="page-header">
+        <h1>הוצאות וקיזוזים</h1>
+        <button class="btn btn-primary btn-sm" onclick="openModal('expenseModal')">+ הוצאה חדשה</button>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>פירוט</th>
+              <th>סכום</th>
+              <th>תאריך</th>
+              <th>קבלה</th>
+              <th>סטטוס</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="expensesTable"></tbody>
+        </table>
+        <div class="empty-state" id="expensesEmpty" style="display:none;">
+          <div class="empty-icon">—</div>
+          <p>אין הוצאות עדיין</p>
+        </div>
+      </div>
+      <div class="card" style="background: #F0EEFF;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;">סה״כ לקיזוז</h3>
+          <span style="font-size:1.5rem;font-weight:700;color:var(--primary);" id="totalExpenses">₪0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Holidays -->
+    <div class="page" id="page-holidays">
+      <div class="page-header">
+        <h1>חגים</h1>
+      </div>
+      <div class="card">
+        <h3>חגים קרובים - חגי ישראל תשפ״ו / 2026</h3>
+        <div id="holidaysList"></div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <h1>יומן</h1>
+      </div>
+      <div class="card">
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="changeMonth(-1)">→</button>
+          <h3 id="calMonthTitle"></h3>
+          <button class="cal-nav-btn" onclick="changeMonth(1)">←</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="custody-legend" style="margin-top:16px;">
+          <span class="me">אצלי</span>
+          <span class="other">אצל ההורה השני</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="page" id="page-profile">
+      <div class="page-header">
+        <h1>הפרופיל שלי</h1>
+      </div>
+      <div class="card">
+        <h3>פרטי התחברות</h3>
+        <div class="form-group">
+          <label>שם מלא</label>
+          <input type="text" id="profileName" readonly>
+        </div>
+        <div class="form-group">
+          <label>אימייל</label>
+          <input type="email" id="profileEmail" readonly dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>טלפון</label>
+          <input type="tel" id="profilePhone" readonly dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>תפקיד</label>
+          <input type="text" id="profileRole" readonly>
+        </div>
+      </div>
+      <div class="card">
+        <h3>קוד משפחה</h3>
+        <div style="text-align:center;">
+          <div class="code" id="profileFamilyCode" style="font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:8px;background:#F0EEFF;padding:16px 24px;border-radius:12px;display:inline-block;direction:ltr;"></div>
+          <br>
+          <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2>משימה חדשה</h2>
+    <div class="form-group">
+      <label>שם משימה <span class="required">*</span></label>
+      <input type="text" id="taskTitle" placeholder="מה צריך לעשות?">
+    </div>
+    <div class="form-group">
+      <label>תיאור</label>
+      <textarea id="taskDesc" rows="2" placeholder="פרטים נוספים..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>באחריות <span class="required">*</span></label>
+        <select id="taskRes" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="">בחר/י</option>
+          <option value="אמא">אמא</option>
+          <option value="אבא">אבא</option>
+          <option value="משותפת">משותפת</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>משימה עבור <span class="required">*</span></label>
+        <select id="taskFor" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="">בחר/י ילד/ה</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>עדיפות</label>
+        <select id="taskPriority" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="">בחר/י</option>
+          <option value="High">גבוהה</option>
+          <option value="Medium">בינונית</option>
+          <option value="Low">נמוכה</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>תאריך יעד <span class="required">*</span></label>
+        <input type="date" id="taskDate">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>קטגוריה <span class="required">*</span></label>
+        <select id="taskCategory" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="">בחר/י</option>
+          <option value="כללי">כללי</option>
+          <option value="רפואי">רפואי</option>
+          <option value="חינוך">חינוך</option>
+          <option value="לוגיסטיקה">לוגיסטיקה</option>
+          <option value="יום הולדת חבר/ה">יום הולדת חבר/ה</option>
+          <option value="יום הולדת של הילד">יום הולדת של הילד</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>סטטוס <span class="required">*</span></label>
+        <select id="taskStatus" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="pending">ממתין</option>
+          <option value="inprocess">בתהליך</option>
+          <option value="done">בוצע</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+      <input type="checkbox" id="taskRecurring" onchange="toggleRecurring()" style="width:18px;height:18px;">
+      <label for="taskRecurring" style="margin:0;">משימה חוזרת</label>
+    </div>
+    <div class="form-group" id="recurringFreqGroup" style="display:none;">
+      <label>תדירות משימה <span class="required">*</span></label>
+      <select id="taskRecurringFreq" onchange="toggleRecurringDays()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+        <option value="">בחר/י תדירות</option>
+        <option value="יומי">יומי</option>
+        <option value="שבועי">שבועי</option>
+        <option value="חודשי">חודשי</option>
+      </select>
+    </div>
+    <div class="form-group" id="recurringDaysGroup" style="display:none;">
+      <label>באילו ימים?</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        <label class="day-chip"><input type="checkbox" value="0" class="recurring-day-cb"><span>א׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="1" class="recurring-day-cb"><span>ב׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="2" class="recurring-day-cb"><span>ג׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="3" class="recurring-day-cb"><span>ד׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="4" class="recurring-day-cb"><span>ה׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="5" class="recurring-day-cb"><span>ו׳</span></label>
+        <label class="day-chip"><input type="checkbox" value="6" class="recurring-day-cb"><span>ש׳</span></label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addTask()">הוספה</button>
+      <button class="btn btn-secondary" onclick="closeModal('taskModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event Modal -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal">
+    <h2>אירוע חדש</h2>
+    <div class="form-group">
+      <label>שם האירוע <span class="required">*</span></label>
+      <input type="text" id="eventTitle" placeholder="שם האירוע">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>תאריך <span class="required">*</span></label>
+        <input type="date" id="eventDate">
+      </div>
+      <div class="form-group">
+        <label>שעה <span class="required">*</span></label>
+        <input type="time" id="eventTime">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>עבור ילד/ה <span class="required">*</span></label>
+      <select id="eventFor" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+        <option value="">בחר/י ילד/ה</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>מיקום</label>
+      <input type="text" id="eventLocation" placeholder="מיקום האירוע">
+    </div>
+    <div class="form-group">
+      <label>מה להביא? פרטים נוספים</label>
+      <textarea id="eventNotes" rows="2" placeholder="פרטים נוספים..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addEvent()">הוספה</button>
+      <button class="btn btn-secondary" onclick="closeModal('eventModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="expenseModal">
+  <div class="modal">
+    <h2>הוצאה חדשה</h2>
+    <div class="form-group">
+      <label>פירוט הוצאה <span class="required">*</span></label>
+      <input type="text" id="expenseDetails" placeholder="למה ההוצאה?">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>סכום <span class="required">*</span></label>
+        <input type="number" id="expenseAmount" placeholder="0" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>תאריך</label>
+        <input type="date" id="expenseDate">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>קבלה <span class="required">*</span></label>
+      <label class="file-input-label">
+        📎 צירוף קבלה
+        <input type="file" id="expenseInvoice" accept="image/*,.pdf">
+        <span id="invoiceFileName"></span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addExpense()">הוספה</button>
+      <button class="btn btn-secondary" onclick="closeModal('expenseModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custody Change Modal -->
+<div class="modal-overlay" id="custodyChangeModal">
+  <div class="modal">
+    <h2>בקשת שינוי משמורת</h2>
+    <div class="form-group">
+      <label>סוג הבקשה</label>
+      <select id="changeType" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+        <option value="swap">החלפת ימים</option>
+        <option value="change">שינוי זמני</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מתאריך</label>
+        <input type="date" id="changeFrom">
+      </div>
+      <div class="form-group">
+        <label>עד תאריך</label>
+        <input type="date" id="changeTo">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>סיבה / הערה</label>
+      <textarea id="changeReason" rows="3" placeholder="הסבירו את הבקשה..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addCustodyChange()">שליחת בקשה</button>
+      <button class="btn btn-secondary" onclick="closeModal('custodyChangeModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="kidModal">
+  <div class="modal">
+    <h2 id="kidModalTitle">הוספת ילד/ה</h2>
+    <input type="hidden" id="kidEditIndex" value="-1">
+    <input type="hidden" id="kidModalPhoto" value="">
+    <div class="kid-photo-upload">
+      <div class="kid-photo-preview empty" id="kidPhotoPreview" onclick="document.getElementById('kidPhotoInput').click()">
+        <span id="kidPhotoInitial">?</span>
+      </div>
+      <input type="file" id="kidPhotoInput" accept="image/*" style="display:none" onchange="handleKidPhoto(this)">
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="btn btn-secondary" style="padding:4px 12px;font-size:0.75rem;" onclick="document.getElementById('kidPhotoInput').click()">בחירת תמונה</button>
+        <button type="button" class="btn btn-secondary" style="padding:4px 12px;font-size:0.75rem;" onclick="removeKidPhoto()" id="kidPhotoRemoveBtn" hidden>הסרה</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם הילד/ה <span class="required">*</span></label>
+        <input type="text" id="kidModalName" placeholder="שם">
+      </div>
+      <div class="form-group">
+        <label>ת.ז <span class="required">*</span></label>
+        <input type="text" id="kidModalId" placeholder="מספר ת.ז" maxlength="9" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>תאריך לידה <span class="required">*</span></label>
+        <input type="date" id="kidModalDob">
+      </div>
+      <div class="form-group">
+        <label>מגדר <span class="required">*</span></label>
+        <select id="kidModalGender" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;">
+          <option value="">בחר/י</option>
+          <option value="בן">בן</option>
+          <option value="בת">בת</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>בית ספר <span class="required">*</span></label>
+        <input type="text" id="kidModalSchool" placeholder="שם בית הספר">
+      </div>
+      <div class="form-group">
+        <label>כיתה <span class="required">*</span></label>
+        <input type="text" id="kidModalClass" placeholder="כיתה">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>מורה <span class="required">*</span></label>
+      <input type="text" id="kidModalTeacher" placeholder="שם המורה">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>טלפון מורה</label>
+        <input type="tel" id="kidModalTeacherPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>אימייל מורה</label>
+        <input type="email" id="kidModalTeacherEmail" placeholder="email" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>שם צהרון</label>
+      <input type="text" id="kidModalTzaaron" placeholder="שם הצהרון">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם מדריכה צהרון</label>
+        <input type="text" id="kidModalTzaaronLead" placeholder="שם">
+      </div>
+      <div class="form-group">
+        <label>טלפון מדריכה</label>
+        <input type="tel" id="kidModalTzaaronLeadPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>אימייל מדריכה צהרון</label>
+      <input type="email" id="kidModalTzaaronLeadEmail" placeholder="email" dir="ltr">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveKid()">שמירה</button>
+      <button class="btn btn-secondary" onclick="closeModal('kidModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DATA STORE ============
+let appData = {
+  mode: '',
+  familyCode: '',
+  user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
+  custodyDays: [],
+  weekendMode: '',
+  weekendStartWithMe: null,
+  weekendStartDate: '',
+  weekendFixedWith: '',
+  weekendDays: [5, 6],
+  alternatingDays: [],
+  kids: [],
+  tasks: [],
+  events: [],
+  expenses: [],
+  custodyChanges: [],
+  holidayAssignments: {}
+};
+
+const HEB_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const HEB_DAYS_SHORT = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+const HOLIDAYS_2026 = [
+  { name: 'ראש השנה', date: '2025-09-22', endDate: '2025-09-24', heb: 'א׳-ג׳ תשרי תשפ״ו' },
+  { name: 'יום כיפור', date: '2025-10-01', heb: 'י׳ תשרי תשפ״ו' },
+  { name: 'סוכות', date: '2025-10-06', endDate: '2025-10-12', heb: 'ט״ו-כ״א תשרי תשפ״ו' },
+  { name: 'שמחת תורה', date: '2025-10-13', heb: 'כ״ב תשרי תשפ״ו' },
+  { name: 'חנוכה', date: '2025-12-14', endDate: '2025-12-22', heb: 'כ״ה כסלו - ב׳ טבת תשפ״ו' },
+  { name: 'ט״ו בשבט', date: '2026-02-09', heb: 'ט״ו בשבט תשפ״ו' },
+  { name: 'פורים', date: '2026-03-05', heb: 'י״ד אדר תשפ״ו' },
+  { name: 'פסח', date: '2026-04-01', endDate: '2026-04-08', heb: 'ט״ו-כ״ב ניסן תשפ״ו' },
+  { name: 'יום הזיכרון', date: '2026-04-21', heb: 'ג׳ אייר תשפ״ו' },
+  { name: 'יום העצמאות', date: '2026-04-22', heb: 'ד׳ אייר תשפ״ו' },
+  { name: 'ל״ג בעומר', date: '2026-05-12', heb: 'י״ח אייר תשפ״ו' },
+  { name: 'שבועות', date: '2026-05-21', heb: 'ו׳ סיוון תשפ״ו' },
+  { name: 'תשעה באב', date: '2026-07-12', heb: 'ט׳ באב תשפ״ו' },
+  { name: 'ראש השנה תשפ״ז', date: '2026-09-11', endDate: '2026-09-13', heb: 'א׳-ג׳ תשרי תשפ״ז' },
+  { name: 'יום כיפור תשפ״ז', date: '2026-09-20', heb: 'י׳ תשרי תשפ״ז' },
+  { name: 'סוכות תשפ״ז', date: '2026-09-25', endDate: '2026-10-01', heb: 'ט״ו-כ״א תשרי תשפ״ז' }
+];
+
+let currentObStep = 1;
+let currentCalMonth = new Date().getMonth();
+let currentCalYear = new Date().getFullYear();
+let currentTaskFilter = 'all';
+
+// ============ INIT ============
+function migrateData() {
+  const role = appData.user.role || 'אמא';
+  appData.tasks = appData.tasks.map(t => {
+    if (!t.status) {
+      t.status = t.done ? 'done' : 'pending';
+    }
+    if (!t.responsibility) {
+      if (t.assignee === 'me') t.responsibility = role;
+      else if (t.assignee === 'partner') t.responsibility = role === 'אמא' ? 'אבא' : 'אמא';
+      else t.responsibility = 'משותפת';
+    }
+    if (!t.forChild && appData.kids.length > 0) {
+      t.forChild = appData.kids[0].name;
+    }
+    if (!t.priority) t.priority = 'Medium';
+    if (!t.category) t.category = 'כללי';
+    if (t.recurring === undefined) t.recurring = false;
+    if (!t.recurringFreq) t.recurringFreq = '';
+    return t;
+  });
+  appData.events = appData.events.map(e => {
+    if (!e.forChild && appData.kids.length > 0) {
+      e.forChild = appData.kids[0].name;
+    }
+    return e;
+  });
+  if (!appData.holidayAssignments) appData.holidayAssignments = {};
+  if (!appData.custodyChanges) appData.custodyChanges = [];
+  if (!appData.weekendMode) appData.weekendMode = '';
+  if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
+  if (!appData.weekendStartDate) appData.weekendStartDate = '';
+  if (!appData.weekendFixedWith) appData.weekendFixedWith = '';
+  if (!appData.weekendDays || !appData.weekendDays.length) appData.weekendDays = [5, 6];
+  if (!appData.alternatingDays) appData.alternatingDays = [];
+  saveData();
+}
+
+function init() {
+  const saved = localStorage.getItem('colink_data');
+  if (saved) {
+    appData = JSON.parse(saved);
+    migrateData();
+    if (appData.user.name) {
+      document.getElementById('onboarding').classList.add('hidden');
+      document.getElementById('appContainer').classList.add('active');
+      updateApp();
+    }
+  }
+  addKidCard();
+  document.getElementById('expenseInvoice').addEventListener('change', function() {
+    document.getElementById('invoiceFileName').textContent = this.files[0] ? this.files[0].name : '';
+  });
+}
+
+function saveData() {
+  localStorage.setItem('colink_data', JSON.stringify(appData));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showConfetti() {
+  const colors = ['#6C63FF','#f472b6','#60a5fa','#34d399','#fbbf24','#f87171','#a78bfa'];
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;overflow:hidden;';
+  document.body.appendChild(container);
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    const size = Math.random() * 8 + 4;
+    const x = Math.random() * 100;
+    const delay = Math.random() * 0.5;
+    const dur = Math.random() * 1.5 + 1.5;
+    const rot = Math.random() * 360;
+    p.style.cssText = `position:absolute;top:-10px;left:${x}%;width:${size}px;height:${size * 0.6}px;background:${colors[i % colors.length]};border-radius:2px;transform:rotate(${rot}deg);animation:confettiFall ${dur}s ${delay}s ease-in forwards;`;
+    container.appendChild(p);
+  }
+  setTimeout(() => container.remove(), 3500);
+}
+
+// ============ ONBOARDING ============
+function selectMode(mode) {
+  appData.mode = mode;
+  document.querySelectorAll('.ob-choice-btn').forEach(b => b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  setTimeout(() => {
+    if (mode === 'join') {
+      document.getElementById('obPartnerEmailGroup').style.display = 'none';
+      document.getElementById('obFamilyCodeGroup').style.display = 'block';
+    } else {
+      document.getElementById('obPartnerEmailGroup').style.display = 'block';
+      document.getElementById('obFamilyCodeGroup').style.display = 'none';
+    }
+    goToObStep(2);
+  }, 300);
+}
+
+function goToObStep(step) {
+  currentObStep = step;
+  document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('obStep' + step).classList.add('active');
+
+  document.querySelectorAll('.ob-progress-dot').forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i + 1 === step) d.classList.add('active');
+    else if (i + 1 < step) d.classList.add('done');
+  });
+}
+
+function obNext(fromStep) {
+  if (fromStep === 2) {
+    const name = document.getElementById('obName').value.trim();
+    const email = document.getElementById('obEmail').value.trim();
+    const phone = document.getElementById('obPhone').value.trim();
+    const role = document.getElementById('obRole').value;
+
+    if (!name || !email || !phone || !role) {
+      showToast('נא למלא את כל השדות הנדרשים');
+      return;
+    }
+    if (phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+      showToast('מספר טלפון חייב להכיל 10 ספרות');
+      return;
+    }
+
+    appData.user.name = name;
+    appData.user.email = email;
+    appData.user.phone = phone;
+    appData.user.role = role;
+
+    if (appData.mode === 'new') {
+      const partnerEmail = document.getElementById('obPartnerEmail').value.trim();
+      if (!partnerEmail) { showToast('נא להזין אימייל ההורה השני'); return; }
+      appData.user.partnerEmail = partnerEmail;
+    } else {
+      const code = document.getElementById('obFamilyCode').value.trim();
+      if (!code) { showToast('נא להזין קוד משפחה'); return; }
+      appData.familyCode = code.toUpperCase();
+    }
+    goToObStep(3);
+  } else if (fromStep === 3) {
+    if (appData.custodyDays.length === 0) {
+      showToast('נא לבחור לפחות יום משמורת אחד');
+      return;
+    }
+    const wm = document.getElementById('obWeekendMode').value;
+    if (!wm) {
+      showToast('נא לבחור סוג סופ״ש');
+      document.getElementById('obWeekendMode').classList.add('error');
+      return;
+    }
+    document.getElementById('obWeekendMode').classList.remove('error');
+    appData.weekendMode = wm;
+    if (wm === 'alternating' && !appData.weekendStartDate) {
+      showToast('נא לבחור תאריך סופ״ש שבו הילדים אצלך');
+      return;
+    }
+    if (wm === 'fixed' && !appData.weekendFixedWith) {
+      showToast('נא לבחור אצל מי הילדים בסופ״ש');
+      return;
+    }
+    goToObStep(4);
+  } else if (fromStep === 4) {
+    const kids = collectKidsData();
+    if (!kids) return;
+    appData.kids = kids;
+
+    if (appData.mode === 'new') {
+      appData.familyCode = generateFamilyCode();
+    }
+
+    document.getElementById('familyCodeValue').textContent = appData.familyCode;
+    if (appData.mode === 'join') {
+      document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
+    }
+
+    saveData();
+    goToObStep(5);
+  }
+}
+
+function obBack() {
+  if (currentObStep > 1) {
+    goToObStep(currentObStep - 1);
+  }
+}
+
+function generateFamilyCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function copyFamilyCode() {
+  const code = appData.familyCode;
+  navigator.clipboard.writeText(code).then(() => showToast('הקוד הועתק'));
+}
+
+// Custody
+function toggleCustody(el) {
+  const day = parseInt(el.dataset.day);
+  if (el.classList.contains('mine')) {
+    el.classList.remove('mine');
+    appData.custodyDays = appData.custodyDays.filter(d => d !== day);
+  } else {
+    el.classList.add('mine');
+    if (!appData.custodyDays.includes(day)) appData.custodyDays.push(day);
+  }
+}
+
+// Weekend custody
+function onWeekendModeChange() {
+  const mode = document.getElementById('obWeekendMode').value;
+  document.getElementById('weekendAlternatingQ').style.display = mode === 'alternating' ? 'block' : 'none';
+  document.getElementById('weekendFixedQ').style.display = mode === 'fixed' ? 'block' : 'none';
+  appData.weekendMode = mode;
+  appData.weekendStartWithMe = null;
+  appData.weekendStartDate = '';
+  appData.weekendFixedWith = '';
+  appData.weekendDays = [5, 6];
+  appData.alternatingDays = [];
+  document.querySelectorAll('.weekend-answer').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.alt-day').forEach(b => b.classList.remove('mine'));
+  document.querySelectorAll('.weekend-day-btn, .weekend-day-btn-fixed').forEach(b => {
+    b.classList.remove('selected');
+    b.classList.add('selected');
+  });
+  const refDate = document.getElementById('obWeekendRefDate');
+  if (refDate) refDate.value = '';
+}
+
+function toggleWeekendDay(el) {
+  const day = parseInt(el.dataset.wday);
+  el.classList.toggle('selected');
+  const days = [];
+  document.querySelectorAll('.weekend-day-btn.selected').forEach(b => days.push(parseInt(b.dataset.wday)));
+  if (days.length > 0) appData.weekendDays = days;
+}
+
+function toggleWeekendDayFixed(el) {
+  const day = parseInt(el.dataset.wday);
+  el.classList.toggle('selected');
+  const days = [];
+  document.querySelectorAll('.weekend-day-btn-fixed.selected').forEach(b => days.push(parseInt(b.dataset.wday)));
+  if (days.length > 0) appData.weekendDays = days;
+}
+
+function onWeekendRefDateChange(val) {
+  if (!val) return;
+  const d = new Date(val);
+  const dow = d.getDay();
+  if (dow !== 5) {
+    const diff = (5 - dow + 7) % 7;
+    d.setDate(d.getDate() + (diff === 0 ? 0 : diff > 3 ? diff - 7 : diff));
+  }
+  appData.weekendStartDate = d.toISOString().split('T')[0];
+  appData.weekendStartWithMe = true;
+  document.getElementById('obWeekendRefDate').value = appData.weekendStartDate;
+}
+
+function setWeekendFixed(who) {
+  appData.weekendFixedWith = who;
+  const wDays = appData.weekendDays || [5, 6];
+  appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
+  if (who === 'me') {
+    wDays.forEach(d => appData.custodyDays.push(d));
+  }
+  const btns = document.querySelectorAll('#weekendFixedQ .weekend-answer');
+  btns.forEach(b => b.classList.remove('selected'));
+  btns[who === 'me' ? 0 : 1].classList.add('selected');
+}
+
+function toggleAlternatingDay(el) {
+  const day = parseInt(el.dataset.day);
+  if (el.classList.contains('mine')) {
+    el.classList.remove('mine');
+    appData.alternatingDays = appData.alternatingDays.filter(d => d !== day);
+  } else {
+    el.classList.add('mine');
+    if (!appData.alternatingDays.includes(day)) appData.alternatingDays.push(day);
+  }
+}
+
+function isWeekendMine(date) {
+  if (!appData.weekendMode) return appData.custodyDays.includes(5) && appData.custodyDays.includes(6);
+  if (appData.weekendMode === 'fixed') return appData.weekendFixedWith === 'me';
+  if (appData.weekendMode === 'other') return false;
+  if (appData.weekendMode === 'alternating' && appData.weekendStartDate) {
+    const start = new Date(appData.weekendStartDate);
+    const target = new Date(date);
+    const diffDays = Math.round((target - start) / (1000 * 60 * 60 * 24));
+    const weeksDiff = Math.floor(diffDays / 7);
+    return appData.weekendStartWithMe ? (weeksDiff % 2 === 0) : (weeksDiff % 2 !== 0);
+  }
+  return false;
+}
+
+function getFridayOfWeek(dateStr) {
+  const d = new Date(dateStr);
+  const dow = d.getDay();
+  d.setDate(d.getDate() + (dow === 6 ? -1 : (5 - dow)));
+  return d.toISOString().split('T')[0];
+}
+
+function isDayMine(dayOfWeek, dateStr) {
+  const wDays = appData.weekendDays || [5, 6];
+  if (wDays.includes(dayOfWeek)) {
+    if (appData.weekendMode === 'alternating') return isWeekendMine(getFridayOfWeek(dateStr));
+    if (appData.weekendMode === 'fixed') return appData.weekendFixedWith === 'me';
+  }
+  if (appData.alternatingDays && appData.alternatingDays.includes(dayOfWeek)) {
+    return !isWeekendMine(getFridayOfWeek(dateStr));
+  }
+  return appData.custodyDays.includes(dayOfWeek);
+}
+
+// Kids
+let kidCounter = 0;
+function addKidCard() {
+  kidCounter++;
+  const container = document.getElementById('kidsContainer');
+  const div = document.createElement('div');
+  div.className = 'kid-card';
+  div.id = 'kid-' + kidCounter;
+  div.innerHTML = `
+    <div class="kid-card-header">
+      <h3>ילד/ה ${kidCounter}</h3>
+      ${kidCounter > 1 ? '<button class="remove-kid-btn" onclick="this.closest(\'.kid-card\').remove()">✕</button>' : ''}
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם הילד/ה <span class="required">*</span></label>
+        <input type="text" class="kid-name" placeholder="שם">
+      </div>
+      <div class="form-group">
+        <label>ת.ז <span class="required">*</span></label>
+        <input type="text" class="kid-id" placeholder="מספר ת.ז" maxlength="9" dir="ltr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>תאריך לידה <span class="required">*</span></label>
+        <input type="date" class="kid-dob">
+      </div>
+      <div class="form-group">
+        <label>מגדר <span class="required">*</span></label>
+        <select class="kid-gender" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+          <option value="">בחר/י</option>
+          <option value="בן">בן</option>
+          <option value="בת">בת</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>בית ספר <span class="required">*</span></label>
+        <input type="text" class="kid-school" placeholder="שם בית הספר">
+      </div>
+      <div class="form-group">
+        <label>כיתה <span class="required">*</span></label>
+        <input type="text" class="kid-class" placeholder="כיתה">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>מורה <span class="required">*</span></label>
+      <input type="text" class="kid-teacher" placeholder="שם המורה">
+    </div>
+    <div class="collapsible-section">
+      <button class="collapsible-toggle" onclick="toggleCollapsible(this)">▼ פרטים נוספים (צהרון, מורה...)</button>
+      <div class="collapsible-content">
+        <div class="form-row">
+          <div class="form-group">
+            <label>טלפון מורה</label>
+            <input type="tel" class="kid-teacherPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
+          </div>
+          <div class="form-group">
+            <label>אימייל מורה</label>
+            <input type="email" class="kid-teacherEmail" placeholder="email" dir="ltr">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>שם צהרון</label>
+          <input type="text" class="kid-tzaaron" placeholder="שם הצהרון">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>שם מדריכה צהרון</label>
+            <input type="text" class="kid-tzaaronLead" placeholder="שם">
+          </div>
+          <div class="form-group">
+            <label>טלפון מדריכה</label>
+            <input type="tel" class="kid-tzaaronLeadPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>אימייל מדריכה צהרון</label>
+          <input type="email" class="kid-tzaaronLeadEmail" placeholder="email" dir="ltr">
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function toggleCollapsible(btn) {
+  const content = btn.nextElementSibling;
+  content.classList.toggle('open');
+  btn.textContent = content.classList.contains('open') ? '▲ הסתרת פרטים נוספים' : '▼ פרטים נוספים (צהרון, מורה...)';
+}
+
+function collectKidsData() {
+  const cards = document.querySelectorAll('.kid-card');
+  if (cards.length === 0) {
+    showToast('נא להוסיף לפחות ילד/ה אחד/ת');
+    return null;
+  }
+  const kids = [];
+  for (const card of cards) {
+    const fields = [
+      { el: card.querySelector('.kid-name'), val: card.querySelector('.kid-name').value.trim() },
+      { el: card.querySelector('.kid-id'), val: card.querySelector('.kid-id').value.trim() },
+      { el: card.querySelector('.kid-dob'), val: card.querySelector('.kid-dob').value },
+      { el: card.querySelector('.kid-gender'), val: card.querySelector('.kid-gender').value },
+      { el: card.querySelector('.kid-school'), val: card.querySelector('.kid-school').value.trim() },
+      { el: card.querySelector('.kid-class'), val: card.querySelector('.kid-class').value.trim() },
+      { el: card.querySelector('.kid-teacher'), val: card.querySelector('.kid-teacher').value.trim() }
+    ];
+
+    card.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+    let hasError = false;
+    for (const f of fields) {
+      if (!f.val) {
+        f.el.classList.add('error');
+        hasError = true;
+      }
+    }
+    if (hasError) {
+      showToast('נא למלא את כל השדות המסומנים באדום');
+      const firstError = card.querySelector('.error');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    const id = fields[1].val;
+    if (!/^\d{9}$/.test(id)) {
+      fields[1].el.classList.add('error');
+      showToast('ת.ז חייב להכיל 9 ספרות');
+      fields[1].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    if (kids.some(k => k.id === id)) {
+      fields[1].el.classList.add('error');
+      showToast('ת.ז כבר קיימת עבור ילד/ה אחר/ת');
+      fields[1].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    kids.push({
+      name: fields[0].val, id, dob: fields[2].val, gender: fields[3].val,
+      school: fields[4].val, class: fields[5].val, teacher: fields[6].val,
+      teacherPhone: card.querySelector('.kid-teacherPhone')?.value || '',
+      teacherEmail: card.querySelector('.kid-teacherEmail')?.value || '',
+      tzaaron: card.querySelector('.kid-tzaaron')?.value || '',
+      tzaaronLead: card.querySelector('.kid-tzaaronLead')?.value || '',
+      tzaaronLeadPhone: card.querySelector('.kid-tzaaronLeadPhone')?.value || '',
+      tzaaronLeadEmail: card.querySelector('.kid-tzaaronLeadEmail')?.value || ''
+    });
+  }
+  return kids;
+}
+
+// ============ ENTER APP ============
+function enterApp() {
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('appContainer').classList.add('active');
+  updateApp();
+}
+
+function populateKidSelects() {
+  const selects = ['taskFor', 'eventFor'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = el.value;
+    el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
+      (appData.kids.length > 1 ? '<option value="__all__">כל הילדים</option>' : '') +
+      appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+    el.value = val;
+  });
+}
+
+function toggleRecurring() {
+  const checked = document.getElementById('taskRecurring').checked;
+  document.getElementById('recurringFreqGroup').style.display = checked ? 'block' : 'none';
+}
+
+let currentEventFilter = 'all';
+
+function filterEvents(filter, btn) {
+  currentEventFilter = filter;
+  document.querySelectorAll('#page-events .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEvents();
+}
+
+function updateApp() {
+  populateKidSelects();
+  updateSidebar();
+  updateDashboard();
+  renderKids();
+  renderTasks();
+  renderEvents();
+  renderCustody();
+  renderExpenses();
+  renderHolidays();
+  renderCalendar();
+  renderProfile();
+}
+
+function updateSidebar() {
+  document.getElementById('sidebarName').textContent = appData.user.name;
+
+  const now = new Date();
+  const dayName = HEB_DAYS[now.getDay()];
+  const dateStr = `יום ${dayName}, ${now.getDate()} ${HEB_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('sidebarDate').textContent = dateStr;
+
+  const familyName = appData.user.name.split(' ').pop();
+  document.getElementById('sidebarFamily').textContent = `משפחת ${familyName}`;
+}
+
+// ============ PAGES ============
+function showPage(page, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  if (page === 'calendar') renderCalendar();
+
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============ CUSTODY TODAY ============
+function renderCustodyToday() {
+  const container = document.getElementById('custodyTodayContent');
+  const card = document.getElementById('custodyTodayCard');
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const todayISO = today.toISOString().split('T')[0];
+  const isMyCustody = isDayMine(dayOfWeek, todayISO);
+  const role = appData.user.role;
+
+  let parentLabel;
+  if (isMyCustody) {
+    parentLabel = role === 'אמא' ? 'אצל אמא' : role === 'אבא' ? 'אצל אבא' : 'אצלי';
+  } else {
+    if (role === 'אמא') parentLabel = 'אצל אבא';
+    else if (role === 'אבא') parentLabel = 'אצל אמא';
+    else parentLabel = 'ההורה השני';
+  }
+
+  const cssClass = isMyCustody ? 'with-me' : 'with-partner';
+  card.classList.remove('with-me', 'with-partner');
+  card.classList.add(cssClass);
+
+  container.innerHTML = `
+    <div class="custody-today-icon ${cssClass}">
+      ${isMyCustody ? '⌂' : '⇄'}
+    </div>
+    <div class="custody-today-info">
+      <div class="custody-today-label">הילדים היום</div>
+      <div class="custody-today-status">${parentLabel}</div>
+    </div>
+  `;
+}
+
+// ============ DASHBOARD ============
+function getMyRole() {
+  return appData.user.role;
+}
+
+function isMyTask(t) {
+  const role = getMyRole();
+  return t.responsibility === role || t.responsibility === 'משותפת';
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function openBirthdayTask() {
+  openModal('taskModal');
+  setTimeout(() => {
+    const catSelect = document.getElementById('taskCategory');
+    if (catSelect) catSelect.value = 'יום הולדת חבר/ה';
+  }, 100);
+}
+
+function updateDashboard() {
+  renderCustodyToday();
+
+  // Greeting
+  const firstName = appData.user.name ? appData.user.name.split(' ')[0] : '';
+  document.getElementById('dashGreeting').innerHTML = `שלום <span>${appData.user.name || ''}</span>`;
+  const now = new Date();
+  const todayStr = getTodayStr();
+
+  // Card 2: Next Weekend (compact)
+  const nextWeekendCard = document.getElementById('dashNextWeekend');
+  const nextWeekendContent = document.getElementById('nextWeekendContent');
+  const role = getMyRole();
+  const partnerLabel = role === 'אמא' ? 'אבא' : role === 'אבא' ? 'אמא' : 'ההורה השני';
+
+  const nextFri = new Date(now);
+  const dow = now.getDay();
+  nextFri.setDate(now.getDate() + ((5 - dow + 7) % 7 || 7));
+  if (dow === 5 || dow === 6) nextFri.setDate(now.getDate() + (dow === 5 ? 0 : 6));
+  const nextFriStr = nextFri.toISOString().split('T')[0];
+
+  const weekendMine = isWeekendMine(nextFriStr);
+  let weekendLabel, weekendIcon, weekendClass;
+  if (appData.weekendMode === 'other') {
+    weekendLabel = 'לא הוגדר';
+    weekendIcon = '?'; weekendClass = 'split';
+  } else if (weekendMine) {
+    weekendLabel = role === 'אמא' ? 'אצל אמא' : role === 'אבא' ? 'אצל אבא' : 'אצלי';
+    weekendIcon = '⌂'; weekendClass = 'with-me';
+  } else {
+    weekendLabel = 'אצל ' + partnerLabel;
+    weekendIcon = '⇄'; weekendClass = 'with-partner';
+  }
+  nextWeekendCard.className = 'card dash-mini-card weekend-' + (weekendMine ? 'me' : 'partner');
+  nextWeekendContent.innerHTML = `
+    <div class="custody-today-content">
+      <div class="custody-today-icon ${weekendClass}">
+        ${weekendIcon}
+      </div>
+      <div class="custody-today-info">
+        <div class="custody-today-label">סופ״ש הקרוב</div>
+        <div class="custody-today-status">${weekendLabel}</div>
+      </div>
+    </div>
+  `;
+
+  // Card 3: Today Assignments count (for my role)
+  const todayTasks = appData.tasks.filter(t => t.date === todayStr && isMyTask(t) && t.status !== 'done');
+  document.getElementById('statTodayTasks').textContent = todayTasks.length;
+
+  // Card 4: Total Assignments count (for my role, not done)
+  const totalTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done');
+  document.getElementById('statTotalTasks').textContent = totalTasks.length;
+
+  // Card 5: Friends Birthday count
+  const friendsBday = appData.tasks.filter(t => t.category === 'יום הולדת חבר/ה' && t.status !== 'done');
+  document.getElementById('statFriendsBirthday').textContent = friendsBday.length;
+
+  // Card 6: Kids Birthday (30 days before)
+  const kidsBdayEl = document.getElementById('statKidsBirthday');
+  const upcomingBdays = appData.kids.filter(kid => {
+    if (!kid.dob) return false;
+    const bday = new Date(kid.dob);
+    const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
+    if (thisYearBday < now) thisYearBday.setFullYear(now.getFullYear() + 1);
+    const diff = (thisYearBday - now) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 30;
+  });
+  if (upcomingBdays.length > 0) {
+    kidsBdayEl.textContent = upcomingBdays.map(k => k.name).join(', ');
+    kidsBdayEl.style.fontSize = '0.9rem';
+  } else {
+    kidsBdayEl.textContent = '-';
+    kidsBdayEl.style.fontSize = '';
+  }
+
+  // Card 7: All my assignments checklist
+  const dashChecklist = document.getElementById('dashTodayChecklist');
+  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (myTodayTasks.length === 0) {
+    dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
+  } else {
+    dashChecklist.innerHTML = myTodayTasks.map(t => {
+      const isDone = t.status === 'done';
+      return `
+        <div class="list-item">
+          <div class="list-item-check ${isDone ? 'checked' : ''}" onclick="toggleTaskStatus(${t.id})">
+            ${isDone ? '✓' : ''}
+          </div>
+          <div class="list-item-content">
+            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}</div>
+            <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Card 8: Upcoming events (current month)
+  const dashEvents = document.getElementById('dashEvents');
+  const monthEvents = appData.events.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && d >= new Date(now.toDateString());
+  }).sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (monthEvents.length === 0) {
+    dashEvents.innerHTML = '<div class="empty-state"><p>אין אירועים החודש</p></div>';
+  } else {
+    dashEvents.innerHTML = monthEvents.map(e => {
+      const done = e.completed;
+      return `
+      <div class="list-item" style="${done ? 'opacity:0.5;' : ''}">
+        <div class="list-item-check ${done ? 'checked' : ''}" onclick="toggleEventComplete(${e.id})" style="cursor:pointer;min-width:28px;height:28px;border-radius:50%;border:2px solid ${done ? 'var(--primary)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;background:${done ? 'var(--primary)' : 'transparent'};color:#fff;font-size:0.85rem;">
+          ${done ? '✓' : ''}
+        </div>
+        <div class="list-item-content">
+          <div class="list-item-title" style="${done ? 'text-decoration:line-through;' : ''}">${e.title}</div>
+          <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
+        </div>
+      </div>
+    `}).join('');
+  }
+
+  // Card 9: Our kids
+  const dashKids = document.getElementById('dashKids');
+  if (appData.kids.length === 0) {
+    dashKids.innerHTML = '<div class="empty-state"><p>לא נוספו ילדים</p></div>';
+  } else {
+    dashKids.style.display = 'flex';
+    dashKids.style.gap = '12px';
+    dashKids.style.overflowX = 'auto';
+    dashKids.style.paddingBottom = '4px';
+    dashKids.innerHTML = appData.kids.map(kid => {
+      const age = calculateAge(kid.dob);
+      const kidTasks = appData.tasks.filter(t => t.forChild === kid.name && t.status !== 'done').length;
+      const grad = kid.gender === 'בת' ? 'linear-gradient(135deg,#f472b6,#ec4899)' : 'linear-gradient(135deg,#60a5fa,#3b82f6)';
+      const initial = kid.name ? kid.name.charAt(0) : '?';
+      const avatarContent = kid.photo
+        ? `<img src="${kid.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+        : `<div style="width:48px;height:48px;border-radius:50%;background:${grad};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;">${initial}</div>`;
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex-shrink:0;gap:6px;padding:8px 4px;">
+          ${avatarContent}
+          <div style="font-weight:600;font-size:0.85rem;text-align:center;white-space:nowrap;">${kid.name}</div>
+          <div style="font-size:0.7rem;color:var(--text-light);text-align:center;white-space:nowrap;">גיל ${age}</div>
+          <div style="background:var(--primary-light);color:var(--primary);font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:10px;">${kidTasks} משימות</div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function toggleTaskStatus(id) {
+  const task = appData.tasks.find(t => t.id === id);
+  if (task) {
+    const wasPending = task.status !== 'done';
+    task.status = task.status === 'done' ? 'pending' : 'done';
+    saveData();
+    renderTasks();
+    updateDashboard();
+    if (wasPending) showConfetti();
+  }
+}
+
+function getPriorityLabel(p) {
+  if (p === 'High') return 'גבוהה';
+  if (p === 'Medium') return 'בינונית';
+  if (p === 'Low') return 'נמוכה';
+  return '';
+}
+
+function getCategoryIcon(c) {
+  return '';
+}
+
+function getStatusLabel(s) {
+  if (s === 'pending') return 'ממתין';
+  if (s === 'inprocess') return 'בתהליך';
+  if (s === 'done') return 'בוצע';
+  return s;
+}
+
+function getStatusBadgeClass(s) {
+  if (s === 'pending') return 'badge-pending';
+  if (s === 'inprocess') return 'badge-new';
+  if (s === 'done') return 'badge-approved';
+  return '';
+}
+
+// ============ KIDS ============
+function renderKids() {
+  const container = document.getElementById('kidsDisplay');
+  if (appData.kids.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>לא נוספו ילדים</p></div>';
+    return;
+  }
+  container.innerHTML = appData.kids.map((kid, idx) => {
+    const age = calculateAge(kid.dob);
+    const genderClass = kid.gender === 'בן' ? 'boy' : 'girl';
+    const initials = kid.name.charAt(0);
+    const avatarContent = kid.photo
+      ? `<img src="${kid.photo}" alt="${kid.name}">`
+      : initials;
+    return `
+      <div class="kid-profile">
+        <div class="kid-avatar ${genderClass}">${avatarContent}</div>
+        <div class="kid-info">
+          <h4>${kid.name}</h4>
+          <div>
+            <span class="kid-detail">גיל ${age}</span>
+            <span class="kid-detail">${kid.school}</span>
+            <span class="kid-detail">כיתה ${kid.class}</span>
+            <span class="kid-detail">${kid.teacher}</span>
+          </div>
+          ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${kid.tzaaron}</span></div>` : ''}
+        </div>
+        <div class="kid-actions" style="display:flex;gap:6px;align-self:flex-start;">
+          <button class="icon-btn" onclick="openKidModal(${idx})" title="עריכה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;">✎</button>
+          <button class="icon-btn" onclick="deleteKid(${idx})" title="מחיקה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;color:#e74c3c;">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openKidModal(idx) {
+  const isEdit = idx !== undefined && idx >= 0;
+  document.getElementById('kidModalTitle').textContent = isEdit ? 'עריכת פרטי ילד/ה' : 'הוספת ילד/ה';
+  document.getElementById('kidEditIndex').value = isEdit ? idx : -1;
+  const fields = ['Name','Id','Dob','Gender','School','Class','Teacher','TeacherPhone','TeacherEmail','Tzaaron','TzaaronLead','TzaaronLeadPhone','TzaaronLeadEmail'];
+  const keys = ['name','id','dob','gender','school','class','teacher','teacherPhone','teacherEmail','tzaaron','tzaaronLead','tzaaronLeadPhone','tzaaronLeadEmail'];
+  if (isEdit) {
+    const kid = appData.kids[idx];
+    fields.forEach((f, i) => { document.getElementById('kidModal' + f).value = kid[keys[i]] || ''; });
+    document.getElementById('kidModalPhoto').value = kid.photo || '';
+    updateKidPhotoPreview(kid.photo, kid.name, kid.gender);
+  } else {
+    fields.forEach(f => { document.getElementById('kidModal' + f).value = ''; });
+    document.getElementById('kidModalPhoto').value = '';
+    updateKidPhotoPreview('', '', '');
+  }
+  document.getElementById('kidPhotoInput').value = '';
+  openModal('kidModal');
+}
+
+function updateKidPhotoPreview(photo, name, gender) {
+  const preview = document.getElementById('kidPhotoPreview');
+  const initial = document.getElementById('kidPhotoInitial');
+  const removeBtn = document.getElementById('kidPhotoRemoveBtn');
+  preview.classList.remove('boy','girl','empty');
+  if (photo) {
+    preview.innerHTML = `<img src="${photo}" alt="">`;
+    preview.classList.add(gender === 'בן' ? 'boy' : 'girl');
+    removeBtn.hidden = false;
+  } else {
+    const ch = name ? name.charAt(0) : '?';
+    preview.innerHTML = `<span id="kidPhotoInitial">${ch}</span>`;
+    preview.classList.add(gender === 'בן' ? 'boy' : gender === 'בת' ? 'girl' : 'empty');
+    removeBtn.hidden = true;
+  }
+}
+
+function handleKidPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 500000) {
+    showToast('התמונה גדולה מדי (מקסימום 500KB)');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const size = 128;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('kidModalPhoto').value = dataUrl;
+      const gender = document.getElementById('kidModalGender').value;
+      const name = document.getElementById('kidModalName').value;
+      updateKidPhotoPreview(dataUrl, name, gender);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeKidPhoto() {
+  document.getElementById('kidModalPhoto').value = '';
+  document.getElementById('kidPhotoInput').value = '';
+  const name = document.getElementById('kidModalName').value;
+  const gender = document.getElementById('kidModalGender').value;
+  updateKidPhotoPreview('', name, gender);
+}
+
+function saveKid() {
+  const name = document.getElementById('kidModalName').value.trim();
+  const id = document.getElementById('kidModalId').value.trim();
+  const dob = document.getElementById('kidModalDob').value;
+  const gender = document.getElementById('kidModalGender').value;
+  const school = document.getElementById('kidModalSchool').value.trim();
+  const cls = document.getElementById('kidModalClass').value.trim();
+  const teacher = document.getElementById('kidModalTeacher').value.trim();
+  if (!name || !id || !dob || !gender || !school || !cls || !teacher) {
+    showToast('נא למלא את כל השדות המסומנים');
+    return;
+  }
+  if (!/^\d{9}$/.test(id)) {
+    showToast('ת.ז חייבת להכיל 9 ספרות');
+    return;
+  }
+  const editIdx = parseInt(document.getElementById('kidEditIndex').value);
+  const duplicate = appData.kids.some((k, i) => k.id === id && i !== editIdx);
+  if (duplicate) {
+    showToast('ת.ז כבר קיימת עבור ילד/ה אחר/ת');
+    return;
+  }
+  const kidData = {
+    name, id, dob, gender, school, class: cls, teacher,
+    photo: document.getElementById('kidModalPhoto').value || '',
+    teacherPhone: document.getElementById('kidModalTeacherPhone').value.trim(),
+    teacherEmail: document.getElementById('kidModalTeacherEmail').value.trim(),
+    tzaaron: document.getElementById('kidModalTzaaron').value.trim(),
+    tzaaronLead: document.getElementById('kidModalTzaaronLead').value.trim(),
+    tzaaronLeadPhone: document.getElementById('kidModalTzaaronLeadPhone').value.trim(),
+    tzaaronLeadEmail: document.getElementById('kidModalTzaaronLeadEmail').value.trim()
+  };
+  if (editIdx >= 0) {
+    appData.kids[editIdx] = kidData;
+    showToast('פרטי הילד/ה עודכנו');
+  } else {
+    appData.kids.push(kidData);
+    showToast('ילד/ה נוספ/ה בהצלחה');
+  }
+  saveData();
+  renderKids();
+  populateKidSelects();
+  closeModal('kidModal');
+}
+
+function deleteKid(idx) {
+  if (!confirm('למחוק את ' + appData.kids[idx].name + '?')) return;
+  appData.kids.splice(idx, 1);
+  saveData();
+  renderKids();
+  populateKidSelects();
+  showToast('ילד/ה הוסר/ה');
+}
+
+function calculateAge(dob) {
+  const birth = new Date(dob);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+// ============ TASKS ============
+function addTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  const desc = document.getElementById('taskDesc').value.trim();
+  const res = document.getElementById('taskRes').value;
+  const forChild = document.getElementById('taskFor').value;
+  const priority = document.getElementById('taskPriority').value;
+  const date = document.getElementById('taskDate').value;
+  const category = document.getElementById('taskCategory').value;
+  const status = document.getElementById('taskStatus').value;
+  const recurring = document.getElementById('taskRecurring').checked;
+  const recurringFreq = document.getElementById('taskRecurringFreq').value;
+
+  if (!title || !res || !forChild || !date || !category) {
+    showToast('נא למלא את כל השדות הנדרשים');
+    return;
+  }
+  if (recurring && !recurringFreq) {
+    showToast('נא לבחור תדירות למשימה חוזרת');
+    return;
+  }
+
+  const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
+  children.forEach((child, i) => {
+    appData.tasks.push({
+      id: Date.now() + i,
+      title, desc, responsibility: res, forChild: child, priority, date, category, status,
+      recurring, recurringFreq: recurring ? recurringFreq : '',
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  saveData();
+  closeModal('taskModal');
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskRes').value = '';
+  document.getElementById('taskFor').value = '';
+  document.getElementById('taskPriority').value = '';
+  document.getElementById('taskDate').value = '';
+  document.getElementById('taskCategory').value = '';
+  document.getElementById('taskStatus').value = 'pending';
+  document.getElementById('taskRecurring').checked = false;
+  document.getElementById('recurringFreqGroup').style.display = 'none';
+  renderTasks();
+  updateDashboard();
+  showToast('משימה נוספה בהצלחה ✅');
+}
+
+function changeTaskStatus(id, newStatus) {
+  const task = appData.tasks.find(t => t.id === id);
+  if (task) { task.status = newStatus; saveData(); renderTasks(); updateDashboard(); }
+}
+
+function deleteTask(id) {
+  appData.tasks = appData.tasks.filter(t => t.id !== id);
+  saveData(); renderTasks(); updateDashboard();
+}
+
+function filterTasks(filter, btn) {
+  currentTaskFilter = filter;
+  document.querySelectorAll('#page-assignments .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTasks();
+}
+
+function renderTasks() {
+  const container = document.getElementById('tasksList');
+  let tasks = [...appData.tasks];
+
+  if (currentTaskFilter === 'pending') tasks = tasks.filter(t => t.status === 'pending');
+  else if (currentTaskFilter === 'inprocess') tasks = tasks.filter(t => t.status === 'inprocess');
+  else if (currentTaskFilter === 'done') tasks = tasks.filter(t => t.status === 'done');
+
+  tasks.sort((a, b) => {
+    const order = { 'done': 2, 'inprocess': 1, 'pending': 0 };
+    return (order[a.status] || 0) - (order[b.status] || 0) || new Date(a.date) - new Date(b.date);
+  });
+
+  if (tasks.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>אין משימות</p></div>';
+    return;
+  }
+
+  container.innerHTML = tasks.map(t => {
+    const isDone = t.status === 'done';
+    return `
+      <div class="list-item">
+        <div class="list-item-check ${isDone ? 'checked' : ''}" onclick="toggleTaskStatus(${t.id})">
+          ${isDone ? '✓' : ''}
+        </div>
+        <div class="list-item-content">
+          <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}</div>
+          <div class="list-item-meta">
+            ${getCategoryIcon(t.category)} ${t.category || ''} · ${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${formatDate(t.date)}
+            ${t.recurring ? ' · 🔁 ' + t.recurringFreq : ''}
+          </div>
+          <div class="list-item-meta">👤 ${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span></div>
+        </div>
+        <div class="list-item-actions">
+          <select onchange="changeTaskStatus(${t.id}, this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;">
+            <option value="pending" ${t.status==='pending'?'selected':''}>ממתין</option>
+            <option value="inprocess" ${t.status==='inprocess'?'selected':''}>בתהליך</option>
+            <option value="done" ${t.status==='done'?'selected':''}>בוצע</option>
+          </select>
+          <button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============ EVENTS ============
+function addEvent() {
+  const title = document.getElementById('eventTitle').value.trim();
+  const date = document.getElementById('eventDate').value;
+  const time = document.getElementById('eventTime').value;
+  const forChild = document.getElementById('eventFor').value;
+
+  if (!title || !date || !time || !forChild) {
+    showToast('נא למלא שם, תאריך, שעה ועבור מי');
+    return;
+  }
+
+  appData.events.push({
+    id: Date.now(),
+    title, date, time, forChild,
+    location: document.getElementById('eventLocation').value.trim(),
+    notes: document.getElementById('eventNotes').value.trim()
+  });
+
+  saveData();
+  closeModal('eventModal');
+  document.getElementById('eventTitle').value = '';
+  document.getElementById('eventDate').value = '';
+  document.getElementById('eventTime').value = '';
+  document.getElementById('eventFor').value = '';
+  document.getElementById('eventLocation').value = '';
+  document.getElementById('eventNotes').value = '';
+  renderEvents();
+  updateDashboard();
+  showToast('אירוע נוסף בהצלחה');
+}
+
+function deleteEvent(id) {
+  appData.events = appData.events.filter(e => e.id !== id);
+  saveData(); renderEvents(); updateDashboard();
+}
+
+function renderEvents() {
+  const container = document.getElementById('eventsList');
+  let events = [...appData.events].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const now = new Date();
+
+  if (currentEventFilter === 'upcoming') events = events.filter(e => new Date(e.date) >= new Date(now.toDateString()));
+  else if (currentEventFilter === 'past') events = events.filter(e => new Date(e.date) < new Date(now.toDateString()));
+
+  if (events.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>אין אירועים</p></div>';
+    return;
+  }
+
+  container.innerHTML = events.map(e => {
+    const isPast = new Date(e.date) < now;
+    const done = e.completed;
+    return `
+      <div class="list-item" style="${done ? 'opacity:0.5;' : isPast ? 'opacity:0.6;' : ''}">
+        <div class="list-item-check ${done ? 'checked' : ''}" onclick="toggleEventComplete(${e.id})" style="cursor:pointer;min-width:28px;height:28px;border-radius:50%;border:2px solid ${done ? 'var(--primary)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;background:${done ? 'var(--primary)' : 'transparent'};color:#fff;font-size:0.85rem;">
+          ${done ? '✓' : ''}
+        </div>
+        <div class="list-item-content">
+          <div class="list-item-title" style="${done ? 'text-decoration:line-through;' : ''}">${e.title}</div>
+          <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
+          ${e.notes ? `<div class="list-item-meta">${e.notes}</div>` : ''}
+        </div>
+        <div class="list-item-actions">
+          <button class="icon-btn" onclick="deleteEvent(${e.id})" title="מחיקה">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleEventComplete(id) {
+  const ev = appData.events.find(e => e.id === id);
+  if (!ev) return;
+  ev.completed = !ev.completed;
+  saveData();
+  renderEvents();
+  updateDashboard();
+  if (ev.completed) showConfetti();
+}
+
+// ============ CUSTODY ============
+function renderCustody() {
+  const container = document.getElementById('custodyDisplay');
+  const canEdit = appData.mode === 'new';
+  const weekdays = [
+    {i:0, short:'א׳', full:'ראשון'},
+    {i:1, short:'ב׳', full:'שני'},
+    {i:2, short:'ג׳', full:'שלישי'},
+    {i:3, short:'ד׳', full:'רביעי'},
+    {i:4, short:'ה׳', full:'חמישי'}
+  ];
+  const hint = document.getElementById('custodyEditHint');
+  if (hint) hint.textContent = canEdit ? 'לחצ/י על יום כדי לשנות' : 'רק ההורה שהקים את המשפחה יכול לערוך';
+
+  container.innerHTML = weekdays.map(d => {
+    const isMine = appData.custodyDays.includes(d.i);
+    return `
+      <button class="custody-day ${isMine ? 'mine' : ''}" ${canEdit ? `onclick="toggleCustodyEdit(${d.i}, this)"` : 'disabled style="opacity:0.7;cursor:default;"'}>
+        <div class="day-name">${d.short}</div>
+        <div class="day-label">${d.full}</div>
+      </button>
+    `;
+  }).join('');
+
+  renderWeekendEditor();
+  renderCustodyChanges();
+}
+
+function toggleCustodyEdit(day, el) {
+  if (el.classList.contains('mine')) {
+    el.classList.remove('mine');
+    appData.custodyDays = appData.custodyDays.filter(d => d !== day);
+  } else {
+    el.classList.add('mine');
+    if (!appData.custodyDays.includes(day)) appData.custodyDays.push(day);
+  }
+  saveData();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function renderWeekendEditor() {
+  const container = document.getElementById('custodyWeekendEditor');
+  const canEdit = appData.mode === 'new';
+  const mode = appData.weekendMode || '';
+  const weekdays = [
+    {i:0, short:'א׳', full:'ראשון'},
+    {i:1, short:'ב׳', full:'שני'},
+    {i:2, short:'ג׳', full:'שלישי'},
+    {i:3, short:'ד׳', full:'רביעי'},
+    {i:4, short:'ה׳', full:'חמישי'}
+  ];
+  const wDays = appData.weekendDays || [5, 6];
+  const hasFri = wDays.includes(5);
+  const hasSat = wDays.includes(6);
+  const dis = canEdit ? '' : 'disabled';
+
+  let html = `
+    <div class="form-group" style="max-width:250px;">
+      <label>סוג סופ״ש</label>
+      <select id="editWeekendMode" onchange="updateWeekendMode(this.value)" ${dis} style="width:100%;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;${canEdit?'':'opacity:0.7;'}">
+        <option value="" ${mode===''?'selected':''}>לא הוגדר</option>
+        <option value="alternating" ${mode==='alternating'?'selected':''}>משתנה</option>
+        <option value="fixed" ${mode==='fixed'?'selected':''}>קבוע</option>
+        <option value="other" ${mode==='other'?'selected':''}>אחר</option>
+      </select>
+    </div>
+  `;
+
+  if (mode === 'alternating' || mode === 'fixed') {
+    html += `
+      <div style="margin-top:12px;">
+        <label style="font-size:0.85rem;font-weight:500;">ימי סופ״ש</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn btn-sm ${hasFri ? 'btn-primary' : 'btn-secondary'}" ${canEdit ? 'onclick="toggleWeekendDayEdit(5)"' : dis} style="min-width:60px;${canEdit?'':'opacity:0.7;cursor:default;'}">שישי</button>
+          <button class="btn btn-sm ${hasSat ? 'btn-primary' : 'btn-secondary'}" ${canEdit ? 'onclick="toggleWeekendDayEdit(6)"' : dis} style="min-width:60px;${canEdit?'':'opacity:0.7;cursor:default;'}">שבת</button>
+        </div>
+      </div>
+    `;
+  }
+
+  if (mode === 'alternating') {
+    html += `
+      <div style="margin-top:12px;">
+        <label style="font-size:0.85rem;font-weight:500;">תאריך שישי שהילדים אצלך</label>
+        <input type="date" id="editWeekendRef" value="${appData.weekendStartDate || ''}" ${canEdit ? 'onchange="updateWeekendRef(this.value)"' : dis} style="margin-top:6px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;${canEdit?'':'opacity:0.7;'}">
+      </div>
+      <div style="margin-top:12px;">
+        <label style="font-size:0.85rem;font-weight:500;">ימי חול שמתחלפים עם הסופ״ש</label>
+        <p style="font-size:0.75rem;color:var(--text-light);margin:4px 0 8px;">מי שהילדים אצלו בסופ״ש, באותם ימים הם לא איתו</p>
+        <div class="custody-week" style="grid-template-columns:repeat(5,1fr);max-width:350px;">
+          ${weekdays.map(d => `<button class="custody-day alt-day-edit ${(appData.alternatingDays||[]).includes(d.i)?'mine':''}" data-day="${d.i}" ${canEdit ? `onclick="toggleAltDayEdit(${d.i}, this)"` : `disabled style="opacity:0.7;cursor:default;"`}><div class="day-name">${d.short}</div><div class="day-label">${d.full}</div></button>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (mode === 'fixed') {
+    const who = appData.weekendFixedWith || '';
+    html += `
+      <div style="margin-top:12px;">
+        <label style="font-size:0.85rem;font-weight:500;">הילדים בסופ״ש תמיד אצל</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn btn-sm ${who==='me'?'btn-primary':'btn-secondary'}" ${canEdit ? `onclick="updateWeekendFixed('me')"` : dis} style="${canEdit?'':'opacity:0.7;cursor:default;'}">אצלי</button>
+          <button class="btn btn-sm ${who==='partner'?'btn-primary':'btn-secondary'}" ${canEdit ? `onclick="updateWeekendFixed('partner')"` : dis} style="${canEdit?'':'opacity:0.7;cursor:default;'}">אצל ההורה השני</button>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function updateWeekendMode(mode) {
+  appData.weekendMode = mode;
+  if (mode !== 'alternating') {
+    appData.weekendStartDate = '';
+    appData.weekendStartWithMe = null;
+    appData.alternatingDays = [];
+  }
+  if (mode !== 'fixed') {
+    appData.weekendFixedWith = '';
+    appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
+  }
+  saveData();
+  renderWeekendEditor();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function toggleWeekendDayEdit(day) {
+  const wDays = appData.weekendDays || [5, 6];
+  const idx = wDays.indexOf(day);
+  if (idx >= 0 && wDays.length > 1) {
+    wDays.splice(idx, 1);
+  } else if (idx < 0) {
+    wDays.push(day);
+  }
+  appData.weekendDays = wDays;
+  saveData();
+  renderWeekendEditor();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function updateWeekendRef(val) {
+  if (!val) return;
+  const d = new Date(val);
+  const dow = d.getDay();
+  if (dow !== 5) {
+    d.setDate(d.getDate() + (dow === 6 ? -1 : (5 - dow)));
+  }
+  appData.weekendStartDate = d.toISOString().split('T')[0];
+  appData.weekendStartWithMe = true;
+  const input = document.getElementById('editWeekendRef');
+  if (input) input.value = appData.weekendStartDate;
+  saveData();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function updateWeekendFixed(who) {
+  appData.weekendFixedWith = who;
+  const wDays = appData.weekendDays || [5, 6];
+  appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
+  if (who === 'me') wDays.forEach(d => appData.custodyDays.push(d));
+  saveData();
+  renderWeekendEditor();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function toggleAltDayEdit(day, el) {
+  if (!appData.alternatingDays) appData.alternatingDays = [];
+  const idx = appData.alternatingDays.indexOf(day);
+  if (idx >= 0) {
+    appData.alternatingDays.splice(idx, 1);
+    el.classList.remove('mine');
+  } else {
+    appData.alternatingDays.push(day);
+    el.classList.add('mine');
+  }
+  saveData();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function addCustodyChange() {
+  const from = document.getElementById('changeFrom').value;
+  const to = document.getElementById('changeTo').value;
+  const reason = document.getElementById('changeReason').value.trim();
+  const type = document.getElementById('changeType').value;
+
+  if (!from || !to) { showToast('נא למלא תאריכים'); return; }
+
+  appData.custodyChanges.push({
+    id: Date.now(),
+    type,
+    from, to, reason,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  });
+
+  saveData();
+  closeModal('custodyChangeModal');
+  document.getElementById('changeFrom').value = '';
+  document.getElementById('changeTo').value = '';
+  document.getElementById('changeReason').value = '';
+  renderCustodyChanges();
+  showToast('בקשת שינוי נשלחה 📝');
+}
+
+function renderCustodyChanges() {
+  const container = document.getElementById('custodyChangesList');
+  if (appData.custodyChanges.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>אין בקשות שינוי</p></div>';
+    return;
+  }
+
+  container.innerHTML = appData.custodyChanges.map(c => {
+    const statusClass = c.status === 'pending' ? 'badge-pending' : c.status === 'approved' ? 'badge-approved' : 'badge-rejected';
+    const statusLabel = c.status === 'pending' ? 'ממתין' : c.status === 'approved' ? 'אושר' : 'נדחה';
+    const typeLabel = c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+    return `
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-title">${typeLabel}</div>
+          <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+        </div>
+        <span class="badge ${statusClass}">${statusLabel}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============ EXPENSES ============
+function addExpense() {
+  const details = document.getElementById('expenseDetails').value.trim();
+  const amount = parseFloat(document.getElementById('expenseAmount').value);
+  const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
+  const invoice = document.getElementById('expenseInvoice').files[0];
+
+  if (!details || !amount) { showToast('נא למלא פירוט וסכום'); return; }
+  if (!invoice) { showToast('נא לצרף קבלה'); return; }
+
+  appData.expenses.push({
+    id: Date.now(),
+    details,
+    amount,
+    date,
+    invoiceName: invoice.name,
+    status: 'pending'
+  });
+
+  saveData();
+  closeModal('expenseModal');
+  document.getElementById('expenseDetails').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseDate').value = '';
+  document.getElementById('expenseInvoice').value = '';
+  document.getElementById('invoiceFileName').textContent = '';
+  renderExpenses();
+  updateDashboard();
+  showToast('הוצאה נוספה');
+  notifyPartnerExpense(details, amount, date);
+}
+
+function notifyPartnerExpense(details, amount, date) {
+  const partnerEmail = appData.user.partnerEmail;
+  if (!partnerEmail) return;
+  const name = appData.user.name || '';
+  const subject = encodeURIComponent(`CoLink - בקשת אישור הוצאה חדשה`);
+  const body = encodeURIComponent(`שלום,\n\n${name} הוסיף/ה הוצאה חדשה בCoLink:\n\nפירוט: ${details}\nסכום: ₪${amount.toLocaleString()}\nתאריך: ${date}\n\nנא להיכנס לאפליקציה לאשר או לדחות.\n\nCoLink`);
+  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
+}
+
+function updateExpenseStatus(id, status) {
+  const expense = appData.expenses.find(e => e.id === id);
+  if (expense) { expense.status = status; saveData(); renderExpenses(); }
+}
+
+function renderExpenses() {
+  const tbody = document.getElementById('expensesTable');
+  const empty = document.getElementById('expensesEmpty');
+
+  if (appData.expenses.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = appData.expenses.map(e => {
+    const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
+    const statusLabel = e.status === 'pending' ? 'ממתין' : e.status === 'approved' ? 'מאושר' : 'נדחה';
+    return `
+      <tr>
+        <td>${e.details}</td>
+        <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
+        <td>${formatDate(e.date)}</td>
+        <td>📎 ${e.invoiceName || 'קבלה'}</td>
+        <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+        <td>
+          <div class="expense-status">
+            <button class="${e.status === 'approved' ? 'active-approve' : ''}" onclick="updateExpenseStatus(${e.id},'approved')">✓</button>
+            <button class="${e.status === 'rejected' ? 'active-reject' : ''}" onclick="updateExpenseStatus(${e.id},'rejected')">✕</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const total = appData.expenses.filter(e => e.status === 'approved').reduce((s, e) => s + e.amount, 0);
+  document.getElementById('totalExpenses').textContent = '₪' + total.toLocaleString();
+}
+
+// ============ HOLIDAYS ============
+function renderHolidays() {
+  const container = document.getElementById('holidaysList');
+  const now = new Date();
+  const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 30)).slice(0, 12);
+
+  container.innerHTML = upcoming.map(h => {
+    const assignment = appData.holidayAssignments[h.name] || 'unset';
+    const isPast = new Date(h.endDate || h.date) < now;
+    return `
+      <div class="holiday-card" style="${isPast ? 'opacity:0.5;' : ''}">
+        <div class="holiday-info">
+          <h4>${h.name}</h4>
+          <p>${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''} · ${h.heb}</p>
+        </div>
+        <select onchange="setHolidayAssignment('${h.name}', this.value)"
+          style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
+          <option value="unset" ${assignment === 'unset' ? 'selected' : ''}>לא הוגדר</option>
+          <option value="me" ${assignment === 'me' ? 'selected' : ''}>אצלי</option>
+          <option value="partner" ${assignment === 'partner' ? 'selected' : ''}>אצל ההורה השני</option>
+          <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
+        </select>
+      </div>
+    `;
+  }).join('');
+}
+
+function setHolidayAssignment(name, value) {
+  appData.holidayAssignments[name] = value;
+  saveData();
+}
+
+// ============ CALENDAR ============
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const title = document.getElementById('calMonthTitle');
+  title.textContent = `${HEB_MONTHS[currentCalMonth]} ${currentCalYear}`;
+
+  const firstDay = new Date(currentCalYear, currentCalMonth, 1);
+  const lastDay = new Date(currentCalYear, currentCalMonth + 1, 0);
+  const startDayOfWeek = firstDay.getDay();
+  const today = new Date();
+
+  // Day names
+  let html = HEB_DAYS_SHORT.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+  // Empty cells before first day
+  for (let i = 0; i < startDayOfWeek; i++) {
+    html += '<div class="cal-day empty"></div>';
+  }
+
+  // Days
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(currentCalYear, currentCalMonth, d);
+    const dayOfWeek = date.getDay();
+    const isToday = d === today.getDate() && currentCalMonth === today.getMonth() && currentCalYear === today.getFullYear();
+    const dateStr = `${currentCalYear}-${String(currentCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isMyCustody = isDayMine(dayOfWeek, dateStr);
+    const holiday = HOLIDAYS_2026.find(h => {
+      const start = h.date;
+      const end = h.endDate || h.date;
+      return dateStr >= start && dateStr <= end;
+    });
+
+    let classes = 'cal-day';
+    if (isMyCustody) classes += ' custody-me';
+    else classes += ' custody-partner';
+    if (isToday) classes += ' today';
+    if (holiday) classes += ' holiday';
+
+    html += `<div class="${classes}" title="${holiday ? holiday.name : ''}">
+      ${d}
+      ${holiday ? '<div class="holiday-dot"></div>' : ''}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+  currentCalMonth += delta;
+  if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+  if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+  renderCalendar();
+}
+
+// ============ PROFILE ============
+function renderProfile() {
+  document.getElementById('profileName').value = appData.user.name;
+  document.getElementById('profileEmail').value = appData.user.email;
+  document.getElementById('profilePhone').value = appData.user.phone;
+  document.getElementById('profileRole').value = appData.user.role;
+  document.getElementById('profileFamilyCode').textContent = appData.familyCode;
+}
+
+// ============ UTILS ============
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function openModal(id) {
+  populateKidSelects();
+  document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function logout() {
+  localStorage.removeItem('colink_data');
+  location.reload();
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+});
+
+// Init
+init();
+
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
