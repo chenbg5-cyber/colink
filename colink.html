@@ -1527,6 +1527,15 @@
         <div id="dashEvents"></div>
       </div>
 
+      <!-- Pending custody requests -->
+      <div class="card card-compact" id="dashCustodyRequestsCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>בקשות משמורת ממתינות</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('custody', document.querySelectorAll('.nav-item')[4])">צפייה</button>
+        </div>
+        <div id="dashCustodyRequests"></div>
+      </div>
+
       <!-- Card 9: Our kids -->
       <div class="card">
         <h3>הילדים שלנו</h3>
@@ -1912,6 +1921,21 @@
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addCustodyChange()">שליחת בקשה</button>
       <button class="btn btn-secondary" onclick="closeModal('custodyChangeModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="custodyInfoModal">
+  <div class="modal">
+    <h2>פרטים נוספים</h2>
+    <input type="hidden" id="custodyInfoId" value="">
+    <div class="form-group">
+      <label>מה עוד צריך לדעת?</label>
+      <textarea id="custodyInfoNote" rows="3" placeholder="פרטו מה חסר..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="sendCustodyInfoRequest()">שליחה</button>
+      <button class="btn btn-secondary" onclick="closeModal('custodyInfoModal')">ביטול</button>
     </div>
   </div>
 </div>
@@ -2837,6 +2861,33 @@ function updateDashboard() {
       `;
     }).join('');
   }
+
+  // Pending custody requests for me to review
+  const custodyCard = document.getElementById('dashCustodyRequestsCard');
+  const custodyContainer = document.getElementById('dashCustodyRequests');
+  const myRole = getMyRole();
+  const pendingForMe = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
+  if (pendingForMe.length === 0) {
+    custodyCard.style.display = 'none';
+  } else {
+    custodyCard.style.display = '';
+    custodyContainer.innerHTML = pendingForMe.map(c => {
+      const typeLabel = c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+      return `
+        <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <div>
+            <div class="list-item-title">${typeLabel}</div>
+            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="respondCustodyChange(${c.id},'approved')">אישור</button>
+            <button class="btn btn-sm" style="background:#D63031;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="respondCustodyChange(${c.id},'rejected')">דחייה</button>
+            <button class="btn btn-sm" style="background:#FDCB6E;color:#2D3436;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="openCustodyInfoModal(${c.id})">פרטים נוספים</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 function toggleTaskStatus(id) {
@@ -3499,7 +3550,9 @@ function addCustodyChange() {
     id: Date.now(),
     type,
     from, to, reason,
+    requestedBy: getMyRole(),
     status: 'pending',
+    responseNote: '',
     createdAt: new Date().toISOString()
   });
 
@@ -3509,7 +3562,9 @@ function addCustodyChange() {
   document.getElementById('changeTo').value = '';
   document.getElementById('changeReason').value = '';
   renderCustodyChanges();
-  showToast('בקשת שינוי נשלחה 📝');
+  updateDashboard();
+  showToast('בקשת שינוי נשלחה');
+  notifyPartnerCustodyChange(type, from, to, reason);
 }
 
 function renderCustodyChanges() {
@@ -3519,20 +3574,107 @@ function renderCustodyChanges() {
     return;
   }
 
+  const myRole = getMyRole();
   container.innerHTML = appData.custodyChanges.map(c => {
-    const statusClass = c.status === 'pending' ? 'badge-pending' : c.status === 'approved' ? 'badge-approved' : 'badge-rejected';
-    const statusLabel = c.status === 'pending' ? 'ממתין' : c.status === 'approved' ? 'אושר' : 'נדחה';
+    const statusMap = {
+      pending: { cls: 'badge-pending', label: 'ממתין לאישור' },
+      approved: { cls: 'badge-approved', label: 'אושר' },
+      rejected: { cls: 'badge-rejected', label: 'נדחה' },
+      info: { cls: 'badge-pending', label: 'נדרש פרטים נוספים' }
+    };
+    const st = statusMap[c.status] || statusMap.pending;
     const typeLabel = c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+    const isMine = c.requestedBy === myRole;
+    const requester = isMine ? 'הבקשה שלי' : 'בקשה מההורה השני';
+
+    let actionsHtml = '';
+    if (!isMine && c.status === 'pending') {
+      actionsHtml = `
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-family:inherit;cursor:pointer;" onclick="respondCustodyChange(${c.id},'approved')">אישור</button>
+          <button class="btn btn-sm" style="background:#D63031;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-family:inherit;cursor:pointer;" onclick="respondCustodyChange(${c.id},'rejected')">דחייה</button>
+          <button class="btn btn-sm" style="background:#FDCB6E;color:#2D3436;border:none;padding:6px 14px;border-radius:8px;font-family:inherit;cursor:pointer;" onclick="openCustodyInfoModal(${c.id})">נדרש פרטים נוספים</button>
+        </div>`;
+    }
+    if (isMine && c.status === 'info' && c.responseNote) {
+      actionsHtml = `<div style="margin-top:6px;padding:8px 12px;background:#FFF3E0;border-radius:8px;font-size:0.82rem;color:#E17055;">הערת ההורה השני: ${c.responseNote}</div>`;
+    }
+
     return `
-      <div class="list-item">
-        <div class="list-item-content">
-          <div class="list-item-title">${typeLabel}</div>
-          <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+      <div class="list-item" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="list-item-content" style="flex:1;">
+            <div class="list-item-title">${typeLabel}</div>
+            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+            <div class="list-item-meta" style="font-size:0.75rem;color:var(--text-light);">${requester}</div>
+          </div>
+          <span class="badge ${st.cls}">${st.label}</span>
         </div>
-        <span class="badge ${statusClass}">${statusLabel}</span>
+        ${actionsHtml}
       </div>
     `;
   }).join('');
+}
+
+function respondCustodyChange(id, status) {
+  const change = appData.custodyChanges.find(c => c.id === id);
+  if (!change) return;
+  change.status = status;
+  change.respondedAt = new Date().toISOString();
+  saveData();
+  renderCustodyChanges();
+  updateDashboard();
+  const label = status === 'approved' ? 'אושרה' : 'נדחתה';
+  showToast(`הבקשה ${label}`);
+  if (status === 'approved') showConfetti();
+  notifyPartnerCustodyResponse(change, status);
+}
+
+function openCustodyInfoModal(id) {
+  document.getElementById('custodyInfoId').value = id;
+  document.getElementById('custodyInfoNote').value = '';
+  openModal('custodyInfoModal');
+}
+
+function sendCustodyInfoRequest() {
+  const id = parseInt(document.getElementById('custodyInfoId').value);
+  const note = document.getElementById('custodyInfoNote').value.trim();
+  if (!note) { showToast('נא לכתוב מה חסר'); return; }
+  const change = appData.custodyChanges.find(c => c.id === id);
+  if (!change) return;
+  change.status = 'info';
+  change.responseNote = note;
+  change.respondedAt = new Date().toISOString();
+  saveData();
+  closeModal('custodyInfoModal');
+  renderCustodyChanges();
+  updateDashboard();
+  showToast('בקשה לפרטים נוספים נשלחה');
+  notifyPartnerCustodyResponse(change, 'info', note);
+}
+
+function notifyPartnerCustodyChange(type, from, to, reason) {
+  const partnerEmail = appData.user.partnerEmail;
+  if (!partnerEmail) return;
+  const name = appData.user.name || '';
+  const typeLabel = type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+  const subject = encodeURIComponent('CoLink - בקשת שינוי משמורת חדשה');
+  const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה בקשת שינוי משמורת:\n\nסוג: ${typeLabel}\nמתאריך: ${from}\nעד: ${to}\n${reason ? 'סיבה: ' + reason : ''}\n\nנא להיכנס לאפליקציה לאשר, לדחות, או לבקש פרטים נוספים.\n\nCoLink`);
+  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
+}
+
+function notifyPartnerCustodyResponse(change, status, note) {
+  const partnerEmail = appData.user.partnerEmail;
+  if (!partnerEmail) return;
+  const name = appData.user.name || '';
+  const typeLabel = change.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+  const statusLabel = status === 'approved' ? 'אושרה' : status === 'rejected' ? 'נדחתה' : 'נדרשים פרטים נוספים';
+  const subject = encodeURIComponent(`CoLink - בקשת שינוי משמורת ${statusLabel}`);
+  let bodyText = `שלום,\n\n${name} הגיב/ה לבקשת שינוי המשמורת שלך:\n\nסוג: ${typeLabel}\nתאריכים: ${change.from} - ${change.to}\nסטטוס: ${statusLabel}`;
+  if (note) bodyText += `\nהערה: ${note}`;
+  bodyText += '\n\nנא להיכנס לאפליקציה.\n\nCoLink';
+  const body = encodeURIComponent(bodyText);
+  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
 }
 
 // ============ EXPENSES ============
