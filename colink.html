@@ -1266,9 +1266,15 @@
     <!-- Step 2: Personal details -->
     <div class="ob-step" id="obStep2">
       <h2>פרטים אישיים</h2>
-      <div class="form-group">
-        <label>שם מלא <span class="required">*</span></label>
-        <input type="text" id="obName" placeholder="שם פרטי ומשפחה">
+      <div class="form-row">
+        <div class="form-group">
+          <label>שם פרטי <span class="required">*</span></label>
+          <input type="text" id="obFirstName" placeholder="שם פרטי">
+        </div>
+        <div class="form-group">
+          <label>שם משפחה <span class="required">*</span></label>
+          <input type="text" id="obLastName" placeholder="שם משפחה">
+        </div>
       </div>
       <div class="form-group">
         <label>אימייל <span class="required">*</span></label>
@@ -1693,9 +1699,15 @@
       </div>
       <div class="card">
         <h3>פרטי התחברות</h3>
-        <div class="form-group">
-          <label>שם מלא</label>
-          <input type="text" id="profileName" readonly>
+        <div class="form-row">
+          <div class="form-group">
+            <label>שם פרטי</label>
+            <input type="text" id="profileFirstName" readonly>
+          </div>
+          <div class="form-group">
+            <label>שם משפחה</label>
+            <input type="text" id="profileLastName" readonly>
+          </div>
         </div>
         <div class="form-group">
           <label>אימייל</label>
@@ -2231,12 +2243,13 @@ function goToObStep(step) {
 
 function obNext(fromStep) {
   if (fromStep === 2) {
-    const name = document.getElementById('obName').value.trim();
+    const firstName = document.getElementById('obFirstName').value.trim();
+    const lastName = document.getElementById('obLastName').value.trim();
     const email = document.getElementById('obEmail').value.trim();
     const phone = document.getElementById('obPhone').value.trim();
     const role = document.getElementById('obRole').value;
 
-    if (!name || !email || !phone || !role) {
+    if (!firstName || !lastName || !email || !phone || !role) {
       showToast('נא למלא את כל השדות הנדרשים');
       return;
     }
@@ -2245,7 +2258,9 @@ function obNext(fromStep) {
       return;
     }
 
-    appData.user.name = name;
+    appData.user.firstName = firstName;
+    appData.user.lastName = lastName;
+    appData.user.name = firstName + ' ' + lastName;
     appData.user.email = email;
     appData.user.phone = phone;
     appData.user.role = role;
@@ -2675,14 +2690,14 @@ function updateApp() {
 }
 
 function updateSidebar() {
-  document.getElementById('sidebarName').textContent = appData.user.name;
+  document.getElementById('sidebarName').textContent = appData.user.firstName || appData.user.name || '';
 
   const now = new Date();
   const dayName = HEB_DAYS[now.getDay()];
   const dateStr = `יום ${dayName}, ${now.getDate()} ${HEB_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('sidebarDate').textContent = dateStr;
 
-  const familyName = appData.user.name.split(' ').pop();
+  const familyName = appData.user.lastName || appData.user.name.split(' ').pop();
   document.getElementById('sidebarFamily').textContent = `משפחת ${familyName}`;
 }
 
@@ -2770,8 +2785,8 @@ function updateDashboard() {
   renderCustodyToday();
 
   // Greeting
-  const firstName = appData.user.name ? appData.user.name.split(' ')[0] : '';
-  document.getElementById('dashGreeting').innerHTML = `שלום <span>${appData.user.name || ''}</span>`;
+  const firstName = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
+  document.getElementById('dashGreeting').innerHTML = `שלום <span>${firstName}</span>`;
   const now = new Date();
   const todayStr = getTodayStr();
 
@@ -3968,7 +3983,8 @@ function changeMonth(delta) {
 
 // ============ PROFILE ============
 function renderProfile() {
-  document.getElementById('profileName').value = appData.user.name;
+  document.getElementById('profileFirstName').value = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
+  document.getElementById('profileLastName').value = appData.user.lastName || (appData.user.name ? appData.user.name.split(' ').slice(1).join(' ') : '');
   document.getElementById('profileEmail').value = appData.user.email;
   document.getElementById('profilePhone').value = appData.user.phone;
   document.getElementById('profileRole').value = appData.user.role;
