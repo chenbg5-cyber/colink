@@ -1618,8 +1618,11 @@
             <tr>
               <th>פירוט</th>
               <th>סכום</th>
+              <th>קיזוז</th>
+              <th>ילד/ה</th>
               <th>תאריך</th>
               <th>קבלה</th>
+              <th>מבקש/ת</th>
               <th>סטטוס</th>
               <th>פעולות</th>
             </tr>
@@ -1631,9 +1634,23 @@
           <p>אין הוצאות עדיין</p>
         </div>
       </div>
-      <div class="card" style="background: #F0EEFF;">
+      <div id="expenseSummaryCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="card" style="background:#E6FFF8;">
+          <div style="text-align:center;">
+            <div style="font-size:0.85rem;color:#00B894;font-weight:600;">מגיע לי</div>
+            <div style="font-size:1.4rem;font-weight:700;color:#00B894;" id="totalOwedToMe">₪0</div>
+          </div>
+        </div>
+        <div class="card" style="background:#FFE8E8;">
+          <div style="text-align:center;">
+            <div style="font-size:0.85rem;color:#D63031;font-weight:600;">אני חייב/ת</div>
+            <div style="font-size:1.4rem;font-weight:700;color:#D63031;" id="totalIOwe">₪0</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="background:#F0EEFF;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="margin:0;">סה״כ לקיזוז</h3>
+          <h3 style="margin:0;">מאזן</h3>
           <span style="font-size:1.5rem;font-weight:700;color:var(--primary);" id="totalExpenses">₪0</span>
         </div>
       </div>
@@ -1868,14 +1885,35 @@
       <label>פירוט הוצאה <span class="required">*</span></label>
       <input type="text" id="expenseDetails" placeholder="למה ההוצאה?">
     </div>
+    <div class="form-group">
+      <label>עבור ילד/ה <span class="required">*</span></label>
+      <select id="expenseForChild" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;"></select>
+    </div>
     <div class="form-row">
       <div class="form-group">
-        <label>סכום <span class="required">*</span></label>
-        <input type="number" id="expenseAmount" placeholder="0" dir="ltr">
+        <label>סכום כולל <span class="required">*</span></label>
+        <input type="number" id="expenseAmount" placeholder="0" dir="ltr" oninput="updateExpenseSplit()">
       </div>
       <div class="form-group">
         <label>תאריך</label>
         <input type="date" id="expenseDate">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>אחוז קיזוז מההורה השני</label>
+        <select id="expenseSplit" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;" onchange="updateExpenseSplit()">
+          <option value="50" selected>50%</option>
+          <option value="30">30%</option>
+          <option value="40">40%</option>
+          <option value="60">60%</option>
+          <option value="70">70%</option>
+          <option value="100">100%</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>סכום לקיזוז</label>
+        <div id="expenseSplitPreview" style="padding:12px;background:var(--primary-light);border-radius:12px;font-weight:700;color:var(--primary);text-align:center;font-size:1.1rem;">₪0</div>
       </div>
     </div>
     <div class="form-group">
@@ -1887,7 +1925,7 @@
       </label>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary" onclick="addExpense()">הוספה</button>
+      <button class="btn btn-primary" onclick="addExpense()">שליחת בקשת קיזוז</button>
       <button class="btn btn-secondary" onclick="closeModal('expenseModal')">ביטול</button>
     </div>
   </div>
@@ -2573,6 +2611,13 @@ function populateKidSelects() {
       appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
     el.value = val;
   });
+  const expChild = document.getElementById('expenseForChild');
+  if (expChild) {
+    const val = expChild.value;
+    expChild.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
+      appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+    expChild.value = val;
+  }
 }
 
 function toggleRecurring() {
@@ -3685,22 +3730,39 @@ function notifyPartnerCustodyResponse(change, status, note) {
 }
 
 // ============ EXPENSES ============
+function updateExpenseSplit() {
+  const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+  const split = parseInt(document.getElementById('expenseSplit').value) || 50;
+  const splitAmount = Math.round(amount * split / 100);
+  document.getElementById('expenseSplitPreview').textContent = '₪' + splitAmount.toLocaleString();
+}
+
 function addExpense() {
   const details = document.getElementById('expenseDetails').value.trim();
   const amount = parseFloat(document.getElementById('expenseAmount').value);
   const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
+  const forChild = document.getElementById('expenseForChild').value;
+  const splitPercent = parseInt(document.getElementById('expenseSplit').value) || 50;
   const invoice = document.getElementById('expenseInvoice').files[0];
 
   if (!details || !amount) { showToast('נא למלא פירוט וסכום'); return; }
+  if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
   if (!invoice) { showToast('נא לצרף קבלה'); return; }
+
+  const splitAmount = Math.round(amount * splitPercent / 100);
 
   appData.expenses.push({
     id: Date.now(),
     details,
     amount,
+    splitPercent,
+    splitAmount,
+    forChild,
     date,
     invoiceName: invoice.name,
-    status: 'pending'
+    requestedBy: getMyRole(),
+    status: 'pending',
+    createdAt: new Date().toISOString()
   });
 
   saveData();
@@ -3708,26 +3770,43 @@ function addExpense() {
   document.getElementById('expenseDetails').value = '';
   document.getElementById('expenseAmount').value = '';
   document.getElementById('expenseDate').value = '';
+  document.getElementById('expenseForChild').value = '';
+  document.getElementById('expenseSplit').value = '50';
+  document.getElementById('expenseSplitPreview').textContent = '₪0';
   document.getElementById('expenseInvoice').value = '';
   document.getElementById('invoiceFileName').textContent = '';
   renderExpenses();
   updateDashboard();
-  showToast('הוצאה נוספה');
-  notifyPartnerExpense(details, amount, date);
+  showToast('בקשת קיזוז נשלחה');
+  notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
 }
 
-function notifyPartnerExpense(details, amount, date) {
+function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild) {
   const partnerEmail = appData.user.partnerEmail;
   if (!partnerEmail) return;
   const name = appData.user.name || '';
-  const subject = encodeURIComponent(`CoLink - בקשת אישור הוצאה חדשה`);
-  const body = encodeURIComponent(`שלום,\n\n${name} הוסיף/ה הוצאה חדשה בCoLink:\n\nפירוט: ${details}\nסכום: ₪${amount.toLocaleString()}\nתאריך: ${date}\n\nנא להיכנס לאפליקציה לאשר או לדחות.\n\nCoLink`);
+  const subject = encodeURIComponent('CoLink - בקשת קיזוז הוצאה חדשה');
+  const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה בקשת קיזוז הוצאה:\n\nפירוט: ${details}\nעבור: ${forChild}\nסכום כולל: ₪${amount.toLocaleString()}\nקיזוז: ${splitPercent}% = ₪${splitAmount.toLocaleString()}\nתאריך: ${date}\n\nנא להיכנס לאפליקציה לאשר או לדחות.\n\nCoLink`);
   window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
 }
 
 function updateExpenseStatus(id, status) {
   const expense = appData.expenses.find(e => e.id === id);
-  if (expense) { expense.status = status; saveData(); renderExpenses(); }
+  if (!expense) return;
+  expense.status = status;
+  saveData();
+  renderExpenses();
+  updateDashboard();
+  const label = status === 'approved' ? 'אושרה' : 'נדחתה';
+  showToast(`בקשת הקיזוז ${label}`);
+  if (status === 'approved') showConfetti();
+}
+
+function populateExpenseChildSelect() {
+  const el = document.getElementById('expenseForChild');
+  if (!el) return;
+  el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
+    appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
 }
 
 function renderExpenses() {
@@ -3737,32 +3816,51 @@ function renderExpenses() {
   if (appData.expenses.length === 0) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
+    document.getElementById('totalOwedToMe').textContent = '₪0';
+    document.getElementById('totalIOwe').textContent = '₪0';
+    document.getElementById('totalExpenses').textContent = '₪0';
     return;
   }
 
   empty.style.display = 'none';
+  const myRole = getMyRole();
   tbody.innerHTML = appData.expenses.map(e => {
     const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
     const statusLabel = e.status === 'pending' ? 'ממתין' : e.status === 'approved' ? 'מאושר' : 'נדחה';
+    const isMine = e.requestedBy === myRole;
+    const splitAmt = e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100);
+    const canAct = !isMine && e.status === 'pending';
     return `
       <tr>
         <td>${e.details}</td>
         <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
+        <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
+        <td>${e.forChild || '-'}</td>
         <td>${formatDate(e.date)}</td>
         <td>📎 ${e.invoiceName || 'קבלה'}</td>
+        <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
-          <div class="expense-status">
-            <button class="${e.status === 'approved' ? 'active-approve' : ''}" onclick="updateExpenseStatus(${e.id},'approved')">✓</button>
-            <button class="${e.status === 'rejected' ? 'active-reject' : ''}" onclick="updateExpenseStatus(${e.id},'rejected')">✕</button>
-          </div>
+          ${canAct ? `<div class="expense-status">
+            <button onclick="updateExpenseStatus(${e.id},'approved')" title="אישור">✓</button>
+            <button onclick="updateExpenseStatus(${e.id},'rejected')" title="דחייה">✕</button>
+          </div>` : e.status !== 'pending' ? `<span style="font-size:0.7rem;color:var(--text-light);">טופל</span>` : `<span style="font-size:0.7rem;color:var(--text-light);">ממתין</span>`}
         </td>
       </tr>
     `;
   }).join('');
 
-  const total = appData.expenses.filter(e => e.status === 'approved').reduce((s, e) => s + e.amount, 0);
-  document.getElementById('totalExpenses').textContent = '₪' + total.toLocaleString();
+  const approvedMine = appData.expenses.filter(e => e.status === 'approved' && e.requestedBy === myRole);
+  const approvedTheirs = appData.expenses.filter(e => e.status === 'approved' && e.requestedBy && e.requestedBy !== myRole);
+  const owedToMe = approvedMine.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
+  const iOwe = approvedTheirs.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
+  const balance = owedToMe - iOwe;
+
+  document.getElementById('totalOwedToMe').textContent = '₪' + owedToMe.toLocaleString();
+  document.getElementById('totalIOwe').textContent = '₪' + iOwe.toLocaleString();
+  const balEl = document.getElementById('totalExpenses');
+  balEl.textContent = (balance >= 0 ? '+' : '') + '₪' + balance.toLocaleString();
+  balEl.style.color = balance >= 0 ? '#00B894' : '#D63031';
 }
 
 // ============ HOLIDAYS ============
