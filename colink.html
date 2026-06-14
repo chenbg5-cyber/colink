@@ -1841,7 +1841,8 @@
 <!-- Event Modal -->
 <div class="modal-overlay" id="eventModal">
   <div class="modal">
-    <h2>אירוע חדש</h2>
+    <input type="hidden" id="eventEditId" value="">
+    <h2 id="eventModalTitle">אירוע חדש</h2>
     <div class="form-group">
       <label>שם האירוע <span class="required">*</span></label>
       <input type="text" id="eventTitle" placeholder="שם האירוע">
@@ -2872,19 +2873,14 @@ function updateDashboard() {
   if (monthEvents.length === 0) {
     dashEvents.innerHTML = '<div class="empty-state"><p>אין אירועים החודש</p></div>';
   } else {
-    dashEvents.innerHTML = monthEvents.map(e => {
-      const done = e.completed;
-      return `
-      <div class="list-item" style="${done ? 'opacity:0.5;' : ''}">
-        <div class="list-item-check ${done ? 'checked' : ''}" onclick="toggleEventComplete(${e.id})" style="cursor:pointer;min-width:28px;height:28px;border-radius:50%;border:2px solid ${done ? 'var(--primary)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;background:${done ? 'var(--primary)' : 'transparent'};color:#fff;font-size:0.85rem;">
-          ${done ? '✓' : ''}
-        </div>
+    dashEvents.innerHTML = monthEvents.map(e => `
+      <div class="list-item">
         <div class="list-item-content">
-          <div class="list-item-title" style="${done ? 'text-decoration:line-through;' : ''}">${e.title}</div>
+          <div class="list-item-title">${e.title}</div>
           <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
         </div>
       </div>
-    `}).join('');
+    `).join('');
   }
 
   // Card 9: Our kids
@@ -3335,15 +3331,33 @@ function addEvent() {
     return;
   }
 
-  appData.events.push({
-    id: Date.now(),
-    title, date, time, forChild,
-    location: document.getElementById('eventLocation').value.trim(),
-    notes: document.getElementById('eventNotes').value.trim()
-  });
+  const editId = document.getElementById('eventEditId').value;
+  if (editId) {
+    const ev = appData.events.find(e => e.id === parseInt(editId));
+    if (ev) {
+      ev.title = title;
+      ev.date = date;
+      ev.time = time;
+      ev.forChild = forChild;
+      ev.location = document.getElementById('eventLocation').value.trim();
+      ev.notes = document.getElementById('eventNotes').value.trim();
+      showToast('האירוע עודכן');
+    }
+  } else {
+    appData.events.push({
+      id: Date.now(),
+      title, date, time, forChild,
+      location: document.getElementById('eventLocation').value.trim(),
+      notes: document.getElementById('eventNotes').value.trim(),
+      createdBy: getMyRole()
+    });
+    showToast('אירוע נוסף בהצלחה');
+  }
 
   saveData();
   closeModal('eventModal');
+  document.getElementById('eventEditId').value = '';
+  document.getElementById('eventModalTitle').textContent = 'אירוע חדש';
   document.getElementById('eventTitle').value = '';
   document.getElementById('eventDate').value = '';
   document.getElementById('eventTime').value = '';
@@ -3352,7 +3366,20 @@ function addEvent() {
   document.getElementById('eventNotes').value = '';
   renderEvents();
   updateDashboard();
-  showToast('אירוע נוסף בהצלחה');
+}
+
+function editEvent(id) {
+  const e = appData.events.find(ev => ev.id === id);
+  if (!e) return;
+  document.getElementById('eventEditId').value = id;
+  document.getElementById('eventModalTitle').textContent = 'עריכת אירוע';
+  document.getElementById('eventTitle').value = e.title;
+  document.getElementById('eventDate').value = e.date;
+  document.getElementById('eventTime').value = e.time;
+  document.getElementById('eventFor').value = e.forChild;
+  document.getElementById('eventLocation').value = e.location || '';
+  document.getElementById('eventNotes').value = e.notes || '';
+  openModal('eventModal');
 }
 
 function deleteEvent(id) {
@@ -3373,35 +3400,24 @@ function renderEvents() {
     return;
   }
 
+  const myRole = getMyRole();
   container.innerHTML = events.map(e => {
     const isPast = new Date(e.date) < now;
-    const done = e.completed;
+    const canEdit = !e.createdBy || e.createdBy === myRole;
     return `
-      <div class="list-item" style="${done ? 'opacity:0.5;' : isPast ? 'opacity:0.6;' : ''}">
-        <div class="list-item-check ${done ? 'checked' : ''}" onclick="toggleEventComplete(${e.id})" style="cursor:pointer;min-width:28px;height:28px;border-radius:50%;border:2px solid ${done ? 'var(--primary)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;background:${done ? 'var(--primary)' : 'transparent'};color:#fff;font-size:0.85rem;">
-          ${done ? '✓' : ''}
-        </div>
+      <div class="list-item" style="${isPast ? 'opacity:0.5;' : ''}">
         <div class="list-item-content">
-          <div class="list-item-title" style="${done ? 'text-decoration:line-through;' : ''}">${e.title}</div>
+          <div class="list-item-title">${e.title}</div>
           <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
           ${e.notes ? `<div class="list-item-meta">${e.notes}</div>` : ''}
         </div>
         <div class="list-item-actions">
-          <button class="icon-btn" onclick="deleteEvent(${e.id})" title="מחיקה">🗑️</button>
+          ${canEdit ? `<button class="icon-btn" onclick="editEvent(${e.id})" title="עריכה">✎</button>` : ''}
+          ${canEdit ? `<button class="icon-btn" onclick="deleteEvent(${e.id})" title="מחיקה">✕</button>` : ''}
         </div>
       </div>
     `;
   }).join('');
-}
-
-function toggleEventComplete(id) {
-  const ev = appData.events.find(e => e.id === id);
-  if (!ev) return;
-  ev.completed = !ev.completed;
-  saveData();
-  renderEvents();
-  updateDashboard();
-  if (ev.completed) showConfetti();
 }
 
 // ============ CUSTODY ============
