@@ -2705,11 +2705,18 @@ function getTodayStr() {
 }
 
 function openBirthdayTask() {
+  document.getElementById('taskEditId').value = '';
+  document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskRes').value = '';
+  document.getElementById('taskFor').value = '';
+  document.getElementById('taskPriority').value = '';
+  document.getElementById('taskDate').value = '';
+  document.getElementById('taskStatus').value = 'pending';
+  document.getElementById('taskRecurring').checked = false;
+  document.getElementById('taskCategory').value = 'יום הולדת חבר/ה';
   openModal('taskModal');
-  setTimeout(() => {
-    const catSelect = document.getElementById('taskCategory');
-    if (catSelect) catSelect.value = 'יום הולדת חבר/ה';
-  }, 100);
 }
 
 function updateDashboard() {
