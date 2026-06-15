@@ -1666,6 +1666,15 @@
         <div id="dashCustodyRequests"></div>
       </div>
 
+      <!-- Activities summary -->
+      <div class="card card-compact" id="dashActivitiesCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>⚽ חוגים השבוע</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">צפייה</button>
+        </div>
+        <div id="dashActivities"></div>
+      </div>
+
       <!-- Card 9: Our kids -->
       <div class="card">
         <h3>הילדים שלנו</h3>
@@ -2222,6 +2231,10 @@
         <label>שם מדריך/ה</label>
         <input type="text" id="activityInstructor" placeholder="">
       </div>
+    </div>
+    <div class="form-group">
+      <label>טלפון מדריך/ה</label>
+      <input type="tel" id="activityInstructorPhone" placeholder="050-0000000" dir="ltr">
     </div>
     <div class="form-group">
       <label>הערות</label>
@@ -3243,6 +3256,31 @@ function updateDashboard() {
           <div style="background:var(--primary-light);color:var(--primary);font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:10px;">${kidTasks} משימות</div>
         </div>
       `;
+    }).join('');
+  }
+
+  // Activities dashboard card
+  const actCard = document.getElementById('dashActivitiesCard');
+  const actContainer = document.getElementById('dashActivities');
+  const activities = appData.activities || [];
+  if (activities.length === 0) {
+    actCard.style.display = 'none';
+  } else {
+    actCard.style.display = '';
+    const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    const sorted = [...activities].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+    actContainer.innerHTML = sorted.map(a => {
+      const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
+      const phonePart = a.instructorPhone ? `<a href="tel:${a.instructorPhone}" style="color:var(--primary);font-size:0.75rem;text-decoration:none;">📞 ${a.instructorPhone}</a>` : '';
+      const instructorPart = a.instructor ? `<span style="font-size:0.75rem;color:var(--text-light);">מדריך: ${a.instructor}</span>` : '';
+      return `
+        <div class="list-item" style="padding:8px 10px;">
+          <div class="list-item-content">
+            <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
+            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
+            ${instructorPart || phonePart ? '<div style="margin-top:2px;">' + [instructorPart, phonePart].filter(Boolean).join(' · ') + '</div>' : ''}
+          </div>
+        </div>`;
     }).join('');
   }
 
@@ -4592,6 +4630,7 @@ function openActivityModal(id) {
   document.getElementById('activityCost').value = '';
   document.getElementById('activityResponsible').value = getMyRole() || 'אבא';
   document.getElementById('activityInstructor').value = '';
+  document.getElementById('activityInstructorPhone').value = '';
   document.getElementById('activityNotes').value = '';
   populateActivityChildSelect();
 
@@ -4607,6 +4646,7 @@ function openActivityModal(id) {
       document.getElementById('activityCost').value = act.cost || '';
       document.getElementById('activityResponsible').value = act.responsible || '';
       document.getElementById('activityInstructor').value = act.instructor || '';
+      document.getElementById('activityInstructorPhone').value = act.instructorPhone || '';
       document.getElementById('activityNotes').value = act.notes || '';
     }
   }
@@ -4633,6 +4673,7 @@ function saveActivity() {
     cost: parseFloat(document.getElementById('activityCost').value) || 0,
     responsible: document.getElementById('activityResponsible').value,
     instructor: document.getElementById('activityInstructor').value.trim(),
+    instructorPhone: document.getElementById('activityInstructorPhone').value.trim(),
     notes: document.getElementById('activityNotes').value.trim()
   };
 
@@ -4680,7 +4721,7 @@ function renderActivities() {
   body.innerHTML = sorted.map(a => {
     const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '-';
     return `<tr>
-      <td><strong>${a.name}</strong>${a.instructor ? '<br><span style="font-size:0.72rem;color:var(--text-light);">מדריך: ' + a.instructor + '</span>' : ''}</td>
+      <td><strong>${a.name}</strong>${a.instructor ? '<br><span style="font-size:0.72rem;color:var(--text-light);">מדריך: ' + a.instructor + (a.instructorPhone ? ' · <a href="tel:' + a.instructorPhone + '" style="color:var(--primary);">' + a.instructorPhone + '</a>' : '') + '</span>' : ''}</td>
       <td>${a.child}</td>
       <td>${a.day}</td>
       <td style="direction:ltr;text-align:right;">${timeStr}</td>
