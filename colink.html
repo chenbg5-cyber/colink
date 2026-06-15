@@ -1225,7 +1225,12 @@
       justify-content: center;
       padding: 0;
     }
+
+    .sig-pad-container { position:relative;width:100%;max-width:400px;margin:0 auto; }
+    .sig-pad-canvas { width:100%;height:180px;border:2px solid var(--border);border-radius:12px;background:#fff;touch-action:none;cursor:crosshair; }
+    .sig-preview { width:120px;height:50px;border:1px solid var(--border);border-radius:8px;object-fit:contain;background:#fff; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1453,6 +1458,9 @@
       </button>
       <button class="nav-item" onclick="showPage('holidays', this)">
         <span class="nav-icon">✡</span> חגים
+      </button>
+      <button class="nav-item" onclick="showPage('signatures', this)">
+        <span class="nav-icon">✍</span> חתימות ואישורים
       </button>
       <button class="nav-item" onclick="showPage('calendar', this)">
         <span class="nav-icon">▣</span> יומן
@@ -1689,6 +1697,22 @@
           <span class="me">אצלי</span>
           <span class="other">אצל ההורה השני</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="page" id="page-signatures">
+      <div class="page-header">
+        <h1>חתימות ואישורים</h1>
+        <button class="btn btn-primary btn-sm" onclick="openModal('signatureModal')">+ מסמך חדש</button>
+      </div>
+      <div class="card">
+        <div class="tabs" style="margin-bottom:16px;">
+          <button class="tab-btn active" onclick="filterSignatures('all', this)">הכל</button>
+          <button class="tab-btn" onclick="filterSignatures('pending', this)">ממתינים</button>
+          <button class="tab-btn" onclick="filterSignatures('signed', this)">חתומים</button>
+        </div>
+        <div id="signaturesList"></div>
       </div>
     </div>
 
@@ -1991,6 +2015,73 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="signatureModal">
+  <div class="modal">
+    <h2>מסמך חדש לחתימה</h2>
+    <div class="form-group">
+      <label>שם המסמך <span class="required">*</span></label>
+      <input type="text" id="sigTitle" placeholder="למשל: אישור טיול שנתי">
+    </div>
+    <div class="form-group">
+      <label>קטגוריה</label>
+      <select id="sigCategory" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+        <option value="בית ספר">בית ספר</option>
+        <option value="רפואי">רפואי</option>
+        <option value="חוגים">חוגים</option>
+        <option value="טיול">טיול</option>
+        <option value="משפטי">משפטי</option>
+        <option value="כללי">כללי</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>עבור ילד/ה</label>
+      <select id="sigForChild" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;"></select>
+    </div>
+    <div class="form-group">
+      <label>תאריך יעד</label>
+      <input type="date" id="sigDeadline">
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="sigDualSign" checked style="width:20px;height:20px;accent-color:var(--primary);">
+        נדרשת חתימה כפולה (שני ההורים)
+      </label>
+    </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="sigNotes" rows="2" placeholder="פרטים נוספים..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="form-group">
+      <label>צירוף מסמך</label>
+      <label class="file-input-label">
+        📎 בחירת קובץ
+        <input type="file" id="sigFile" accept="image/*,.pdf,.doc,.docx">
+        <span id="sigFileName"></span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addSignature()">שליחה לחתימה</button>
+      <button class="btn btn-secondary" onclick="closeModal('signatureModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sigPadModal">
+  <div class="modal">
+    <h2>חתימה דיגיטלית</h2>
+    <input type="hidden" id="sigPadDocId" value="">
+    <p style="font-size:0.85rem;color:var(--text-light);margin-bottom:12px;">חתמ/י באצבע או בעכבר בתוך המסגרת</p>
+    <div class="sig-pad-container">
+      <canvas id="sigPadCanvas" class="sig-pad-canvas"></canvas>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="confirmSignature()">אישור חתימה</button>
+      <button class="btn btn-secondary" onclick="clearSigPad()">נקה</button>
+      <button class="btn btn-secondary" onclick="closeModal('sigPadModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="kidModal">
   <div class="modal">
     <h2 id="kidModalTitle">הוספת ילד/ה</h2>
@@ -2097,6 +2188,7 @@ let appData = {
   events: [],
   expenses: [],
   custodyChanges: [],
+  signatures: [],
   holidayAssignments: {}
 };
 
@@ -2157,6 +2249,7 @@ function migrateData() {
   });
   if (!appData.holidayAssignments) appData.holidayAssignments = {};
   if (!appData.custodyChanges) appData.custodyChanges = [];
+  if (!appData.signatures) appData.signatures = [];
   if (!appData.weekendMode) appData.weekendMode = '';
   if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
   if (!appData.weekendStartDate) appData.weekendStartDate = '';
@@ -2180,6 +2273,9 @@ function init() {
   addKidCard();
   document.getElementById('expenseInvoice').addEventListener('change', function() {
     document.getElementById('invoiceFileName').textContent = this.files[0] ? this.files[0].name : '';
+  });
+  document.getElementById('sigFile').addEventListener('change', function() {
+    document.getElementById('sigFileName').textContent = this.files[0] ? this.files[0].name : '';
   });
 }
 
@@ -2684,6 +2780,8 @@ function updateApp() {
   renderEvents();
   renderCustody();
   renderExpenses();
+  renderSignatures();
+  populateSigChildSelect();
   renderHolidays();
   renderCalendar();
   renderProfile();
@@ -3893,6 +3991,362 @@ function renderExpenses() {
   const balEl = document.getElementById('totalExpenses');
   balEl.textContent = (balance >= 0 ? '+' : '') + '₪' + balance.toLocaleString();
   balEl.style.color = balance >= 0 ? '#00B894' : '#D63031';
+}
+
+// ============ SIGNATURES ============
+let currentSigFilter = 'all';
+let sigPadDrawing = false;
+
+function populateSigChildSelect() {
+  const el = document.getElementById('sigForChild');
+  if (!el) return;
+  el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
+    appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+}
+
+function initSigPad() {
+  const canvas = document.getElementById('sigPadCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2, 2);
+  ctx.strokeStyle = '#2D3436';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+  }
+
+  canvas.onmousedown = canvas.ontouchstart = function(e) {
+    e.preventDefault();
+    sigPadDrawing = true;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  };
+  canvas.onmousemove = canvas.ontouchmove = function(e) {
+    if (!sigPadDrawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  };
+  canvas.onmouseup = canvas.ontouchend = canvas.onmouseleave = function() {
+    sigPadDrawing = false;
+  };
+}
+
+function clearSigPad() {
+  const canvas = document.getElementById('sigPadCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function isSigPadEmpty() {
+  const canvas = document.getElementById('sigPadCanvas');
+  const ctx = canvas.getContext('2d');
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] > 0) return false;
+  }
+  return true;
+}
+
+function getSigPadData() {
+  const canvas = document.getElementById('sigPadCanvas');
+  return canvas.toDataURL('image/png');
+}
+
+function addSignature() {
+  const title = document.getElementById('sigTitle').value.trim();
+  const category = document.getElementById('sigCategory').value;
+  const forChild = document.getElementById('sigForChild').value;
+  const deadline = document.getElementById('sigDeadline').value;
+  const dualSign = document.getElementById('sigDualSign').checked;
+  const notes = document.getElementById('sigNotes').value.trim();
+  const file = document.getElementById('sigFile').files[0];
+
+  if (!title) { showToast('נא למלא שם מסמך'); return; }
+
+  const myRole = getMyRole();
+  appData.signatures.push({
+    id: Date.now(),
+    title,
+    category,
+    forChild,
+    deadline,
+    dualSign,
+    notes,
+    fileName: file ? file.name : '',
+    createdBy: myRole,
+    signatures: {},
+    signedBy: [],
+    status: 'pending',
+    pdfData: null,
+    createdAt: new Date().toISOString()
+  });
+
+  saveData();
+  closeModal('signatureModal');
+  document.getElementById('sigTitle').value = '';
+  document.getElementById('sigCategory').value = 'בית ספר';
+  document.getElementById('sigForChild').value = '';
+  document.getElementById('sigDeadline').value = '';
+  document.getElementById('sigDualSign').checked = true;
+  document.getElementById('sigNotes').value = '';
+  document.getElementById('sigFile').value = '';
+  document.getElementById('sigFileName').textContent = '';
+  renderSignatures();
+  showToast('מסמך נשלח לחתימה');
+  notifyPartnerSignature(title, category, forChild);
+}
+
+function openSignPad(id) {
+  document.getElementById('sigPadDocId').value = id;
+  openModal('sigPadModal');
+  setTimeout(() => initSigPad(), 150);
+}
+
+function confirmSignature() {
+  if (isSigPadEmpty()) { showToast('נא לחתום בתוך המסגרת'); return; }
+
+  const id = parseInt(document.getElementById('sigPadDocId').value);
+  const doc = appData.signatures.find(s => s.id === id);
+  if (!doc) return;
+
+  const myRole = getMyRole();
+  const sigData = getSigPadData();
+  if (!doc.signatures) doc.signatures = {};
+  doc.signatures[myRole] = { data: sigData, date: new Date().toISOString() };
+  if (!doc.signedBy.includes(myRole)) doc.signedBy.push(myRole);
+
+  const needed = doc.dualSign ? 2 : 1;
+  if (doc.signedBy.length >= needed) {
+    doc.status = 'signed';
+    generateSignedPDF(doc);
+    showConfetti();
+    showToast('המסמך נחתם ע״י כל הצדדים');
+  } else {
+    showToast('חתמת — ממתין להורה השני');
+  }
+
+  saveData();
+  closeModal('sigPadModal');
+  renderSignatures();
+}
+
+function rejectSignature(id) {
+  const doc = appData.signatures.find(s => s.id === id);
+  if (!doc) return;
+  doc.status = 'rejected';
+  saveData();
+  renderSignatures();
+  showToast('המסמך נדחה');
+}
+
+function deleteSignature(id) {
+  if (!confirm('למחוק את המסמך?')) return;
+  appData.signatures = appData.signatures.filter(s => s.id !== id);
+  saveData();
+  renderSignatures();
+}
+
+function generateSignedPDF(doc) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text('CoLink', 105, 20, { align: 'center' });
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Document signed digitally via CoLink', 105, 28, { align: 'center' });
+
+    pdf.setDrawColor(108, 92, 231);
+    pdf.setLineWidth(0.5);
+    pdf.line(20, 33, 190, 33);
+
+    let y = 45;
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(doc.title, 105, y, { align: 'center' });
+    y += 12;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const details = [
+      ['Category', doc.category || '-'],
+      ['Child', doc.forChild || '-'],
+      ['Deadline', doc.deadline ? formatDate(doc.deadline) : '-'],
+      ['Created', formatDate(doc.createdAt.split('T')[0])],
+      ['Notes', doc.notes || '-']
+    ];
+    details.forEach(([label, val]) => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label + ':', 25, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(val, 60, y);
+      y += 7;
+    });
+
+    y += 10;
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(20, y, 190, y);
+    y += 10;
+
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Signatures', 105, y, { align: 'center' });
+    y += 10;
+
+    const roles = Object.keys(doc.signatures || {});
+    const sigWidth = 70;
+    roles.forEach((role, i) => {
+      const sig = doc.signatures[role];
+      const xBase = i === 0 ? 25 : 115;
+
+      if (sig.data) {
+        try { pdf.addImage(sig.data, 'PNG', xBase, y, sigWidth, 30); } catch(e) {}
+      }
+
+      pdf.setDrawColor(150, 150, 150);
+      pdf.line(xBase, y + 33, xBase + sigWidth, y + 33);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(role, xBase + sigWidth / 2, y + 39, { align: 'center' });
+      pdf.text(formatDate(sig.date.split('T')[0]), xBase + sigWidth / 2, y + 44, { align: 'center' });
+    });
+
+    y += 55;
+    pdf.setFontSize(8);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text('This document was digitally signed via CoLink app. ID: ' + doc.id, 105, y, { align: 'center' });
+
+    doc.pdfData = pdf.output('datauristring');
+    saveData();
+  } catch(e) {
+    console.error('PDF generation error:', e);
+  }
+}
+
+function downloadSignedPDF(id) {
+  const doc = appData.signatures.find(s => s.id === id);
+  if (!doc || !doc.pdfData) { showToast('אין PDF זמין'); return; }
+  const link = document.createElement('a');
+  link.href = doc.pdfData;
+  link.download = (doc.title || 'document') + '_signed.pdf';
+  link.click();
+}
+
+function filterSignatures(filter, btn) {
+  currentSigFilter = filter;
+  document.querySelectorAll('#page-signatures .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSignatures();
+}
+
+function renderSignatures() {
+  const container = document.getElementById('signaturesList');
+  if (!container) return;
+  let sigs = [...(appData.signatures || [])];
+
+  if (currentSigFilter === 'pending') sigs = sigs.filter(s => s.status === 'pending');
+  else if (currentSigFilter === 'signed') sigs = sigs.filter(s => s.status === 'signed');
+
+  sigs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (sigs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>אין מסמכים</p></div>';
+    return;
+  }
+
+  const myRole = getMyRole();
+  container.innerHTML = sigs.map(s => {
+    const isMine = s.createdBy === myRole;
+    const iSigned = s.signedBy && s.signedBy.includes(myRole);
+    const needed = s.dualSign ? 2 : 1;
+    const statusMap = {
+      pending: { cls: 'badge-pending', label: s.dualSign ? 'ממתין לחתימה כפולה' : 'ממתין לחתימה' },
+      signed: { cls: 'badge-approved', label: s.dualSign ? 'חתום ע״י שניהם' : 'חתום' },
+      rejected: { cls: 'badge-rejected', label: 'נדחה' }
+    };
+    const st = statusMap[s.status] || statusMap.pending;
+
+    const sigs1 = s.signatures || {};
+    const sigKeys = Object.keys(sigs1);
+
+    let sigPreviewHtml = '';
+    if (sigKeys.length > 0) {
+      sigPreviewHtml = '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">' +
+        sigKeys.map(role => `<div style="text-align:center;">
+          <img src="${sigs1[role].data}" class="sig-preview">
+          <div style="font-size:0.7rem;color:var(--text-light);margin-top:2px;">${role} · ${formatDate(sigs1[role].date.split('T')[0])}</div>
+        </div>`).join('') + '</div>';
+    }
+
+    let actionsHtml = '';
+    if (s.status === 'pending' && !iSigned) {
+      actionsHtml = `
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-family:inherit;cursor:pointer;" onclick="openSignPad(${s.id})">✍ חתימה</button>
+          <button class="btn btn-sm" style="background:#D63031;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-family:inherit;cursor:pointer;" onclick="rejectSignature(${s.id})">דחייה</button>
+        </div>`;
+    } else if (s.status === 'pending' && iSigned) {
+      actionsHtml = `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-light);">✓ חתמת — ממתין להורה השני</div>`;
+    }
+
+    let pdfBtn = '';
+    if (s.status === 'signed' && s.pdfData) {
+      pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;margin-top:8px;" onclick="downloadSignedPDF(${s.id})">⤓ הורדת PDF חתום</button>`;
+    }
+
+    const signedCount = s.signedBy ? s.signedBy.length : 0;
+    const progressHtml = s.dualSign ?
+      `<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+        <div style="flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden;">
+          <div style="width:${signedCount * 50}%;height:100%;background:${signedCount >= 2 ? '#00B894' : '#FDCB6E'};border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+        <span style="font-size:0.7rem;color:var(--text-light);">${signedCount}/2</span>
+      </div>` : '';
+
+    return `
+      <div class="list-item" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div class="list-item-content" style="flex:1;">
+            <div class="list-item-title">${s.title}</div>
+            <div class="list-item-meta">
+              ${s.category || ''} ${s.forChild ? '· ' + s.forChild : ''} ${s.deadline ? '· עד ' + formatDate(s.deadline) : ''}
+              ${s.fileName ? ' · 📎 ' + s.fileName : ''}
+            </div>
+            ${progressHtml}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge ${st.cls}">${st.label}</span>
+            ${isMine ? `<button class="icon-btn" onclick="deleteSignature(${s.id})" title="מחיקה">✕</button>` : ''}
+          </div>
+        </div>
+        ${sigPreviewHtml}
+        ${actionsHtml}
+        ${pdfBtn}
+      </div>
+    `;
+  }).join('');
+}
+
+function notifyPartnerSignature(title, category, forChild) {
+  const partnerEmail = appData.user.partnerEmail;
+  if (!partnerEmail) return;
+  const name = appData.user.name || '';
+  const subject = encodeURIComponent('CoLink - מסמך חדש לחתימה');
+  const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה מסמך לחתימתך:\n\nשם: ${title}\nקטגוריה: ${category}\n${forChild ? 'עבור: ' + forChild : ''}\n\nנא להיכנס לאפליקציה לחתום.\n\nCoLink`);
+  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
 }
 
 // ============ HOLIDAYS ============
