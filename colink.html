@@ -1572,6 +1572,9 @@
       <button class="nav-item" onclick="showPage('holidays', this)">
         <span class="nav-icon">✡</span> חגים
       </button>
+      <button class="nav-item" onclick="showPage('activities', this)">
+        <span class="nav-icon">⚽</span> חוגים
+      </button>
       <button class="nav-item" onclick="showPage('signatures', this)">
         <span class="nav-icon">✍</span> חתימות ואישורים
       </button>
@@ -1809,6 +1812,37 @@
         <div class="custody-legend" style="margin-top:16px;">
           <span class="me">אצלי</span>
           <span class="other">אצל ההורה השני</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activities -->
+    <div class="page" id="page-activities">
+      <div class="page-header">
+        <h1>חוגים</h1>
+        <button class="btn btn-primary btn-sm" onclick="openActivityModal()">+ חוג חדש</button>
+      </div>
+      <div class="card">
+        <div id="activitiesList">
+          <table class="data-table" id="activitiesTable">
+            <thead>
+              <tr>
+                <th>שם החוג</th>
+                <th>ילד/ה</th>
+                <th>יום</th>
+                <th>שעה</th>
+                <th>מיקום</th>
+                <th>עלות</th>
+                <th>אחראי/ת</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="activitiesBody"></tbody>
+          </table>
+          <div class="empty-state" id="activitiesEmpty">
+            <div class="empty-icon">⚽</div>
+            <p>אין חוגים עדיין</p>
+          </div>
         </div>
       </div>
     </div>
@@ -2128,6 +2162,78 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="activityModal">
+  <div class="modal">
+    <h2 id="activityModalTitle">הוספת חוג</h2>
+    <input type="hidden" id="activityEditId" value="">
+    <div class="form-group">
+      <label>שם החוג <span class="required">*</span></label>
+      <input type="text" id="activityName" placeholder="למשל: כדורגל, פסנתר, ג'ודו...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>ילד/ה <span class="required">*</span></label>
+        <select id="activityChild"></select>
+      </div>
+      <div class="form-group">
+        <label>יום <span class="required">*</span></label>
+        <select id="activityDay">
+          <option value="">בחר יום</option>
+          <option value="ראשון">ראשון</option>
+          <option value="שני">שני</option>
+          <option value="שלישי">שלישי</option>
+          <option value="רביעי">רביעי</option>
+          <option value="חמישי">חמישי</option>
+          <option value="שישי">שישי</option>
+          <option value="שבת">שבת</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שעת התחלה</label>
+        <input type="time" id="activityStartTime">
+      </div>
+      <div class="form-group">
+        <label>שעת סיום</label>
+        <input type="time" id="activityEndTime">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מיקום</label>
+        <input type="text" id="activityLocation" placeholder="שם המקום / כתובת">
+      </div>
+      <div class="form-group">
+        <label>עלות חודשית (₪)</label>
+        <input type="number" id="activityCost" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>הורה אחראי/ת</label>
+        <select id="activityResponsible">
+          <option value="אבא">אבא</option>
+          <option value="אמא">אמא</option>
+          <option value="משותפת">משותף</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>שם מדריך/ה</label>
+        <input type="text" id="activityInstructor" placeholder="">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="activityNotes" rows="2" placeholder="ציוד נדרש, מידע נוסף..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveActivity()">שמירה</button>
+      <button class="btn btn-secondary" onclick="closeModal('activityModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="signatureModal">
   <div class="modal">
     <h2>מסמך חדש לחתימה</h2>
@@ -2363,6 +2469,7 @@ function migrateData() {
   if (!appData.holidayAssignments) appData.holidayAssignments = {};
   if (!appData.custodyChanges) appData.custodyChanges = [];
   if (!appData.signatures) appData.signatures = [];
+  if (!appData.activities) appData.activities = [];
   if (!appData.weekendMode) appData.weekendMode = '';
   if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
   if (!appData.weekendStartDate) appData.weekendStartDate = '';
@@ -2895,6 +3002,8 @@ function updateApp() {
   renderExpenses();
   renderSignatures();
   populateSigChildSelect();
+  renderActivities();
+  populateActivityChildSelect();
   renderHolidays();
   renderCalendar();
   renderProfile();
@@ -4460,6 +4569,132 @@ function notifyPartnerSignature(title, category, forChild) {
   const subject = encodeURIComponent('CoLink - מסמך חדש לחתימה');
   const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה מסמך לחתימתך:\n\nשם: ${title}\nקטגוריה: ${category}\n${forChild ? 'עבור: ' + forChild : ''}\n\nנא להיכנס לאפליקציה לחתום.\n\nCoLink`);
   window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
+}
+
+// ============ ACTIVITIES ============
+function populateActivityChildSelect() {
+  const sel = document.getElementById('activityChild');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">בחר ילד/ה</option>' +
+    (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('') +
+    '<option value="כל הילדים">כל הילדים</option>';
+}
+
+function openActivityModal(id) {
+  document.getElementById('activityEditId').value = id || '';
+  document.getElementById('activityModalTitle').textContent = id ? 'עריכת חוג' : 'הוספת חוג';
+  document.getElementById('activityName').value = '';
+  document.getElementById('activityChild').value = '';
+  document.getElementById('activityDay').value = '';
+  document.getElementById('activityStartTime').value = '';
+  document.getElementById('activityEndTime').value = '';
+  document.getElementById('activityLocation').value = '';
+  document.getElementById('activityCost').value = '';
+  document.getElementById('activityResponsible').value = getMyRole() || 'אבא';
+  document.getElementById('activityInstructor').value = '';
+  document.getElementById('activityNotes').value = '';
+  populateActivityChildSelect();
+
+  if (id) {
+    const act = (appData.activities || []).find(a => a.id === id);
+    if (act) {
+      document.getElementById('activityName').value = act.name || '';
+      document.getElementById('activityChild').value = act.child || '';
+      document.getElementById('activityDay').value = act.day || '';
+      document.getElementById('activityStartTime').value = act.startTime || '';
+      document.getElementById('activityEndTime').value = act.endTime || '';
+      document.getElementById('activityLocation').value = act.location || '';
+      document.getElementById('activityCost').value = act.cost || '';
+      document.getElementById('activityResponsible').value = act.responsible || '';
+      document.getElementById('activityInstructor').value = act.instructor || '';
+      document.getElementById('activityNotes').value = act.notes || '';
+    }
+  }
+  openModal('activityModal');
+}
+
+function saveActivity() {
+  const name = document.getElementById('activityName').value.trim();
+  const child = document.getElementById('activityChild').value;
+  const day = document.getElementById('activityDay').value;
+  if (!name || !child || !day) {
+    showToast('נא למלא שם חוג, ילד/ה ויום');
+    return;
+  }
+
+  const editId = document.getElementById('activityEditId').value;
+  const data = {
+    name,
+    child,
+    day,
+    startTime: document.getElementById('activityStartTime').value,
+    endTime: document.getElementById('activityEndTime').value,
+    location: document.getElementById('activityLocation').value.trim(),
+    cost: parseFloat(document.getElementById('activityCost').value) || 0,
+    responsible: document.getElementById('activityResponsible').value,
+    instructor: document.getElementById('activityInstructor').value.trim(),
+    notes: document.getElementById('activityNotes').value.trim()
+  };
+
+  if (editId) {
+    const idx = appData.activities.findIndex(a => a.id === parseInt(editId));
+    if (idx > -1) Object.assign(appData.activities[idx], data);
+  } else {
+    data.id = Date.now();
+    data.createdBy = getMyRole();
+    appData.activities.push(data);
+  }
+
+  saveData();
+  renderActivities();
+  closeModal('activityModal');
+  showToast(editId ? 'החוג עודכן' : 'החוג נוסף');
+}
+
+function deleteActivity(id) {
+  appData.activities = appData.activities.filter(a => a.id !== id);
+  saveData();
+  renderActivities();
+  showToast('החוג נמחק');
+}
+
+function renderActivities() {
+  const body = document.getElementById('activitiesBody');
+  const empty = document.getElementById('activitiesEmpty');
+  const table = document.getElementById('activitiesTable');
+  if (!body) return;
+
+  const acts = appData.activities || [];
+  if (acts.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const sorted = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+
+  body.innerHTML = sorted.map(a => {
+    const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '-';
+    return `<tr>
+      <td><strong>${a.name}</strong>${a.instructor ? '<br><span style="font-size:0.72rem;color:var(--text-light);">מדריך: ' + a.instructor + '</span>' : ''}</td>
+      <td>${a.child}</td>
+      <td>${a.day}</td>
+      <td style="direction:ltr;text-align:right;">${timeStr}</td>
+      <td>${a.location || '-'}</td>
+      <td>${a.cost ? '₪' + a.cost : '-'}</td>
+      <td>${a.responsible || '-'}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה">✎</button>
+          <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 // ============ HOLIDAYS ============
