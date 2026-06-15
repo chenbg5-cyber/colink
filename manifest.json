@@ -2,7 +2,8 @@
   "name": "CoLink - ניהול משפחה משותף",
   "short_name": "CoLink",
   "description": "אפליקציה לניהול משפחה משותף להורים גרושים",
-  "start_url": "/colink.html",
+  "start_url": "./colink.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8F9FE",
@@ -11,12 +12,12 @@
   "dir": "rtl",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

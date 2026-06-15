@@ -1,7 +1,7 @@
-const CACHE_NAME = 'colink-v1';
+const CACHE_NAME = 'colink-v2';
 const ASSETS = [
-  '/colink.html',
-  '/manifest.json'
+  './colink.html',
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
