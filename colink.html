@@ -1666,6 +1666,15 @@
         <div id="dashCustodyRequests"></div>
       </div>
 
+      <!-- Pending signatures -->
+      <div class="card card-compact" id="dashPendingSigsCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>✎ ממתינים לחתימה</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
+        </div>
+        <div id="dashPendingSigs"></div>
+      </div>
+
       <!-- Activities summary -->
       <div class="card card-compact" id="dashActivitiesCard" style="display:none;">
         <div class="card-compact-header">
@@ -3259,6 +3268,28 @@ function updateDashboard() {
     }).join('');
   }
 
+  // Pending signatures dashboard card
+  const sigCard = document.getElementById('dashPendingSigsCard');
+  const sigContainer = document.getElementById('dashPendingSigs');
+  const myRole = getMyRole();
+  const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
+  if (pendingSigs.length === 0) {
+    sigCard.style.display = 'none';
+  } else {
+    sigCard.style.display = '';
+    sigContainer.innerHTML = pendingSigs.map(s => {
+      const whoSigned = s.signedBy.length > 0 ? s.signedBy.join(', ') + ' חתם/ה' : '';
+      return `
+        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[8])">
+          <div class="list-item-content">
+            <div class="list-item-title" style="font-size:0.88rem;">${s.title}</div>
+            <div class="list-item-meta">${s.child || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + whoSigned : ''}</div>
+          </div>
+          <span style="color:var(--primary);font-size:1.1rem;">✎</span>
+        </div>`;
+    }).join('');
+  }
+
   // Activities dashboard card
   const actCard = document.getElementById('dashActivitiesCard');
   const actContainer = document.getElementById('dashActivities');
@@ -3288,7 +3319,6 @@ function updateDashboard() {
   // Pending custody requests for me to review
   const custodyCard = document.getElementById('dashCustodyRequestsCard');
   const custodyContainer = document.getElementById('dashCustodyRequests');
-  const myRole = getMyRole();
   const pendingForMe = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   if (pendingForMe.length === 0) {
     custodyCard.style.display = 'none';
