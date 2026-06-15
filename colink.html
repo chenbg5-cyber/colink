@@ -3273,11 +3273,12 @@ function updateDashboard() {
       const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
       const phonePart = a.instructorPhone ? `<a href="tel:${a.instructorPhone}" style="color:var(--primary);font-size:0.75rem;text-decoration:none;">📞 ${a.instructorPhone}</a>` : '';
       const instructorPart = a.instructor ? `<span style="font-size:0.75rem;color:var(--text-light);">מדריך: ${a.instructor}</span>` : '';
+      const custodyParent = getActivityCustodyParent(a.day);
       return `
         <div class="list-item" style="padding:8px 10px;">
           <div class="list-item-content">
             <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
-            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
+            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}${custodyParent ? ' · אחריות: ' + custodyParent : ''}</div>
             ${instructorPart || phonePart ? '<div style="margin-top:2px;">' + [instructorPart, phonePart].filter(Boolean).join(' · ') + '</div>' : ''}
           </div>
         </div>`;
@@ -4610,6 +4611,23 @@ function notifyPartnerSignature(title, category, forChild) {
 }
 
 // ============ ACTIVITIES ============
+const hebrewDayToNum = {'ראשון':0,'שני':1,'שלישי':2,'רביעי':3,'חמישי':4,'שישי':5,'שבת':6};
+
+function getActivityCustodyParent(dayName) {
+  const dayNum = hebrewDayToNum[dayName];
+  if (dayNum === undefined) return '';
+  const today = new Date();
+  const todayDow = today.getDay();
+  const daysAhead = (dayNum - todayDow + 7) % 7 || 7;
+  const nextDate = new Date(today);
+  nextDate.setDate(today.getDate() + daysAhead);
+  const dateStr = nextDate.toISOString().split('T')[0];
+  const mine = isDayMine(dayNum, dateStr);
+  const myRole = getMyRole();
+  if (mine) return myRole;
+  return myRole === 'אמא' ? 'אבא' : 'אמא';
+}
+
 function populateActivityChildSelect() {
   const sel = document.getElementById('activityChild');
   if (!sel) return;
@@ -4727,7 +4745,7 @@ function renderActivities() {
       <td style="direction:ltr;text-align:right;">${timeStr}</td>
       <td>${a.location || '-'}</td>
       <td>${a.cost ? '₪' + a.cost : '-'}</td>
-      <td>${a.responsible || '-'}</td>
+      <td>${getActivityCustodyParent(a.day) || a.responsible || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;">
           <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה">✎</button>
