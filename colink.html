@@ -1344,6 +1344,7 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 </head>
 <body>
 
@@ -4365,7 +4366,7 @@ function addSignature() {
   if (!title) { showToast('נא למלא שם מסמך'); return; }
 
   const myRole = getMyRole();
-  appData.signatures.push({
+  const sigObj = {
     id: Date.now(),
     title,
     category,
@@ -4374,27 +4375,42 @@ function addSignature() {
     dualSign,
     notes,
     fileName: file ? file.name : '',
+    fileData: null,
     createdBy: myRole,
     signatures: {},
     signedBy: [],
     status: 'pending',
     pdfData: null,
     createdAt: new Date().toISOString()
-  });
+  };
 
-  saveData();
-  closeModal('signatureModal');
-  document.getElementById('sigTitle').value = '';
-  document.getElementById('sigCategory').value = 'בית ספר';
-  document.getElementById('sigForChild').value = '';
-  document.getElementById('sigDeadline').value = '';
-  document.getElementById('sigDualSign').checked = true;
-  document.getElementById('sigNotes').value = '';
-  document.getElementById('sigFile').value = '';
-  document.getElementById('sigFileName').textContent = '';
-  renderSignatures();
-  showToast('מסמך נשלח לחתימה');
-  notifyPartnerSignature(title, category, forChild);
+  function finishAdd() {
+    appData.signatures.push(sigObj);
+    saveData();
+    closeModal('signatureModal');
+    document.getElementById('sigTitle').value = '';
+    document.getElementById('sigCategory').value = 'בית ספר';
+    document.getElementById('sigForChild').value = '';
+    document.getElementById('sigDeadline').value = '';
+    document.getElementById('sigDualSign').checked = true;
+    document.getElementById('sigNotes').value = '';
+    document.getElementById('sigFile').value = '';
+    document.getElementById('sigFileName').textContent = '';
+    renderSignatures();
+    showToast('מסמך נשלח לחתימה');
+    notifyPartnerSignature(title, category, forChild);
+  }
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      sigObj.fileData = reader.result;
+      finishAdd();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    finishAdd();
+  }
 }
 
 function openSignPad(id) {
@@ -4403,7 +4419,7 @@ function openSignPad(id) {
   setTimeout(() => initSigPad(), 150);
 }
 
-function confirmSignature() {
+async function confirmSignature() {
   if (isSigPadEmpty()) { showToast('נא לחתום בתוך המסגרת'); return; }
 
   const id = parseInt(document.getElementById('sigPadDocId').value);
@@ -4419,16 +4435,18 @@ function confirmSignature() {
   const needed = doc.dualSign ? 2 : 1;
   if (doc.signedBy.length >= needed) {
     doc.status = 'signed';
-    generateSignedPDF(doc);
     showConfetti();
-    showToast('המסמך נחתם ע״י כל הצדדים');
+    showToast('המסמך נחתם — מכין PDF להורדה...');
+    saveData();
+    closeModal('sigPadModal');
+    renderSignatures();
+    await generateSignedPDF(doc);
   } else {
     showToast('חתמת — ממתין להורה השני');
+    saveData();
+    closeModal('sigPadModal');
+    renderSignatures();
   }
-
-  saveData();
-  closeModal('sigPadModal');
-  renderSignatures();
 }
 
 function rejectSignature(id) {
@@ -4447,81 +4465,149 @@ function deleteSignature(id) {
   renderSignatures();
 }
 
-function generateSignedPDF(doc) {
+function renderSignatureCertCanvas(doc) {
+  const W = 1190, H = 1684;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#6C5CE7';
+  ctx.font = 'bold 36px Rubik, sans-serif';
+  ctx.fillText('CoLink', W / 2, 60);
+
+  ctx.font = '20px Rubik, sans-serif';
+  ctx.fillStyle = '#888';
+  ctx.fillText('אישור חתימה דיגיטלית', W / 2, 95);
+
+  ctx.strokeStyle = '#6C5CE7';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60, 115); ctx.lineTo(W - 60, 115); ctx.stroke();
+
+  ctx.textAlign = 'right';
+  let y = 165;
+  ctx.font = 'bold 22px Rubik, sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.fillText(doc.title || '', W - 80, y);
+  y += 40;
+
+  ctx.font = '18px Rubik, sans-serif';
+  ctx.fillStyle = '#555';
+  const lines = [
+    'קטגוריה: ' + (doc.category || '-'),
+    'ילד/ה: ' + (doc.forChild || '-'),
+    'תאריך יעד: ' + (doc.deadline ? formatDate(doc.deadline) : '-'),
+    'נוצר: ' + (doc.createdAt ? formatDate(doc.createdAt.split('T')[0]) : '-'),
+    doc.notes ? 'הערות: ' + doc.notes : ''
+  ].filter(Boolean);
+  for (const line of lines) {
+    ctx.fillText(line, W - 80, y);
+    y += 32;
+  }
+
+  y += 20;
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
+  y += 40;
+
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 24px Rubik, sans-serif';
+  ctx.fillStyle = '#6C5CE7';
+  ctx.fillText('חתימות', W / 2, y);
+  y += 50;
+
+  return { canvas: c, ctx, y, W, H };
+}
+
+async function generateSignedPDF(doc) {
   try {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(18);
-    pdf.text('CoLink', 105, 20, { align: 'center' });
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Document signed digitally via CoLink', 105, 28, { align: 'center' });
-
-    pdf.setDrawColor(108, 92, 231);
-    pdf.setLineWidth(0.5);
-    pdf.line(20, 33, 190, 33);
-
-    let y = 45;
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(doc.title, 105, y, { align: 'center' });
-    y += 12;
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    const details = [
-      ['Category', doc.category || '-'],
-      ['Child', doc.forChild || '-'],
-      ['Deadline', doc.deadline ? formatDate(doc.deadline) : '-'],
-      ['Created', formatDate(doc.createdAt.split('T')[0])],
-      ['Notes', doc.notes || '-']
-    ];
-    details.forEach(([label, val]) => {
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(label + ':', 25, y);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(val, 60, y);
-      y += 7;
-    });
-
-    y += 10;
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(20, y, 190, y);
-    y += 10;
-
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Signatures', 105, y, { align: 'center' });
-    y += 10;
+    const { canvas, ctx, y: startY, W, H } = renderSignatureCertCanvas(doc);
 
     const roles = Object.keys(doc.signatures || {});
-    const sigWidth = 70;
-    roles.forEach((role, i) => {
-      const sig = doc.signatures[role];
-      const xBase = i === 0 ? 25 : 115;
+    let sigY = startY;
 
-      if (sig.data) {
-        try { pdf.addImage(sig.data, 'PNG', xBase, y, sigWidth, 30); } catch(e) {}
-      }
-
-      pdf.setDrawColor(150, 150, 150);
-      pdf.line(xBase, y + 33, xBase + sigWidth, y + 33);
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(role, xBase + sigWidth / 2, y + 39, { align: 'center' });
-      pdf.text(formatDate(sig.date.split('T')[0]), xBase + sigWidth / 2, y + 44, { align: 'center' });
+    const sigImgPromises = roles.map(role => {
+      return new Promise(resolve => {
+        const sig = doc.signatures[role];
+        if (!sig.data) { resolve({ role, img: null, date: sig.date }); return; }
+        const img = new Image();
+        img.onload = () => resolve({ role, img, date: sig.date });
+        img.onerror = () => resolve({ role, img: null, date: sig.date });
+        img.src = sig.data;
+      });
     });
+    const sigImgs = await Promise.all(sigImgPromises);
 
-    y += 55;
-    pdf.setFontSize(8);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text('This document was digitally signed via CoLink app. ID: ' + doc.id, 105, y, { align: 'center' });
+    const sigWidth = 300, sigHeight = 120;
+    const totalWidth = sigImgs.length * sigWidth + (sigImgs.length - 1) * 60;
+    let xStart = (W - totalWidth) / 2;
 
-    doc.pdfData = pdf.output('datauristring');
-    saveData();
+    for (const { role, img, date } of sigImgs) {
+      if (img) {
+        ctx.drawImage(img, xStart, sigY, sigWidth, sigHeight);
+      }
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xStart, sigY + sigHeight + 8);
+      ctx.lineTo(xStart + sigWidth, sigY + sigHeight + 8);
+      ctx.stroke();
+
+      ctx.textAlign = 'center';
+      ctx.font = '18px Rubik, sans-serif';
+      ctx.fillStyle = '#333';
+      ctx.fillText(role, xStart + sigWidth / 2, sigY + sigHeight + 35);
+      ctx.font = '14px Rubik, sans-serif';
+      ctx.fillStyle = '#888';
+      ctx.fillText(date ? formatDate(date.split('T')[0]) : '', xStart + sigWidth / 2, sigY + sigHeight + 55);
+
+      xStart += sigWidth + 60;
+    }
+
+    ctx.textAlign = 'center';
+    ctx.font = '14px Rubik, sans-serif';
+    ctx.fillStyle = '#bbb';
+    ctx.fillText('CoLink | Document ID: ' + doc.id, W / 2, H - 40);
+
+    const certPngDataUrl = canvas.toDataURL('image/png');
+    const certBase64 = certPngDataUrl.split(',')[1];
+    const certBytes = Uint8Array.from(atob(certBase64), c => c.charCodeAt(0));
+
+    const { PDFDocument } = PDFLib;
+    let pdfDoc;
+
+    if (doc.fileData && doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')) {
+      const fileBase64 = doc.fileData.split(',')[1] || doc.fileData;
+      const fileBytes = Uint8Array.from(atob(fileBase64), c => c.charCodeAt(0));
+      try {
+        pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+      } catch(e) {
+        pdfDoc = await PDFDocument.create();
+      }
+    } else {
+      pdfDoc = await PDFDocument.create();
+    }
+
+    const certImg = await pdfDoc.embedPng(certBytes);
+    const certPage = pdfDoc.addPage([595.28, 841.89]);
+    certPage.drawImage(certImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        doc.pdfData = reader.result;
+        saveData();
+        renderSignatures();
+        resolve();
+      };
+      reader.readAsDataURL(blob);
+    });
   } catch(e) {
     console.error('PDF generation error:', e);
   }
@@ -4534,6 +4620,14 @@ function downloadSignedPDF(id) {
   link.href = doc.pdfData;
   link.download = (doc.title || 'document') + '_signed.pdf';
   link.click();
+}
+
+async function regenerateAndDownload(id) {
+  const doc = appData.signatures.find(s => s.id === id);
+  if (!doc) return;
+  showToast('מפיק PDF...');
+  await generateSignedPDF(doc);
+  setTimeout(() => downloadSignedPDF(id), 500);
 }
 
 function filterSignatures(filter, btn) {
@@ -4594,8 +4688,12 @@ function renderSignatures() {
     }
 
     let pdfBtn = '';
-    if (s.status === 'signed' && s.pdfData) {
-      pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;margin-top:8px;" onclick="downloadSignedPDF(${s.id})">⤓ הורדת PDF חתום</button>`;
+    if (s.status === 'signed') {
+      if (s.pdfData) {
+        pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.85rem;margin-top:10px;display:flex;align-items:center;gap:6px;" onclick="downloadSignedPDF(${s.id})">⤓ הורדת PDF חתום</button>`;
+      } else {
+        pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.85rem;margin-top:10px;" onclick="regenerateAndDownload(${s.id})">⤓ הפקת PDF חתום</button>`;
+      }
     }
 
     const signedCount = s.signedBy ? s.signedBy.length : 0;
