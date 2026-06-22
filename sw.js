@@ -1,4 +1,4 @@
-const CACHE_NAME = 'colink-v2';
+const CACHE_NAME = 'colink-v3';
 const ASSETS = [
   './colink.html',
   './manifest.json'

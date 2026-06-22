@@ -486,7 +486,7 @@
 
     .nav-item:hover { background: #F8F7FF; color: var(--primary); }
     .nav-item.active { background: #F0EEFF; color: var(--primary); font-weight: 600; }
-    .nav-item .nav-icon { font-size: 1rem; width: 24px; text-align: center; opacity: 0.7; }
+    .nav-item .nav-icon { font-size: 1rem; width: 24px; text-align: center; opacity: 0.7; font-family: 'Segoe UI Symbol', 'Apple Symbols', sans-serif; }
 
     .sidebar-footer {
       padding: 16px 20px;
@@ -1230,8 +1230,8 @@
 
       /* Dashboard */
       .dash-greeting { font-size: 1.05rem; margin-bottom: 10px; }
-      .dash-top-row { gap: 6px; margin-bottom: 10px; flex-wrap: nowrap; }
-      .dash-mini-card { padding: 8px; }
+      .dash-top-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; margin-bottom: 10px; }
+      .dash-mini-card { padding: 8px; flex: 1; min-width: 0; max-width: 50%; }
       .custody-today-content { gap: 6px; }
       .custody-today-icon { width: 26px; height: 26px; font-size: 0.85rem; border-radius: 8px; }
       .custody-today-label { font-size: 0.55rem; }
@@ -1571,13 +1571,13 @@
         <span class="nav-icon">₪</span> הוצאות
       </button>
       <button class="nav-item" onclick="showPage('holidays', this)">
-        <span class="nav-icon">✡</span> חגים
+        <span class="nav-icon">✡&#xFE0E;</span> חגים
       </button>
       <button class="nav-item" onclick="showPage('activities', this)">
         <span class="nav-icon">◎</span> חוגים
       </button>
       <button class="nav-item" onclick="showPage('signatures', this)">
-        <span class="nav-icon">✎</span> חתימות ואישורים
+        <span class="nav-icon">✎&#xFE0E;</span> חתימות ואישורים
       </button>
       <button class="nav-item" onclick="showPage('calendar', this)">
         <span class="nav-icon">▣</span> יומן
