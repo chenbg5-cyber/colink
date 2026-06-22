@@ -4465,71 +4465,36 @@ function deleteSignature(id) {
   renderSignatures();
 }
 
-function renderSignatureCertCanvas(doc) {
-  const W = 1190, H = 1684;
+function renderSignatureStripCanvas(doc) {
+  const W = 1190, stripH = 340;
   const c = document.createElement('canvas');
-  c.width = W; c.height = H;
+  c.width = W; c.height = stripH;
   const ctx = c.getContext('2d');
 
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#6C5CE7';
-  ctx.font = 'bold 36px Rubik, sans-serif';
-  ctx.fillText('CoLink', W / 2, 60);
-
-  ctx.font = '20px Rubik, sans-serif';
-  ctx.fillStyle = '#888';
-  ctx.fillText('אישור חתימה דיגיטלית', W / 2, 95);
+  ctx.fillRect(0, 0, W, stripH);
 
   ctx.strokeStyle = '#6C5CE7';
   ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(60, 115); ctx.lineTo(W - 60, 115); ctx.stroke();
-
-  ctx.textAlign = 'right';
-  let y = 165;
-  ctx.font = 'bold 22px Rubik, sans-serif';
-  ctx.fillStyle = '#333';
-  ctx.fillText(doc.title || '', W - 80, y);
-  y += 40;
-
-  ctx.font = '18px Rubik, sans-serif';
-  ctx.fillStyle = '#555';
-  const lines = [
-    'קטגוריה: ' + (doc.category || '-'),
-    'ילד/ה: ' + (doc.forChild || '-'),
-    'תאריך יעד: ' + (doc.deadline ? formatDate(doc.deadline) : '-'),
-    'נוצר: ' + (doc.createdAt ? formatDate(doc.createdAt.split('T')[0]) : '-'),
-    doc.notes ? 'הערות: ' + doc.notes : ''
-  ].filter(Boolean);
-  for (const line of lines) {
-    ctx.fillText(line, W - 80, y);
-    y += 32;
-  }
-
-  y += 20;
-  ctx.strokeStyle = '#ddd';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
-  y += 40;
+  ctx.beginPath(); ctx.moveTo(40, 12); ctx.lineTo(W - 40, 12); ctx.stroke();
 
   ctx.textAlign = 'center';
-  ctx.font = 'bold 24px Rubik, sans-serif';
+  ctx.font = 'bold 18px Rubik, sans-serif';
   ctx.fillStyle = '#6C5CE7';
-  ctx.fillText('חתימות', W / 2, y);
-  y += 50;
+  ctx.fillText('נחתם דיגיטלית דרך CoLink', W / 2, 38);
 
-  return { canvas: c, ctx, y, W, H };
+  ctx.font = '13px Rubik, sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText(doc.title + (doc.forChild ? ' · ' + doc.forChild : '') + ' · ' + formatDate(doc.createdAt.split('T')[0]), W / 2, 58);
+
+  return { canvas: c, ctx, W, stripH };
 }
 
 async function generateSignedPDF(doc) {
   try {
-    const { canvas, ctx, y: startY, W, H } = renderSignatureCertCanvas(doc);
+    const { canvas, ctx, W, stripH } = renderSignatureStripCanvas(doc);
 
     const roles = Object.keys(doc.signatures || {});
-    let sigY = startY;
-
     const sigImgPromises = roles.map(role => {
       return new Promise(resolve => {
         const sig = doc.signatures[role];
@@ -4542,49 +4507,41 @@ async function generateSignedPDF(doc) {
     });
     const sigImgs = await Promise.all(sigImgPromises);
 
-    const sigWidth = 300, sigHeight = 120;
-    const totalWidth = sigImgs.length * sigWidth + (sigImgs.length - 1) * 60;
-    let xStart = (W - totalWidth) / 2;
+    const sigDrawW = 220, sigDrawH = 90;
+    const gap = 80;
+    const totalW = sigImgs.length * sigDrawW + (sigImgs.length - 1) * gap;
+    let xStart = (W - totalW) / 2;
+    const sigY = 75;
 
     for (const { role, img, date } of sigImgs) {
-      if (img) {
-        ctx.drawImage(img, xStart, sigY, sigWidth, sigHeight);
-      }
-      ctx.strokeStyle = '#999';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(xStart, sigY + sigHeight + 8);
-      ctx.lineTo(xStart + sigWidth, sigY + sigHeight + 8);
-      ctx.stroke();
-
+      if (img) ctx.drawImage(img, xStart, sigY, sigDrawW, sigDrawH);
+      ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xStart, sigY + sigDrawH + 5); ctx.lineTo(xStart + sigDrawW, sigY + sigDrawH + 5); ctx.stroke();
       ctx.textAlign = 'center';
-      ctx.font = '18px Rubik, sans-serif';
-      ctx.fillStyle = '#333';
-      ctx.fillText(role, xStart + sigWidth / 2, sigY + sigHeight + 35);
-      ctx.font = '14px Rubik, sans-serif';
-      ctx.fillStyle = '#888';
-      ctx.fillText(date ? formatDate(date.split('T')[0]) : '', xStart + sigWidth / 2, sigY + sigHeight + 55);
-
-      xStart += sigWidth + 60;
+      ctx.font = 'bold 15px Rubik, sans-serif'; ctx.fillStyle = '#333';
+      ctx.fillText(role, xStart + sigDrawW / 2, sigY + sigDrawH + 24);
+      ctx.font = '12px Rubik, sans-serif'; ctx.fillStyle = '#888';
+      ctx.fillText(date ? formatDate(date.split('T')[0]) : '', xStart + sigDrawW / 2, sigY + sigDrawH + 42);
+      xStart += sigDrawW + gap;
     }
 
-    ctx.textAlign = 'center';
-    ctx.font = '14px Rubik, sans-serif';
-    ctx.fillStyle = '#bbb';
-    ctx.fillText('CoLink | Document ID: ' + doc.id, W / 2, H - 40);
+    ctx.textAlign = 'center'; ctx.font = '10px Rubik, sans-serif'; ctx.fillStyle = '#ccc';
+    ctx.fillText('CoLink | ID: ' + doc.id, W / 2, stripH - 8);
 
-    const certPngDataUrl = canvas.toDataURL('image/png');
-    const certBase64 = certPngDataUrl.split(',')[1];
-    const certBytes = Uint8Array.from(atob(certBase64), c => c.charCodeAt(0));
+    const stripPng = canvas.toDataURL('image/png');
+    const stripBase64 = stripPng.split(',')[1];
+    const stripBytes = Uint8Array.from(atob(stripBase64), c => c.charCodeAt(0));
 
     const { PDFDocument } = PDFLib;
     let pdfDoc;
+    let hasOriginal = false;
 
     if (doc.fileData && doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')) {
       const fileBase64 = doc.fileData.split(',')[1] || doc.fileData;
       const fileBytes = Uint8Array.from(atob(fileBase64), c => c.charCodeAt(0));
       try {
         pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+        hasOriginal = true;
       } catch(e) {
         pdfDoc = await PDFDocument.create();
       }
@@ -4592,9 +4549,22 @@ async function generateSignedPDF(doc) {
       pdfDoc = await PDFDocument.create();
     }
 
-    const certImg = await pdfDoc.embedPng(certBytes);
-    const certPage = pdfDoc.addPage([595.28, 841.89]);
-    certPage.drawImage(certImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+    const stripImg = await pdfDoc.embedPng(stripBytes);
+    const stripAspect = stripH / W;
+
+    if (hasOriginal) {
+      const pages = pdfDoc.getPages();
+      const lastPage = pages[pages.length - 1];
+      const { width: pw } = lastPage.getSize();
+      const drawW = pw - 40;
+      const drawH = drawW * stripAspect;
+      lastPage.drawImage(stripImg, { x: 20, y: 10, width: drawW, height: drawH });
+    } else {
+      const page = pdfDoc.addPage([595.28, 841.89]);
+      const drawW = 555;
+      const drawH = drawW * stripAspect;
+      page.drawImage(stripImg, { x: 20, y: 841.89 - drawH - 40, width: drawW, height: drawH });
+    }
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
