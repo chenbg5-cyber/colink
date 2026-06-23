@@ -1318,6 +1318,15 @@
       color: var(--text-light);
       white-space: nowrap;
     }
+    .stat-chip-summary {
+      font-size: 0.5rem;
+      color: var(--text-light);
+      opacity: 0.7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
 
     .stat-chip-plus {
       position: absolute;
@@ -1795,6 +1804,7 @@
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statFriendsBirthday">0</span>
             <span class="stat-chip-label">ימי הולדת חברים</span>
+            <span class="stat-chip-summary" id="statFriendsBdaySummary"></span>
           </div>
           <span class="stat-chip-plus">+</span>
         </div>
@@ -3695,6 +3705,17 @@ function updateDashboard() {
   // Card 5: Friends Birthday count
   const friendsBday = appData.tasks.filter(t => t.category === 'יום הולדת חבר/ה' && t.status !== 'done');
   document.getElementById('statFriendsBirthday').textContent = friendsBday.length;
+  const fbSummary = document.getElementById('statFriendsBdaySummary');
+  if (fbSummary) {
+    const sorted = [...friendsBday].filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (sorted.length > 0) {
+      const next = sorted[0];
+      const d = new Date(next.date);
+      fbSummary.textContent = next.title + ' ' + d.getDate() + '.' + (d.getMonth() + 1);
+    } else {
+      fbSummary.textContent = '';
+    }
+  }
 
   // Card 6: Kids Birthday (30 days before)
   const kidsBdayEl = document.getElementById('statKidsBirthday');
