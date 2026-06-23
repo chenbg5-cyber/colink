@@ -953,6 +953,132 @@
       justify-content: space-between;
     }
 
+    .bottom-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 4px;
+    }
+    .bottom-bar-kids {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+      justify-content: center;
+      overflow-x: auto;
+    }
+    .bottom-bar-kid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      cursor: pointer;
+      border-radius: 10px;
+      min-width: 52px;
+    }
+    .bottom-bar-kid:active { background: var(--primary-light); }
+    .bottom-bar-kid-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .bottom-bar-kid-avatar img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .bottom-bar-label {
+      font-size: 0.6rem;
+      color: var(--text-light);
+      text-align: center;
+      white-space: nowrap;
+      max-width: 56px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bottom-bar-actions-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px;
+      cursor: pointer;
+      border-radius: 10px;
+      min-width: 52px;
+    }
+    .bottom-bar-actions-btn:active { background: var(--primary-light); }
+    .bottom-bar-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .actions-popup {
+      display: none;
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      padding: 8px 0;
+      z-index: 101;
+      min-width: 220px;
+      max-width: 90vw;
+    }
+    .actions-popup.open { display: block; }
+    .actions-popup button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--text);
+      text-align: right;
+    }
+    .actions-popup button:hover { background: var(--primary-light); }
+    .actions-popup button span {
+      width: 24px;
+      text-align: center;
+      font-size: 1rem;
+      color: var(--primary);
+    }
+    .actions-popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+    .actions-popup-overlay.open { display: block; }
+
     .hamburger {
       background: none;
       border: none;
@@ -1227,8 +1353,9 @@
       .app-container.active { display: block !important; }
       .sidebar { transform: translateX(100%); }
       .sidebar.open { transform: translateX(0); }
-      .main-content { margin-right: 0; padding: 80px 10px 40px; max-width: 100vw; width: 100%; box-sizing: border-box; min-height: auto; }
+      .main-content { margin-right: 0; padding: 80px 10px 90px; max-width: 100vw; width: 100%; box-sizing: border-box; min-height: auto; }
       .mobile-header { display: flex; }
+      .bottom-bar { display: flex; }
 
       /* Dashboard */
       .dash-greeting { font-size: 1.05rem; margin-bottom: 10px; }
@@ -1716,11 +1843,6 @@
         <div id="dashCamps"></div>
       </div>
 
-      <!-- Card 9: Our kids -->
-      <div class="card">
-        <h3>הילדים שלנו</h3>
-        <div id="dashKids"></div>
-      </div>
     </div>
 
     <!-- Our Kids -->
@@ -1968,6 +2090,29 @@
     </div>
 
   </main>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar" id="bottomBar">
+    <div class="bottom-bar-kids" id="bottomBarKids"></div>
+    <div class="bottom-bar-actions-btn" onclick="toggleActionsMenu(event)">
+      <div class="bottom-bar-icon">⊞</div>
+      <div class="bottom-bar-label">פעולות</div>
+    </div>
+  </div>
+
+  <!-- Actions popup menu -->
+  <div class="actions-popup-overlay" id="actionsOverlay" onclick="closeActionsMenu()"></div>
+  <div class="actions-popup" id="actionsPopup">
+    <button onclick="closeActionsMenu();openNewTask()"><span>☐</span> משימה חדשה</button>
+    <button onclick="closeActionsMenu();openModal('eventModal')"><span>◆</span> אירוע חדש</button>
+    <button onclick="closeActionsMenu();openActivityModal()"><span>◎</span> חוג חדש</button>
+    <button onclick="closeActionsMenu();openCampModal()"><span>◈</span> קייטנה חדשה</button>
+    <button onclick="closeActionsMenu();openModal('expenseModal')"><span>₪</span> הוצאה חדשה</button>
+    <button onclick="closeActionsMenu();openModal('signatureModal')"><span>⊡</span> מסמך לחתימה</button>
+    <button onclick="closeActionsMenu();openModal('custodyChangeModal')"><span>⇄</span> בקשת שינוי משמורת</button>
+    <button onclick="closeActionsMenu();openKidModal()"><span>◉</span> הוספת ילד/ה</button>
+  </div>
+
 </div>
 
 <!-- ============ MODALS ============ -->
@@ -3279,6 +3424,40 @@ function updateSidebar() {
 }
 
 // ============ PAGES ============
+function renderBottomBarKids() {
+  const container = document.getElementById('bottomBarKids');
+  if (!container) return;
+  if (!appData.kids || appData.kids.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = appData.kids.map((kid, idx) => {
+    const grad = kid.gender === 'בת' ? 'linear-gradient(135deg,#f472b6,#ec4899)' : 'linear-gradient(135deg,#60a5fa,#3b82f6)';
+    const initial = kid.name ? kid.name.charAt(0) : '?';
+    const avatarContent = kid.photo
+      ? `<img src="${kid.photo}">`
+      : `<div class="bottom-bar-kid-avatar" style="background:${grad};">${initial}</div>`;
+    return `
+      <div class="bottom-bar-kid" onclick="showPage('kids')">
+        ${kid.photo ? '<div class="bottom-bar-kid-avatar">' + avatarContent + '</div>' : avatarContent}
+        <div class="bottom-bar-label">${kid.name}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleActionsMenu(e) {
+  if (e) e.stopPropagation();
+  const popup = document.getElementById('actionsPopup');
+  const overlay = document.getElementById('actionsOverlay');
+  popup.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+
+function closeActionsMenu() {
+  document.getElementById('actionsPopup').classList.remove('open');
+  document.getElementById('actionsOverlay').classList.remove('open');
+}
+
 function showPage(page, navEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -3519,33 +3698,8 @@ function updateDashboard() {
     `).join('');
   }
 
-  // Card 9: Our kids
-  const dashKids = document.getElementById('dashKids');
-  if (appData.kids.length === 0) {
-    dashKids.innerHTML = '<div class="empty-state"><p>לא נוספו ילדים</p></div>';
-  } else {
-    dashKids.style.display = 'flex';
-    dashKids.style.gap = '12px';
-    dashKids.style.overflowX = 'auto';
-    dashKids.style.paddingBottom = '4px';
-    dashKids.innerHTML = appData.kids.map(kid => {
-      const age = calculateAge(kid.dob);
-      const kidTasks = appData.tasks.filter(t => t.forChild === kid.name && t.status !== 'done').length;
-      const grad = kid.gender === 'בת' ? 'linear-gradient(135deg,#f472b6,#ec4899)' : 'linear-gradient(135deg,#60a5fa,#3b82f6)';
-      const initial = kid.name ? kid.name.charAt(0) : '?';
-      const avatarContent = kid.photo
-        ? `<img src="${kid.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
-        : `<div style="width:48px;height:48px;border-radius:50%;background:${grad};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;">${initial}</div>`;
-      return `
-        <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex-shrink:0;gap:6px;padding:8px 4px;">
-          ${avatarContent}
-          <div style="font-weight:600;font-size:0.85rem;text-align:center;white-space:nowrap;">${kid.name}</div>
-          <div style="font-size:0.7rem;color:var(--text-light);text-align:center;white-space:nowrap;">גיל ${age}</div>
-          <div style="background:var(--primary-light);color:var(--primary);font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:10px;">${kidTasks} משימות</div>
-        </div>
-      `;
-    }).join('');
-  }
+  // Bottom bar kids
+  renderBottomBarKids();
 
   // Pending signatures dashboard card
   const sigCard = document.getElementById('dashPendingSigsCard');
