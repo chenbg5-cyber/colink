@@ -1347,6 +1347,7 @@
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -3357,21 +3358,27 @@ function updateDashboard() {
 
   // Card 6: Kids Birthday (30 days before)
   const kidsBdayEl = document.getElementById('statKidsBirthday');
-  const upcomingBdays = appData.kids.filter(kid => {
-    if (!kid.dob) return false;
+  const upcomingBdays = appData.kids.map(kid => {
+    if (!kid.dob) return null;
     const bday = new Date(kid.dob);
     const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
     if (thisYearBday < now) thisYearBday.setFullYear(now.getFullYear() + 1);
-    const diff = (thisYearBday - now) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 30;
-  });
+    const diff = Math.ceil((thisYearBday - now) / (1000 * 60 * 60 * 24));
+    if (diff >= 0 && diff <= 30) return { name: kid.name, date: thisYearBday, days: diff };
+    return null;
+  }).filter(Boolean).sort((a, b) => a.days - b.days);
   if (upcomingBdays.length > 0) {
-    kidsBdayEl.textContent = upcomingBdays.map(k => k.name).join(', ');
-    kidsBdayEl.style.fontSize = '0.9rem';
+    kidsBdayEl.innerHTML = upcomingBdays.map(b => {
+      const dateStr = b.date.getDate() + '/' + (b.date.getMonth() + 1);
+      const daysText = b.days === 0 ? 'היום!' : b.days === 1 ? 'מחר' : 'בעוד ' + b.days + ' ימים';
+      return `<div>${b.name} — ${dateStr} (${daysText})</div>`;
+    }).join('');
+    kidsBdayEl.style.fontSize = '0.75rem';
   } else {
     kidsBdayEl.textContent = '-';
     kidsBdayEl.style.fontSize = '';
   }
+  checkBirthdayReminders();
 
   // Card 7: All my assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
@@ -3552,6 +3559,54 @@ function getStatusBadgeClass(s) {
   if (s === 'inprocess') return 'badge-new';
   if (s === 'done') return 'badge-approved';
   return '';
+}
+
+// ============ BIRTHDAY REMINDERS ============
+function checkBirthdayReminders() {
+  if (!appData.kids || !appData.kids.length) return;
+  if (!appData.birthdayReminders) appData.birthdayReminders = {};
+  const now = new Date();
+  const todayKey = now.toISOString().split('T')[0];
+  const milestones = [30, 14, 7, 1, 0];
+  const milestoneLabels = { 30: 'בעוד 30 יום', 14: 'בעוד שבועיים', 7: 'בעוד שבוע', 1: 'מחר', 0: 'היום' };
+
+  appData.kids.forEach(kid => {
+    if (!kid.dob) return;
+    const bday = new Date(kid.dob);
+    const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
+    if (thisYearBday < new Date(now.getFullYear(), now.getMonth(), now.getDate())) thisYearBday.setFullYear(now.getFullYear() + 1);
+    const diff = Math.ceil((thisYearBday - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / (1000 * 60 * 60 * 24));
+
+    milestones.forEach(m => {
+      if (diff !== m) return;
+      const key = kid.name + '_' + m + '_' + thisYearBday.getFullYear();
+      if (appData.birthdayReminders[key]) return;
+
+      const dateStr = thisYearBday.getDate() + '/' + (thisYearBday.getMonth() + 1);
+      const subject = `🎂 תזכורת: יום הולדת ${kid.name} ${milestoneLabels[m]}!`;
+      const body = `שלום,\n\nתזכורת: יום ההולדת של ${kid.name} הוא בתאריך ${dateStr} (${milestoneLabels[m]}).\n\nCoLink - ניהול משפחתי משותף`;
+
+      sendBirthdayEmail(subject, body);
+      appData.birthdayReminders[key] = todayKey;
+      saveData();
+    });
+  });
+}
+
+function sendBirthdayEmail(subject, body) {
+  if (!window.emailjs || !appData.emailjsSetup) {
+    showToast(subject);
+    return;
+  }
+  emailjs.send(appData.emailjsSetup.serviceId, appData.emailjsSetup.templateId, {
+    to_email: appData.user.email || '',
+    subject: subject,
+    message: body
+  }).then(() => {
+    console.log('Birthday reminder email sent');
+  }).catch(err => {
+    console.error('Email error:', err);
+  });
 }
 
 // ============ KIDS ============
