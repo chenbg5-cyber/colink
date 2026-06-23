@@ -1358,27 +1358,13 @@
 <div class="onboarding-overlay" id="authScreen" style="z-index:10000;">
   <div class="onboarding-card" style="text-align:center;">
     <div class="ob-logo">Co<span>Link</span></div>
-    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.9rem;">התחברות עם מספר טלפון</p>
+    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.9rem;">התחברות לשמירת הנתונים בענן</p>
 
-    <div id="authStepPhone">
-      <div class="form-group" style="text-align:right;">
-        <label class="form-label">מספר טלפון</label>
-        <input type="tel" id="authPhone" class="form-input" placeholder="05X-XXXXXXX" dir="ltr" style="text-align:left;font-size:1.1rem;letter-spacing:1px;">
-      </div>
-      <div id="recaptchaContainer"></div>
-      <button class="btn btn-primary" onclick="sendAuthCode()" style="width:100%;margin-top:12px;" id="authSendBtn">שליחת קוד</button>
-      <p style="color:var(--text-muted);font-size:0.75rem;margin-top:12px;">קוד אימות יישלח ב-SMS למספר שלך</p>
-      <p style="color:var(--text-muted);font-size:0.6rem;margin-top:20px;">v5</p>
-    </div>
-
-    <div id="authStepCode" style="display:none;">
-      <div class="form-group" style="text-align:right;">
-        <label class="form-label">קוד אימות</label>
-        <input type="text" id="authCode" class="form-input" placeholder="XXXXXX" dir="ltr" style="text-align:center;font-size:1.4rem;letter-spacing:6px;" maxlength="6" inputmode="numeric">
-      </div>
-      <button class="btn btn-primary" onclick="verifyAuthCode()" style="width:100%;margin-top:12px;" id="authVerifyBtn">אימות</button>
-      <button class="btn" onclick="resetAuth()" style="width:100%;margin-top:8px;background:transparent;color:var(--text-light);">שליחה מחדש</button>
-    </div>
+    <button onclick="signInWithGoogle()" id="googleSignInBtn" style="width:100%;margin-top:12px;padding:14px;font-size:1rem;font-family:inherit;border:2px solid var(--border);border-radius:12px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:22px;height:22px;">
+      התחברות עם Google
+    </button>
+    <p style="color:var(--text-muted);font-size:0.75rem;margin-top:16px;">הדאטה שלך נשמר בענן ומסונכרן בין מכשירים</p>
   </div>
 </div>
 
@@ -2458,77 +2444,26 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 auth.languageCode = 'he';
 
-let confirmationResult = null;
 let currentFirebaseUser = null;
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-function formatPhoneForFirebase(phone) {
-  let p = phone.replace(/[-\s]/g, '');
-  if (p.startsWith('0')) p = '+972' + p.substring(1);
-  if (!p.startsWith('+')) p = '+972' + p;
-  return p;
-}
-
-function sendAuthCode() {
-  try {
-    const phone = document.getElementById('authPhone').value.trim();
-    if (!phone || phone.length < 9) { showToast('נא להזין מספר טלפון תקין'); return; }
-    const btn = document.getElementById('authSendBtn');
-    btn.disabled = true;
-    btn.textContent = 'שולח...';
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptchaContainer', { size: 'invisible' });
-    }
-    window.recaptchaVerifier.render().then(() => {
-      return auth.signInWithPhoneNumber(formatPhoneForFirebase(phone), window.recaptchaVerifier);
-    }).then(result => {
-      confirmationResult = result;
-      document.getElementById('authStepPhone').style.display = 'none';
-      document.getElementById('authStepCode').style.display = 'block';
-      document.getElementById('authCode').focus();
-    }).catch(err => {
-      console.error('SMS error:', err);
-      let msg = 'שגיאה בשליחת SMS';
-      if (err.code === 'auth/invalid-phone-number') msg = 'מספר טלפון לא תקין';
-      else if (err.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות — נסי מאוחר יותר';
-      else if (err.code === 'auth/captcha-check-failed') msg = 'אימות reCAPTCHA נכשל — נסי שוב';
-      else if (err.code) msg += ': ' + err.code;
-      else msg += ': ' + err.message;
-      showToast(msg);
-      btn.disabled = false;
-      btn.textContent = 'שליחת קוד';
-      if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
-    });
-  } catch(e) {
-    showToast('שגיאה: ' + e.message);
-    document.getElementById('authSendBtn').disabled = false;
-    document.getElementById('authSendBtn').textContent = 'שליחת קוד';
-  }
-}
-
-function verifyAuthCode() {
-  const code = document.getElementById('authCode').value.trim();
-  if (!code || code.length < 6) { showToast('נא להזין קוד בן 6 ספרות'); return; }
-  const btn = document.getElementById('authVerifyBtn');
+function signInWithGoogle() {
+  const btn = document.getElementById('googleSignInBtn');
   btn.disabled = true;
-  btn.textContent = 'מאמת...';
-  confirmationResult.confirm(code)
+  btn.style.opacity = '0.6';
+  auth.signInWithPopup(googleProvider)
     .then(result => {
       currentFirebaseUser = result.user;
       onAuthSuccess();
     })
-    .catch(() => {
-      showToast('קוד שגוי — נסי שוב');
+    .catch(err => {
+      console.error('Google sign-in error:', err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        showToast('שגיאה בהתחברות: ' + (err.code || err.message));
+      }
       btn.disabled = false;
-      btn.textContent = 'אימות';
+      btn.style.opacity = '1';
     });
-}
-
-function resetAuth() {
-  document.getElementById('authStepPhone').style.display = 'block';
-  document.getElementById('authStepCode').style.display = 'none';
-  document.getElementById('authSendBtn').disabled = false;
-  document.getElementById('authSendBtn').textContent = 'שליחת קוד';
-  if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
 }
 
 async function onAuthSuccess() {
