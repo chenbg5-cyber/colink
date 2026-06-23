@@ -2485,7 +2485,12 @@ function sendAuthCode() {
     })
     .catch(err => {
       console.error('SMS error:', err);
-      showToast('שגיאה בשליחת SMS — נסי שוב');
+      let msg = 'שגיאה בשליחת SMS';
+      if (err.code === 'auth/invalid-phone-number') msg = 'מספר טלפון לא תקין';
+      else if (err.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות — נסי מאוחר יותר';
+      else if (err.code === 'auth/captcha-check-failed') msg = 'אימות reCAPTCHA נכשל — נסי שוב';
+      else if (err.code) msg += ': ' + err.code;
+      showToast(msg);
       btn.disabled = false;
       btn.textContent = 'שליחת קוד';
       if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
