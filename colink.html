@@ -1365,11 +1365,11 @@
       .custody-today-icon { width: 26px; height: 26px; font-size: 0.85rem; border-radius: 8px; }
       .custody-today-label { font-size: 0.55rem; }
       .custody-today-status { font-size: 0.75rem; }
-      .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; overflow-x: visible; }
-      .stat-chip { padding: 8px; gap: 6px; }
-      .stat-chip-icon { width: 28px; height: 28px; font-size: 0.85rem; }
-      .stat-chip-value { font-size: 0.9rem; }
-      .stat-chip-label { font-size: 0.6rem; white-space: normal; line-height: 1.2; }
+      .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px; overflow-x: visible; }
+      .stat-chip { padding: 6px; gap: 4px; flex-direction: column; text-align: center; }
+      .stat-chip-icon { width: 26px; height: 26px; font-size: 0.8rem; }
+      .stat-chip-value { font-size: 0.85rem; }
+      .stat-chip-label { font-size: 0.55rem; white-space: normal; line-height: 1.2; }
       .stat-chip-plus { width: 14px; height: 14px; font-size: 0.6rem; }
 
       /* Cards */
@@ -1787,6 +1787,13 @@
             <span class="stat-chip-label">יום הולדת הילדים</span>
           </div>
         </div>
+        <div class="stat-chip" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#E8F5E9;">◎</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statActivities">0</span>
+            <span class="stat-chip-label">חוגים</span>
+          </div>
+        </div>
       </div>
 
       <!-- Today assignments checklist -->
@@ -1820,25 +1827,16 @@
       <div class="card card-compact" id="dashPendingSigsCard" style="display:none;">
         <div class="card-compact-header">
           <h3>✎ ממתינים לחתימה</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
         </div>
         <div id="dashPendingSigs"></div>
-      </div>
-
-      <!-- Activities summary -->
-      <div class="card card-compact" id="dashActivitiesCard" style="display:none;">
-        <div class="card-compact-header">
-          <h3>⚽ חוגים השבוע</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
-        </div>
-        <div id="dashActivities"></div>
       </div>
 
       <!-- Camps summary -->
       <div class="card card-compact" id="dashCampsCard" style="display:none;">
         <div class="card-compact-header">
           <h3>☀ קייטנות</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
         </div>
         <div id="dashCamps"></div>
       </div>
@@ -3723,31 +3721,9 @@ function updateDashboard() {
     }).join('');
   }
 
-  // Activities dashboard card
-  const actCard = document.getElementById('dashActivitiesCard');
-  const actContainer = document.getElementById('dashActivities');
-  const activities = appData.activities || [];
-  if (activities.length === 0) {
-    actCard.style.display = 'none';
-  } else {
-    actCard.style.display = '';
-    const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-    const sorted = [...activities].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
-    actContainer.innerHTML = sorted.map(a => {
-      const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
-      const phonePart = a.instructorPhone ? `<a href="tel:${a.instructorPhone}" style="color:var(--primary);font-size:0.75rem;text-decoration:none;">📞 ${a.instructorPhone}</a>` : '';
-      const instructorPart = a.instructor ? `<span style="font-size:0.75rem;color:var(--text-light);">מדריך: ${a.instructor}</span>` : '';
-      const custodyParent = getActivityCustodyParent(a.day);
-      return `
-        <div class="list-item" style="padding:8px 10px;">
-          <div class="list-item-content">
-            <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
-            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}${custodyParent ? ' · אחריות: ' + custodyParent : ''}</div>
-            ${instructorPart || phonePart ? '<div style="margin-top:2px;">' + [instructorPart, phonePart].filter(Boolean).join(' · ') + '</div>' : ''}
-          </div>
-        </div>`;
-    }).join('');
-  }
+  // Activities stat chip
+  const statAct = document.getElementById('statActivities');
+  if (statAct) statAct.textContent = (appData.activities || []).length;
 
   // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
   const campsCard = document.getElementById('dashCampsCard');
