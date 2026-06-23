@@ -1867,10 +1867,19 @@
         <div id="dashPendingSigs"></div>
       </div>
 
+      <!-- Activities summary -->
+      <div class="card card-compact" id="dashActivitiesCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>◎ חוגים</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
+        </div>
+        <div id="dashActivities"></div>
+      </div>
+
       <!-- Camps summary -->
       <div class="card card-compact" id="dashCampsCard" style="display:none;">
         <div class="card-compact-header">
-          <h3>☀ קייטנות</h3>
+          <h3>◈ קייטנות</h3>
           <button class="btn btn-primary btn-sm" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
         </div>
         <div id="dashCamps"></div>
@@ -3837,6 +3846,27 @@ function updateDashboard() {
     } else {
       statCampsLabel.textContent = 'קייטנות';
     }
+  }
+
+  // Activities dashboard card
+  const actCard = document.getElementById('dashActivitiesCard');
+  const actContainer = document.getElementById('dashActivities');
+  if (acts.length === 0) {
+    actCard.style.display = 'none';
+  } else {
+    actCard.style.display = '';
+    const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    const sortedActs = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+    actContainer.innerHTML = sortedActs.map(a => {
+      const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
+      return `
+        <div class="list-item" style="padding:8px 10px;">
+          <div class="list-item-content">
+            <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
+            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
