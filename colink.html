@@ -2389,8 +2389,24 @@
         <input type="text" id="kidModalSchool" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
-        <label>כיתה <span class="required">*</span></label>
-        <input type="text" id="kidModalClass" placeholder="כיתה">
+        <label>כיתה / גן <span class="required">*</span></label>
+        <select id="kidModalClass" class="form-input">
+          <option value="">בחרי...</option>
+          <option value="גן טרום חובה">גן טרום חובה</option>
+          <option value="גן חובה">גן חובה</option>
+          <option value="א׳">כיתה א׳</option>
+          <option value="ב׳">כיתה ב׳</option>
+          <option value="ג׳">כיתה ג׳</option>
+          <option value="ד׳">כיתה ד׳</option>
+          <option value="ה׳">כיתה ה׳</option>
+          <option value="ו׳">כיתה ו׳</option>
+          <option value="ז׳">כיתה ז׳</option>
+          <option value="ח׳">כיתה ח׳</option>
+          <option value="ט׳">כיתה ט׳</option>
+          <option value="י׳">כיתה י׳</option>
+          <option value="י״א">כיתה י״א</option>
+          <option value="י״ב">כיתה י״ב</option>
+        </select>
       </div>
     </div>
     <div class="form-group">
@@ -2942,8 +2958,24 @@ function addKidCard() {
         <input type="text" class="kid-school" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
-        <label>כיתה <span class="required">*</span></label>
-        <input type="text" class="kid-class" placeholder="כיתה">
+        <label>כיתה / גן <span class="required">*</span></label>
+        <select class="kid-class form-input">
+          <option value="">בחרי...</option>
+          <option value="גן טרום חובה">גן טרום חובה</option>
+          <option value="גן חובה">גן חובה</option>
+          <option value="א׳">כיתה א׳</option>
+          <option value="ב׳">כיתה ב׳</option>
+          <option value="ג׳">כיתה ג׳</option>
+          <option value="ד׳">כיתה ד׳</option>
+          <option value="ה׳">כיתה ה׳</option>
+          <option value="ו׳">כיתה ו׳</option>
+          <option value="ז׳">כיתה ז׳</option>
+          <option value="ח׳">כיתה ח׳</option>
+          <option value="ט׳">כיתה ט׳</option>
+          <option value="י׳">כיתה י׳</option>
+          <option value="י״א">כיתה י״א</option>
+          <option value="י״ב">כיתה י״ב</option>
+        </select>
       </div>
     </div>
     <div class="form-group">
@@ -3536,7 +3568,7 @@ function renderKids() {
           <div>
             <span class="kid-detail">גיל ${age}</span>
             <span class="kid-detail">${kid.school}</span>
-            <span class="kid-detail">כיתה ${kid.class}</span>
+            <span class="kid-detail">${kid.class.includes('גן') ? kid.class : 'כיתה ' + kid.class}</span>
             <span class="kid-detail">${kid.teacher}</span>
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${kid.tzaaron}</span></div>` : ''}
