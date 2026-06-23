@@ -1563,7 +1563,6 @@
   </div>
 
   <!-- Sidebar -->
-  <div id="sidebarOverlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:998;"></div>
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-greeting">שלום</div>
@@ -3197,9 +3196,7 @@ function showPage(page, navEl) {
 
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
   const isOpen = sidebar.classList.toggle('open');
-  overlay.style.display = isOpen ? 'block' : 'none';
   if (isOpen) {
     history.pushState({ sidebar: true }, '');
   }
@@ -3207,8 +3204,15 @@ function toggleSidebar() {
 
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').style.display = 'none';
 }
+
+document.addEventListener('click', function(e) {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar || !sidebar.classList.contains('open')) return;
+  if (!sidebar.contains(e.target) && !e.target.classList.contains('hamburger')) {
+    closeSidebar();
+  }
+});
 
 window.addEventListener('popstate', function(e) {
   const sidebar = document.getElementById('sidebar');
