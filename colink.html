@@ -3385,6 +3385,7 @@ function updateDashboard() {
   }
   checkBirthdayReminders();
   checkEventReminders();
+  checkTaskReminders();
 
   // Card 7: All my assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
@@ -3624,6 +3625,37 @@ function checkEventReminders() {
 
       sendBirthdayNotification(subject, body);
       appData.eventReminders[key] = todayKey;
+      saveData();
+    });
+  });
+}
+
+function checkTaskReminders() {
+  if (!appData.tasks || !appData.tasks.length) return;
+  if (!appData.taskReminders) appData.taskReminders = {};
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = now.toISOString().split('T')[0];
+  const milestones = [2, 0, -1];
+  const labels = { 2: 'בעוד יומיים', 0: 'היום', '-1': 'עבר המועד!' };
+
+  appData.tasks.forEach(t => {
+    if (!t.date || t.status === 'done') return;
+    const taskDate = new Date(t.date);
+    const diff = Math.round((taskDate - today) / (1000 * 60 * 60 * 24));
+
+    milestones.forEach(m => {
+      if (diff !== m) return;
+      const key = t.id + '_' + m;
+      if (appData.taskReminders[key]) return;
+
+      const icon = m === -1 ? '⚠️' : '📋';
+      const subject = icon + ' ' + t.title + ' — ' + labels[m];
+      const roleLabel = t.responsibility === 'dad' ? 'אבא' : t.responsibility === 'mom' ? 'אמא' : 'שניהם';
+      const body = 'אחריות: ' + roleLabel + (t.forChild ? ' | ' + t.forChild : '');
+
+      sendBirthdayNotification(subject, body);
+      appData.taskReminders[key] = todayKey;
       saveData();
     });
   });
@@ -4423,10 +4455,11 @@ function sendCustodyInfoRequest() {
 }
 
 function notifyPartnerCustodyChange(type, from, to, reason) {
-  const partnerEmail = appData.user.partnerEmail;
-  if (!partnerEmail) return;
   const name = appData.user.name || '';
   const typeLabel = type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+  sendBirthdayNotification('🔄 בקשת שינוי משמורת חדשה', name + ' ביקש/ה ' + typeLabel + ' מ-' + from + ' עד ' + to);
+  const partnerEmail = appData.user.partnerEmail;
+  if (!partnerEmail) return;
   const subject = encodeURIComponent('CoLink - בקשת שינוי משמורת חדשה');
   const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה בקשת שינוי משמורת:\n\nסוג: ${typeLabel}\nמתאריך: ${from}\nעד: ${to}\n${reason ? 'סיבה: ' + reason : ''}\n\nנא להיכנס לאפליקציה לאשר, לדחות, או לבקש פרטים נוספים.\n\nCoLink`);
   window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
@@ -4995,9 +5028,10 @@ function renderSignatures() {
 }
 
 function notifyPartnerSignature(title, category, forChild) {
+  const name = appData.user.name || '';
+  sendBirthdayNotification('✍️ מסמך חדש לחתימה', name + ' שלח/ה "' + title + '"' + (forChild ? ' עבור ' + forChild : ''));
   const partnerEmail = appData.user.partnerEmail;
   if (!partnerEmail) return;
-  const name = appData.user.name || '';
   const subject = encodeURIComponent('CoLink - מסמך חדש לחתימה');
   const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה מסמך לחתימתך:\n\nשם: ${title}\nקטגוריה: ${category}\n${forChild ? 'עבור: ' + forChild : ''}\n\nנא להיכנס לאפליקציה לחתום.\n\nCoLink`);
   window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
