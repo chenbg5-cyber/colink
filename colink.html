@@ -2516,6 +2516,8 @@ async function onAuthSuccess() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    cacheBirthdayData();
+    registerPeriodicSync();
   }
 }
 
@@ -2650,6 +2652,7 @@ function init() {
 function saveData() {
   localStorage.setItem('colink_data', JSON.stringify(appData));
   saveToCloud();
+  cacheBirthdayData();
 }
 
 function showToast(msg) {
@@ -3608,6 +3611,37 @@ function sendBirthdayNotification(subject, body) {
   showToast(subject);
 }
 
+function sendTaskNotification(taskTitle, assignedTo) {
+  const roleLabel = assignedTo === 'dad' ? 'אבא' : assignedTo === 'mom' ? 'אמא' : 'שניהם';
+  const subject = '📋 משימה חדשה שויכה ל' + roleLabel;
+  const body = taskTitle;
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+  }
+  showToast(subject + ': ' + body);
+}
+
+async function cacheBirthdayData() {
+  try {
+    const cache = await caches.open('colink-data');
+    const data = {
+      kids: (appData.kids || []).map(k => ({ name: k.name, dob: k.dob })),
+      sent: appData.birthdayReminders || {}
+    };
+    await cache.put('birthdays', new Response(JSON.stringify(data)));
+  } catch(e) {}
+}
+
+async function registerPeriodicSync() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if ('periodicSync' in reg) {
+      await reg.periodicSync.register('birthday-check', { minInterval: 12 * 60 * 60 * 1000 });
+    }
+  } catch(e) {}
+}
+
 // ============ KIDS ============
 function renderKids() {
   const container = document.getElementById('kidsDisplay');
@@ -3839,6 +3873,7 @@ function addTask() {
         createdAt: new Date().toISOString()
       });
     });
+    sendTaskNotification(title, res);
   }
 
   saveData();
