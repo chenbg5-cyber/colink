@@ -2136,7 +2136,7 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-kids" id="bottomBarKids"></div>
-    <div class="bottom-bar-actions-btn" onclick="showPendingRequests()" id="bottomBarPending" style="display:none;">
+    <div class="bottom-bar-actions-btn" onclick="showPendingRequests()" id="bottomBarPending">
       <div class="bottom-bar-icon" style="background:#FF6B6B;position:relative;">
         ⚡
         <span class="pending-badge" id="pendingBadge">0</span>
@@ -3508,12 +3508,8 @@ function updatePendingBadge() {
   const btn = document.getElementById('bottomBarPending');
   const badge = document.getElementById('pendingBadge');
   if (btn && badge) {
-    if (total > 0) {
-      btn.style.display = '';
-      badge.textContent = total;
-    } else {
-      btn.style.display = 'none';
-    }
+    badge.textContent = total;
+    badge.style.display = total > 0 ? '' : 'none';
   }
 }
 
