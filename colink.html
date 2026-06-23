@@ -1577,7 +1577,7 @@
         <span class="nav-icon">◎</span> חוגים
       </button>
       <button class="nav-item" onclick="showPage('signatures', this)">
-        <span class="nav-icon">✎&#xFE0E;</span> חתימות ואישורים
+        <span class="nav-icon">⊡</span> חתימות ואישורים
       </button>
       <button class="nav-item" onclick="showPage('calendar', this)">
         <span class="nav-icon">▣</span> יומן
@@ -1599,11 +1599,11 @@
       <div class="dash-greeting" id="dashGreeting"></div>
 
       <!-- Top row: custody today + next weekend -->
-      <div class="dash-top-row">
-        <div class="card dash-mini-card custody-today-card" id="custodyTodayCard">
+      <div class="dash-top-row" style="display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:6px;">
+        <div class="card dash-mini-card custody-today-card" id="custodyTodayCard" style="flex:1 1 0% !important;max-width:50% !important;width:auto !important;min-width:0 !important;">
           <div class="custody-today-content" id="custodyTodayContent"></div>
         </div>
-        <div class="card dash-mini-card" id="dashNextWeekend">
+        <div class="card dash-mini-card" id="dashNextWeekend" style="flex:1 1 0% !important;max-width:50% !important;width:auto !important;min-width:0 !important;">
           <div id="nextWeekendContent"></div>
         </div>
       </div>
