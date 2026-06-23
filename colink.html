@@ -3503,10 +3503,11 @@ function renderBottomBarKids() {
 
 function updatePendingBadge() {
   const myRole = getMyRole();
+  const pendingTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done').length;
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole).length;
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole)).length;
   const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole).length;
-  const total = pendingCustody + pendingSigs + pendingExpenses;
+  const total = pendingTasks + pendingCustody + pendingSigs + pendingExpenses;
   const btn = document.getElementById('bottomBarPending');
   const badge = document.getElementById('pendingBadge');
   if (btn && badge) {
@@ -3517,14 +3518,20 @@ function updatePendingBadge() {
 
 function showPendingRequests() {
   const myRole = getMyRole();
+  const pendingTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done');
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
-  if (pendingCustody.length > 0) {
+  const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole);
+  if (pendingTasks.length > 0) {
+    showPage('assignments', document.querySelectorAll('.nav-item')[2]);
+  } else if (pendingCustody.length > 0) {
     showPage('custody', document.querySelectorAll('.nav-item')[4]);
   } else if (pendingSigs.length > 0) {
     showPage('signatures', document.querySelectorAll('.nav-item')[9]);
-  } else {
+  } else if (pendingExpenses.length > 0) {
     showPage('expenses', document.querySelectorAll('.nav-item')[5]);
+  } else {
+    showPage('assignments', document.querySelectorAll('.nav-item')[2]);
   }
 }
 
