@@ -2801,7 +2801,41 @@ async function onAuthSuccess() {
     }
     cacheBirthdayData();
     registerPeriodicSync();
+    listenToFamilyNotifications();
   }
+}
+
+function listenToFamilyNotifications() {
+  if (!appData.familyCode || !currentFirebaseUser) return;
+  const myRole = getMyRole();
+  db.collection('families').doc(appData.familyCode).collection('notifications')
+    .where('forRole', 'in', [myRole, 'both'])
+    .orderBy('createdAt', 'desc')
+    .limit(10)
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const n = change.doc.data();
+          if (n.fromUid === currentFirebaseUser.uid) return;
+          const age = Date.now() - (n.createdAt ? n.createdAt.toMillis() : 0);
+          if (age > 60000) return;
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(n.title, { body: n.body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'family_' + change.doc.id });
+          }
+          showToast(n.title);
+        }
+      });
+    });
+}
+
+function sendFamilyNotification(title, body, forRole) {
+  if (!appData.familyCode || !currentFirebaseUser) return;
+  db.collection('families').doc(appData.familyCode).collection('notifications').add({
+    title, body, forRole,
+    fromUid: currentFirebaseUser.uid,
+    fromRole: getMyRole(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
 }
 
 function saveToCloud() {
@@ -4135,6 +4169,8 @@ function sendTaskNotification(taskTitle, assignedTo) {
     new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   }
   showToast(subject + ': ' + body);
+  const forRole = assignedTo === 'משותפת' ? 'both' : assignedTo;
+  sendFamilyNotification(subject, body, forRole);
 }
 
 async function cacheBirthdayData() {
