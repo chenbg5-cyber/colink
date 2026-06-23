@@ -3384,6 +3384,7 @@ function updateDashboard() {
     kidsBdayEl.style.fontSize = '';
   }
   checkBirthdayReminders();
+  checkEventReminders();
 
   // Card 7: All my assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
@@ -3598,6 +3599,36 @@ function checkBirthdayReminders() {
   });
 }
 
+function checkEventReminders() {
+  if (!appData.events || !appData.events.length) return;
+  if (!appData.eventReminders) appData.eventReminders = {};
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = now.toISOString().split('T')[0];
+  const milestones = [7, 2, 0];
+  const labels = { 7: 'בעוד שבוע', 2: 'בעוד יומיים', 0: 'היום' };
+
+  appData.events.forEach(ev => {
+    if (!ev.date) return;
+    const evDate = new Date(ev.date);
+    const diff = Math.ceil((evDate - today) / (1000 * 60 * 60 * 24));
+
+    milestones.forEach(m => {
+      if (diff !== m) return;
+      const key = ev.id + '_' + m;
+      if (appData.eventReminders[key]) return;
+
+      const dateStr = evDate.getDate() + '/' + (evDate.getMonth() + 1);
+      const subject = '📅 ' + ev.title + ' — ' + labels[m];
+      const body = ev.title + ' בתאריך ' + dateStr + (ev.forChild ? ' (' + ev.forChild + ')' : '');
+
+      sendBirthdayNotification(subject, body);
+      appData.eventReminders[key] = todayKey;
+      saveData();
+    });
+  });
+}
+
 function sendBirthdayNotification(subject, body) {
   if ('Notification' in window) {
     if (Notification.permission === 'granted') {
@@ -3626,7 +3657,9 @@ async function cacheBirthdayData() {
     const cache = await caches.open('colink-data');
     const data = {
       kids: (appData.kids || []).map(k => ({ name: k.name, dob: k.dob })),
-      sent: appData.birthdayReminders || {}
+      events: (appData.events || []).map(e => ({ id: e.id, title: e.title, date: e.date, forChild: e.forChild })),
+      sent: appData.birthdayReminders || {},
+      eventSent: appData.eventReminders || {}
     };
     await cache.put('birthdays', new Response(JSON.stringify(data)));
   } catch(e) {}

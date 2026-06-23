@@ -32,9 +32,14 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('periodicsync', e => {
   if (e.tag === 'birthday-check') {
-    e.waitUntil(checkBirthdaysBackground());
+    e.waitUntil(checkAllRemindersBackground());
   }
 });
+
+async function checkAllRemindersBackground() {
+  await checkBirthdaysBackground();
+  await checkEventsBackground();
+}
 
 async function checkBirthdaysBackground() {
   const cache = await caches.open('colink-data');
@@ -65,6 +70,38 @@ async function checkBirthdaysBackground() {
         icon: 'icons/icon-192.png',
         badge: 'icons/icon-192.png',
         tag: key
+      });
+    }
+  }
+}
+
+async function checkEventsBackground() {
+  const cache = await caches.open('colink-data');
+  const resp = await cache.match('birthdays');
+  if (!resp) return;
+  const data = await resp.json();
+  if (!data.events || !data.events.length) return;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const milestones = [7, 2, 0];
+  const labels = { 7: 'בעוד שבוע', 2: 'בעוד יומיים', 0: 'היום!' };
+
+  for (const ev of data.events) {
+    if (!ev.date) continue;
+    const evDate = new Date(ev.date);
+    const diff = Math.ceil((evDate - today) / (1000 * 60 * 60 * 24));
+
+    if (milestones.includes(diff)) {
+      const sent = data.eventSent || {};
+      const key = ev.id + '_' + diff;
+      if (sent[key]) continue;
+
+      self.registration.showNotification('📅 ' + ev.title + ' — ' + labels[diff], {
+        body: ev.title + (ev.forChild ? ' (' + ev.forChild + ')' : ''),
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-192.png',
+        tag: 'event_' + key
       });
     }
   }
