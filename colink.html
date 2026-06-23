@@ -1036,6 +1036,23 @@
       font-size: 1.2rem;
       font-weight: 700;
     }
+    .pending-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #FF3B30;
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+      border: 2px solid #fff;
+    }
     .actions-popup {
       display: none;
       position: fixed;
@@ -2101,6 +2118,13 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-kids" id="bottomBarKids"></div>
+    <div class="bottom-bar-actions-btn" onclick="showPendingRequests()" id="bottomBarPending" style="display:none;">
+      <div class="bottom-bar-icon" style="background:#FF6B6B;position:relative;">
+        ⚡
+        <span class="pending-badge" id="pendingBadge">0</span>
+      </div>
+      <div class="bottom-bar-label">ממתינות</div>
+    </div>
     <div class="bottom-bar-actions-btn" onclick="toggleActionsMenu(event)">
       <div class="bottom-bar-icon">⊞</div>
       <div class="bottom-bar-label">פעולות</div>
@@ -3445,11 +3469,42 @@ function renderBottomBarKids() {
       ? `<img src="${kid.photo}">`
       : `<div class="bottom-bar-kid-avatar" style="background:${grad};">${initial}</div>`;
     return `
-      <div class="bottom-bar-kid" onclick="showPage('kids')">
+      <div class="bottom-bar-kid" onclick="openKidModal(${idx})">
         ${kid.photo ? '<div class="bottom-bar-kid-avatar">' + avatarContent + '</div>' : avatarContent}
         <div class="bottom-bar-label">${kid.name}</div>
       </div>`;
   }).join('');
+}
+
+function updatePendingBadge() {
+  const myRole = getMyRole();
+  const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole).length;
+  const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole)).length;
+  const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole).length;
+  const total = pendingCustody + pendingSigs + pendingExpenses;
+  const btn = document.getElementById('bottomBarPending');
+  const badge = document.getElementById('pendingBadge');
+  if (btn && badge) {
+    if (total > 0) {
+      btn.style.display = '';
+      badge.textContent = total;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function showPendingRequests() {
+  const myRole = getMyRole();
+  const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
+  const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
+  if (pendingCustody.length > 0) {
+    showPage('custody', document.querySelectorAll('.nav-item')[4]);
+  } else if (pendingSigs.length > 0) {
+    showPage('signatures', document.querySelectorAll('.nav-item')[9]);
+  } else {
+    showPage('expenses', document.querySelectorAll('.nav-item')[5]);
+  }
 }
 
 function toggleActionsMenu(e) {
@@ -3705,8 +3760,9 @@ function updateDashboard() {
     `).join('');
   }
 
-  // Bottom bar kids
+  // Bottom bar kids + pending badge
   renderBottomBarKids();
+  updatePendingBadge();
 
   // Pending signatures dashboard card
   const sigCard = document.getElementById('dashPendingSigsCard');
