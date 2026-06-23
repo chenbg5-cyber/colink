@@ -2384,7 +2384,7 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>בית ספר <span class="required">*</span></label>
+        <label>בית ספר / גן</label>
         <input type="text" id="kidModalSchool" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
@@ -2953,7 +2953,7 @@ function addKidCard() {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>בית ספר <span class="required">*</span></label>
+        <label>בית ספר / גן</label>
         <input type="text" class="kid-school" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
@@ -3037,7 +3037,6 @@ function collectKidsData() {
       { el: card.querySelector('.kid-id'), val: card.querySelector('.kid-id').value.trim() },
       { el: card.querySelector('.kid-dob'), val: card.querySelector('.kid-dob').value },
       { el: card.querySelector('.kid-gender'), val: card.querySelector('.kid-gender').value },
-      { el: card.querySelector('.kid-school'), val: card.querySelector('.kid-school').value.trim() },
       { el: card.querySelector('.kid-class'), val: card.querySelector('.kid-class').value.trim() },
       { el: card.querySelector('.kid-teacher'), val: card.querySelector('.kid-teacher').value.trim() }
     ];
@@ -3676,7 +3675,7 @@ function saveKid() {
   const school = document.getElementById('kidModalSchool').value.trim();
   const cls = document.getElementById('kidModalClass').value.trim();
   const teacher = document.getElementById('kidModalTeacher').value.trim();
-  if (!name || !id || !dob || !gender || !school || !cls || !teacher) {
+  if (!name || !id || !dob || !gender || !cls || !teacher) {
     showToast('נא למלא את כל השדות המסומנים');
     return;
   }
