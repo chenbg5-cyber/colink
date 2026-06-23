@@ -4532,9 +4532,10 @@ function addExpense() {
 }
 
 function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild) {
+  const name = appData.user.name || '';
+  sendBirthdayNotification('₪ בקשת קיזוז חדשה', name + ' ביקש/ה קיזוז ₪' + splitAmount + ' עבור ' + details);
   const partnerEmail = appData.user.partnerEmail;
   if (!partnerEmail) return;
-  const name = appData.user.name || '';
   const subject = encodeURIComponent('CoLink - בקשת קיזוז הוצאה חדשה');
   const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה בקשת קיזוז הוצאה:\n\nפירוט: ${details}\nעבור: ${forChild}\nסכום כולל: ₪${amount.toLocaleString()}\nקיזוז: ${splitPercent}% = ₪${splitAmount.toLocaleString()}\nתאריך: ${date}\n\nנא להיכנס לאפליקציה לאשר או לדחות.\n\nCoLink`);
   window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
