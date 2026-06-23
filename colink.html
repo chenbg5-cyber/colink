@@ -1819,14 +1819,16 @@
           <span class="stat-chip-icon" style="font-size:1.1rem;background:#E8F5E9;">◎</span>
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statActivities">0</span>
-            <span class="stat-chip-label" id="statActivitiesLabel">חוגים</span>
+            <span class="stat-chip-label">חוגים</span>
+            <span class="stat-chip-summary" id="statActivitiesSummary"></span>
           </div>
         </div>
         <div class="stat-chip" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])">
           <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF8E1;">◈</span>
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statCamps">0</span>
-            <span class="stat-chip-label" id="statCampsLabel">קייטנות</span>
+            <span class="stat-chip-label">קייטנות</span>
+            <span class="stat-chip-summary" id="statCampsSummary"></span>
           </div>
         </div>
       </div>
@@ -3820,27 +3822,27 @@ function updateDashboard() {
   const acts = appData.activities || [];
   const statAct = document.getElementById('statActivities');
   if (statAct) statAct.textContent = acts.length;
-  const statActLabel = document.getElementById('statActivitiesLabel');
-  if (statActLabel) {
+  const statActSummary = document.getElementById('statActivitiesSummary');
+  if (statActSummary) {
     if (acts.length > 0) {
       const summary = acts.slice(0, 2).map(a => a.child + ' — ' + a.name + ' (יום ' + a.day + ')').join(' · ');
-      statActLabel.textContent = acts.length > 2 ? summary + ' ...' : summary;
+      statActSummary.textContent = acts.length > 2 ? summary + ' ...' : summary;
     } else {
-      statActLabel.textContent = 'חוגים';
+      statActSummary.textContent = '';
     }
   }
   const campsAll = appData.camps || [];
   const statCamps = document.getElementById('statCamps');
   if (statCamps) statCamps.textContent = campsAll.length;
-  const statCampsLabel = document.getElementById('statCampsLabel');
-  if (statCampsLabel) {
+  const statCampsSummary = document.getElementById('statCampsSummary');
+  if (statCampsSummary) {
     const todayCamp = new Date(); todayCamp.setHours(0,0,0,0);
     const upcoming = campsAll.filter(c => new Date(c.fromDate) >= todayCamp).sort((a,b) => new Date(a.fromDate) - new Date(b.fromDate));
     if (upcoming.length > 0) {
       const d = new Date(upcoming[0].fromDate);
-      statCampsLabel.textContent = 'מתחיל ב-' + d.getDate() + '.' + (d.getMonth() + 1);
+      statCampsSummary.textContent = 'מתחיל ב-' + d.getDate() + '.' + (d.getMonth() + 1);
     } else {
-      statCampsLabel.textContent = 'קייטנות';
+      statCampsSummary.textContent = '';
     }
   }
 
