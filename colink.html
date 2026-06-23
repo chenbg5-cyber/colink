@@ -1794,6 +1794,13 @@
             <span class="stat-chip-label">חוגים</span>
           </div>
         </div>
+        <div class="stat-chip" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])">
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF8E1;">◈</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statCamps">0</span>
+            <span class="stat-chip-label">קייטנות</span>
+          </div>
+        </div>
       </div>
 
       <!-- Today assignments checklist -->
@@ -3721,9 +3728,11 @@ function updateDashboard() {
     }).join('');
   }
 
-  // Activities stat chip
+  // Activities & camps stat chips
   const statAct = document.getElementById('statActivities');
   if (statAct) statAct.textContent = (appData.activities || []).length;
+  const statCamps = document.getElementById('statCamps');
+  if (statCamps) statCamps.textContent = (appData.camps || []).length;
 
   // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
   const campsCard = document.getElementById('dashCampsCard');
