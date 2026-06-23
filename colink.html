@@ -1903,25 +1903,10 @@
         <h1>קייטנות קיץ</h1>
         <button class="btn btn-primary btn-sm" onclick="openCampModal()">+ קייטנה חדשה</button>
       </div>
-      <div class="card">
-        <div id="campsList">
-          <table class="data-table" id="campsTable">
-            <thead>
-              <tr>
-                <th>שם הקייטנה</th>
-                <th>ילד/ה</th>
-                <th>תאריכים</th>
-                <th>שעות</th>
-                <th>מדריך/ה</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="campsBody"></tbody>
-          </table>
-          <div class="empty-state" id="campsEmpty">
-            <div class="empty-icon">☀</div>
-            <p>אין קייטנות עדיין</p>
-          </div>
+      <div id="campsList">
+        <div class="empty-state" id="campsEmpty">
+          <div class="empty-icon">☀</div>
+          <p>אין קייטנות עדיין</p>
         </div>
       </div>
     </div>
@@ -5462,46 +5447,53 @@ function deleteCamp(id) {
 }
 
 function renderCamps() {
-  const body = document.getElementById('campsBody');
+  const container = document.getElementById('campsList');
   const empty = document.getElementById('campsEmpty');
-  const table = document.getElementById('campsTable');
-  if (!body) return;
+  if (!container) return;
 
   const camps = appData.camps || [];
   if (camps.length === 0) {
-    table.style.display = 'none';
     empty.style.display = 'block';
+    container.innerHTML = '';
+    container.appendChild(empty);
     return;
   }
 
-  table.style.display = 'table';
   empty.style.display = 'none';
 
   const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
   const today = new Date(); today.setHours(0,0,0,0);
 
-  body.innerHTML = sorted.map(c => {
+  container.innerHTML = sorted.map(c => {
     const from = new Date(c.fromDate);
     const to = new Date(c.toDate);
     const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
     const toStr = to.getDate() + '/' + (to.getMonth() + 1);
-    const timeStr = c.startTime ? (c.endTime ? c.startTime + '-' + c.endTime : c.startTime) : '-';
+    const timeStr = c.startTime ? (c.endTime ? c.startTime + ' - ' + c.endTime : c.startTime) : '';
     const ended = to < today;
     const active = from <= today && to >= today;
-    const statusBadge = ended ? '<span style="color:#aaa;font-size:0.7rem;"> (הסתיימה)</span>' : active ? '<span style="color:#00B894;font-size:0.7rem;"> (פעילה)</span>' : '';
-    return `<tr${ended ? ' style="opacity:0.5;"' : ''}>
-      <td><strong>${c.name}</strong>${statusBadge}${c.location ? '<br><span style="font-size:0.72rem;color:var(--text-light);">' + c.location + '</span>' : ''}</td>
-      <td>${c.child}</td>
-      <td style="white-space:nowrap;">${fromStr} - ${toStr}</td>
-      <td style="direction:ltr;text-align:right;">${timeStr}</td>
-      <td>${c.instructor || '-'}${c.instructorPhone ? '<br><a href="tel:' + c.instructorPhone + '" style="color:var(--primary);font-size:0.72rem;">' + c.instructorPhone + '</a>' : ''}</td>
-      <td>
-        <div style="display:flex;gap:4px;">
-          <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה">✎</button>
-          <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה">✕</button>
+    const statusText = ended ? 'הסתיימה' : active ? 'פעילה' : 'קרובה';
+    const statusColor = ended ? '#aaa' : active ? '#00B894' : 'var(--primary)';
+    return `
+      <div class="card" style="${ended ? 'opacity:0.5;' : ''}margin-bottom:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <strong style="font-size:1rem;">${c.name}</strong>
+              <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem;">${statusText}</span>
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">👦 ${c.child}</div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">📅 ${fromStr} - ${toStr}${timeStr ? ' · ⏰ ' + timeStr : ''}</div>
+            ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">👤 ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
+            ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">📍 ' + c.location + '</div>' : ''}
+            ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">💰 ₪' + c.cost + '</div>' : ''}
+          </div>
+          <div style="display:flex;gap:6px;margin-right:8px;">
+            <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
+            <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה" style="font-size:1.1rem;">✕</button>
+          </div>
         </div>
-      </td>
-    </tr>`;
+      </div>`;
   }).join('');
 }
 
