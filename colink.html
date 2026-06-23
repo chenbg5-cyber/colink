@@ -3214,13 +3214,18 @@ window.addEventListener('popstate', function(e) {
   const sidebar = document.getElementById('sidebar');
   if (sidebar && sidebar.classList.contains('open')) {
     closeSidebar();
+    history.pushState({ page: 'app' }, '');
   } else {
-    const activePage = document.querySelector('.page.active');
-    if (activePage && activePage.id !== 'page-dashboard') {
-      showPage('dashboard', document.querySelector('.nav-item'));
-      history.pushState({}, '');
+    const activeModal = document.querySelector('.modal-overlay.active');
+    if (activeModal) {
+      activeModal.classList.remove('active');
+      history.pushState({ page: 'app' }, '');
     } else {
-      history.pushState({}, '');
+      const activePage = document.querySelector('.page.active');
+      if (activePage && activePage.id !== 'page-dashboard') {
+        showPage('dashboard', document.querySelector('.nav-item'));
+      }
+      history.pushState({ page: 'app' }, '');
     }
   }
 });
@@ -5144,7 +5149,8 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 });
 
 // Init
-history.replaceState({}, '');
+history.pushState({ page: 'app' }, '');
+history.pushState({ page: 'app' }, '');
 init();
 
 // PWA Service Worker
