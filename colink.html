@@ -931,7 +931,7 @@
       padding: 14px 28px;
       border-radius: 12px;
       font-size: 0.9rem;
-      z-index: 10000;
+      z-index: 99999;
       transition: transform 0.3s;
       font-family: inherit;
     }
@@ -2468,33 +2468,40 @@ function formatPhoneForFirebase(phone) {
 }
 
 function sendAuthCode() {
-  const phone = document.getElementById('authPhone').value.trim();
-  if (!phone || phone.length < 9) { showToast('נא להזין מספר טלפון תקין'); return; }
-  const btn = document.getElementById('authSendBtn');
-  btn.disabled = true;
-  btn.textContent = 'שולח...';
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptchaContainer', { size: 'invisible' });
-  }
-  auth.signInWithPhoneNumber(formatPhoneForFirebase(phone), window.recaptchaVerifier)
-    .then(result => {
+  try {
+    const phone = document.getElementById('authPhone').value.trim();
+    if (!phone || phone.length < 9) { showToast('נא להזין מספר טלפון תקין'); return; }
+    const btn = document.getElementById('authSendBtn');
+    btn.disabled = true;
+    btn.textContent = 'שולח...';
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptchaContainer', { size: 'invisible' });
+    }
+    window.recaptchaVerifier.render().then(() => {
+      return auth.signInWithPhoneNumber(formatPhoneForFirebase(phone), window.recaptchaVerifier);
+    }).then(result => {
       confirmationResult = result;
       document.getElementById('authStepPhone').style.display = 'none';
       document.getElementById('authStepCode').style.display = 'block';
       document.getElementById('authCode').focus();
-    })
-    .catch(err => {
+    }).catch(err => {
       console.error('SMS error:', err);
       let msg = 'שגיאה בשליחת SMS';
       if (err.code === 'auth/invalid-phone-number') msg = 'מספר טלפון לא תקין';
       else if (err.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות — נסי מאוחר יותר';
       else if (err.code === 'auth/captcha-check-failed') msg = 'אימות reCAPTCHA נכשל — נסי שוב';
       else if (err.code) msg += ': ' + err.code;
+      else msg += ': ' + err.message;
       showToast(msg);
       btn.disabled = false;
       btn.textContent = 'שליחת קוד';
       if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
     });
+  } catch(e) {
+    showToast('שגיאה: ' + e.message);
+    document.getElementById('authSendBtn').disabled = false;
+    document.getElementById('authSendBtn').textContent = 'שליחת קוד';
+  }
 }
 
 function verifyAuthCode() {
