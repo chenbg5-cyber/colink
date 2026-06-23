@@ -1347,7 +1347,6 @@
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -2514,6 +2513,9 @@ async function onAuthSuccess() {
     document.getElementById('onboarding').classList.add('hidden');
     document.getElementById('appContainer').classList.add('active');
     updateApp();
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }
 }
 
@@ -3586,27 +3588,24 @@ function checkBirthdayReminders() {
       const subject = `🎂 תזכורת: יום הולדת ${kid.name} ${milestoneLabels[m]}!`;
       const body = `שלום,\n\nתזכורת: יום ההולדת של ${kid.name} הוא בתאריך ${dateStr} (${milestoneLabels[m]}).\n\nCoLink - ניהול משפחתי משותף`;
 
-      sendBirthdayEmail(subject, body);
+      sendBirthdayNotification(subject, body);
       appData.birthdayReminders[key] = todayKey;
       saveData();
     });
   });
 }
 
-function sendBirthdayEmail(subject, body) {
-  if (!window.emailjs || !appData.emailjsSetup) {
-    showToast(subject);
-    return;
+function sendBirthdayNotification(subject, body) {
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') new Notification(subject, { body: body, icon: 'icons/icon-192.png' });
+      });
+    }
   }
-  emailjs.send(appData.emailjsSetup.serviceId, appData.emailjsSetup.templateId, {
-    to_email: appData.user.email || '',
-    subject: subject,
-    message: body
-  }).then(() => {
-    console.log('Birthday reminder email sent');
-  }).catch(err => {
-    console.error('Email error:', err);
-  });
+  showToast(subject);
 }
 
 // ============ KIDS ============
