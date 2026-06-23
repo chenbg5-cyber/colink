@@ -1563,6 +1563,7 @@
   </div>
 
   <!-- Sidebar -->
+  <div id="sidebarOverlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:998;"></div>
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-greeting">שלום</div>
@@ -3159,13 +3160,38 @@ function showPage(page, navEl) {
   if (navEl) navEl.classList.add('active');
   if (page === 'calendar') renderCalendar();
 
-  // Close mobile sidebar
-  document.getElementById('sidebar').classList.remove('open');
+  closeSidebar();
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const isOpen = sidebar.classList.toggle('open');
+  overlay.style.display = isOpen ? 'block' : 'none';
+  if (isOpen) {
+    history.pushState({ sidebar: true }, '');
+  }
 }
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').style.display = 'none';
+}
+
+window.addEventListener('popstate', function(e) {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    const activePage = document.querySelector('.page.active');
+    if (activePage && activePage.id !== 'page-dashboard') {
+      showPage('dashboard', document.querySelector('.nav-item'));
+      history.pushState({}, '');
+    } else {
+      history.pushState({}, '');
+    }
+  }
+});
 
 // ============ CUSTODY TODAY ============
 function renderCustodyToday() {
@@ -5086,6 +5112,7 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 });
 
 // Init
+history.replaceState({}, '');
 init();
 
 // PWA Service Worker
