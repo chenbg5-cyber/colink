@@ -1803,14 +1803,14 @@
           <span class="stat-chip-icon" style="font-size:1.1rem;background:#E8F5E9;">◎</span>
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statActivities">0</span>
-            <span class="stat-chip-label">חוגים</span>
+            <span class="stat-chip-label" id="statActivitiesLabel">חוגים</span>
           </div>
         </div>
         <div class="stat-chip" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])">
           <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF8E1;">◈</span>
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statCamps">0</span>
-            <span class="stat-chip-label">קייטנות</span>
+            <span class="stat-chip-label" id="statCampsLabel">קייטנות</span>
           </div>
         </div>
       </div>
@@ -3780,10 +3780,32 @@ function updateDashboard() {
   }
 
   // Activities & camps stat chips
+  const acts = appData.activities || [];
   const statAct = document.getElementById('statActivities');
-  if (statAct) statAct.textContent = (appData.activities || []).length;
+  if (statAct) statAct.textContent = acts.length;
+  const statActLabel = document.getElementById('statActivitiesLabel');
+  if (statActLabel) {
+    if (acts.length > 0) {
+      const summary = acts.slice(0, 2).map(a => a.child + ' — ' + a.name + ' (יום ' + a.day + ')').join(' · ');
+      statActLabel.textContent = acts.length > 2 ? summary + ' ...' : summary;
+    } else {
+      statActLabel.textContent = 'חוגים';
+    }
+  }
+  const campsAll = appData.camps || [];
   const statCamps = document.getElementById('statCamps');
-  if (statCamps) statCamps.textContent = (appData.camps || []).length;
+  if (statCamps) statCamps.textContent = campsAll.length;
+  const statCampsLabel = document.getElementById('statCampsLabel');
+  if (statCampsLabel) {
+    const todayCamp = new Date(); todayCamp.setHours(0,0,0,0);
+    const upcoming = campsAll.filter(c => new Date(c.fromDate) >= todayCamp).sort((a,b) => new Date(a.fromDate) - new Date(b.fromDate));
+    if (upcoming.length > 0) {
+      const d = new Date(upcoming[0].fromDate);
+      statCampsLabel.textContent = 'מתחיל ב-' + d.getDate() + '.' + (d.getMonth() + 1);
+    } else {
+      statCampsLabel.textContent = 'קייטנות';
+    }
+  }
 
   // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
   const campsCard = document.getElementById('dashCampsCard');
@@ -3806,7 +3828,7 @@ function updateDashboard() {
       const timeStr = c.startTime ? (c.endTime ? c.startTime + '-' + c.endTime : c.startTime) : '';
       const ended = to < todayCamp;
       const started = from <= todayCamp && to >= todayCamp;
-      const statusLabel = ended ? 'הסתיימה' : started ? '🟢 פעילה' : 'מתחילה ' + fromStr;
+      const statusLabel = ended ? 'הסתיימה' : started ? '● פעילה' : 'מתחילה ' + fromStr;
       return `
         <div class="list-item" style="padding:8px 10px;${ended ? 'opacity:0.5;' : ''}">
           <div class="list-item-content">
@@ -5677,15 +5699,15 @@ function renderCamps() {
               <strong style="font-size:1rem;">${c.name}</strong>
               <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem;">${statusText}</span>
             </div>
-            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">👦 ${c.child}</div>
-            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">📅 ${fromStr} - ${toStr}${timeStr ? ' · ⏰ ' + timeStr : ''}</div>
-            ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">👤 ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
-            ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">📍 ' + c.location + '</div>' : ''}
-            ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">💰 ₪' + c.cost + '</div>' : ''}
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">◉ ${c.child}</div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▪ ${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''}</div>
+            ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
+            ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + c.location + '</div>' : ''}
+            ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">▸ ₪' + c.cost + '</div>' : ''}
           </div>
           <div style="display:flex;gap:6px;margin-right:8px;">
             <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
-            <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה" style="font-size:1.1rem;">✕</button>
+            <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה" style="font-size:1.1rem;">🗑</button>
           </div>
         </div>
       </div>`;
