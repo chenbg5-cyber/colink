@@ -3595,27 +3595,30 @@ function updateDashboard() {
     }).join('');
   }
 
-  // Camps dashboard card — show only active/upcoming camps
+  // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
   const campsCard = document.getElementById('dashCampsCard');
   const campsContainer = document.getElementById('dashCamps');
   const camps = appData.camps || [];
-  const todayCamp = new Date(); todayCamp.setHours(0,0,0,0);
-  const activeCamps = camps.filter(c => c.toDate && new Date(c.toDate) >= todayCamp);
-  if (activeCamps.length === 0) {
+  const nowCamp = new Date();
+  const campMonth = nowCamp.getMonth(); // 0-based: 5=June, 6=July, 7=Aug
+  const inCampSeason = campMonth >= 5 && campMonth <= 7;
+  if (camps.length === 0 || !inCampSeason) {
     campsCard.style.display = 'none';
   } else {
     campsCard.style.display = '';
-    const sorted = [...activeCamps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+    const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+    const todayCamp = new Date(); todayCamp.setHours(0,0,0,0);
     campsContainer.innerHTML = sorted.map(c => {
       const from = new Date(c.fromDate);
       const to = new Date(c.toDate);
       const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
       const toStr = to.getDate() + '/' + (to.getMonth() + 1);
       const timeStr = c.startTime ? (c.endTime ? c.startTime + '-' + c.endTime : c.startTime) : '';
-      const started = from <= todayCamp;
-      const statusLabel = started ? '🟢 פעילה' : 'מתחילה ' + fromStr;
+      const ended = to < todayCamp;
+      const started = from <= todayCamp && to >= todayCamp;
+      const statusLabel = ended ? 'הסתיימה' : started ? '🟢 פעילה' : 'מתחילה ' + fromStr;
       return `
-        <div class="list-item" style="padding:8px 10px;">
+        <div class="list-item" style="padding:8px 10px;${ended ? 'opacity:0.5;' : ''}">
           <div class="list-item-content">
             <div class="list-item-title" style="font-size:0.88rem;">${c.name} · ${c.child}</div>
             <div class="list-item-meta">${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''} · ${statusLabel}</div>
