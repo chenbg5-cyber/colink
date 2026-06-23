@@ -1345,11 +1345,41 @@
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
 <!-- Toast notification -->
 <div class="toast" id="toast"></div>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div class="onboarding-overlay" id="authScreen" style="z-index:10000;">
+  <div class="onboarding-card" style="text-align:center;">
+    <div class="ob-logo">Co<span>Link</span></div>
+    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.9rem;">התחברות עם מספר טלפון</p>
+
+    <div id="authStepPhone">
+      <div class="form-group" style="text-align:right;">
+        <label class="form-label">מספר טלפון</label>
+        <input type="tel" id="authPhone" class="form-input" placeholder="05X-XXXXXXX" dir="ltr" style="text-align:left;font-size:1.1rem;letter-spacing:1px;">
+      </div>
+      <div id="recaptchaContainer"></div>
+      <button class="btn btn-primary" onclick="sendAuthCode()" style="width:100%;margin-top:12px;" id="authSendBtn">שליחת קוד</button>
+      <p style="color:var(--text-muted);font-size:0.75rem;margin-top:12px;">קוד אימות יישלח ב-SMS למספר שלך</p>
+    </div>
+
+    <div id="authStepCode" style="display:none;">
+      <div class="form-group" style="text-align:right;">
+        <label class="form-label">קוד אימות</label>
+        <input type="text" id="authCode" class="form-input" placeholder="XXXXXX" dir="ltr" style="text-align:center;font-size:1.4rem;letter-spacing:6px;" maxlength="6" inputmode="numeric">
+      </div>
+      <button class="btn btn-primary" onclick="verifyAuthCode()" style="width:100%;margin-top:12px;" id="authVerifyBtn">אימות</button>
+      <button class="btn" onclick="resetAuth()" style="width:100%;margin-top:8px;background:transparent;color:var(--text-light);">שליחה מחדש</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ ONBOARDING ============ -->
 <div class="onboarding-overlay" id="onboarding">
@@ -2413,6 +2443,127 @@
 </div>
 
 <script>
+// ============ FIREBASE ============
+const firebaseConfig = {
+  apiKey: "AIzaSyAj8Er3isZdjjgZ1AoV4Dh4pQOExIrtYbU",
+  authDomain: "colink-4300f.firebaseapp.com",
+  projectId: "colink-4300f",
+  storageBucket: "colink-4300f.firebasestorage.app",
+  messagingSenderId: "984947335109",
+  appId: "1:984947335109:web:68dcdc559e8c92796eb5ac"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+auth.languageCode = 'he';
+
+let confirmationResult = null;
+let currentFirebaseUser = null;
+
+function formatPhoneForFirebase(phone) {
+  let p = phone.replace(/[-\s]/g, '');
+  if (p.startsWith('0')) p = '+972' + p.substring(1);
+  if (!p.startsWith('+')) p = '+972' + p;
+  return p;
+}
+
+function sendAuthCode() {
+  const phone = document.getElementById('authPhone').value.trim();
+  if (!phone || phone.length < 9) { showToast('נא להזין מספר טלפון תקין'); return; }
+  const btn = document.getElementById('authSendBtn');
+  btn.disabled = true;
+  btn.textContent = 'שולח...';
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptchaContainer', { size: 'invisible' });
+  }
+  auth.signInWithPhoneNumber(formatPhoneForFirebase(phone), window.recaptchaVerifier)
+    .then(result => {
+      confirmationResult = result;
+      document.getElementById('authStepPhone').style.display = 'none';
+      document.getElementById('authStepCode').style.display = 'block';
+      document.getElementById('authCode').focus();
+    })
+    .catch(err => {
+      console.error('SMS error:', err);
+      showToast('שגיאה בשליחת SMS — נסי שוב');
+      btn.disabled = false;
+      btn.textContent = 'שליחת קוד';
+      if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
+    });
+}
+
+function verifyAuthCode() {
+  const code = document.getElementById('authCode').value.trim();
+  if (!code || code.length < 6) { showToast('נא להזין קוד בן 6 ספרות'); return; }
+  const btn = document.getElementById('authVerifyBtn');
+  btn.disabled = true;
+  btn.textContent = 'מאמת...';
+  confirmationResult.confirm(code)
+    .then(result => {
+      currentFirebaseUser = result.user;
+      onAuthSuccess();
+    })
+    .catch(() => {
+      showToast('קוד שגוי — נסי שוב');
+      btn.disabled = false;
+      btn.textContent = 'אימות';
+    });
+}
+
+function resetAuth() {
+  document.getElementById('authStepPhone').style.display = 'block';
+  document.getElementById('authStepCode').style.display = 'none';
+  document.getElementById('authSendBtn').disabled = false;
+  document.getElementById('authSendBtn').textContent = 'שליחת קוד';
+  if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
+}
+
+async function onAuthSuccess() {
+  document.getElementById('authScreen').classList.add('hidden');
+  const docRef = db.collection('users').doc(currentFirebaseUser.uid);
+  const snap = await docRef.get();
+  if (snap.exists) {
+    const cloudData = snap.data().appData;
+    if (cloudData) {
+      const localSaved = localStorage.getItem('colink_data');
+      const localData = localSaved ? JSON.parse(localSaved) : null;
+      if (localData && localData.user && localData.user.name && (!cloudData.user || !cloudData.user.name)) {
+        appData = localData;
+        saveData();
+      } else {
+        appData = cloudData;
+        localStorage.setItem('colink_data', JSON.stringify(appData));
+      }
+    }
+  } else {
+    const localSaved = localStorage.getItem('colink_data');
+    if (localSaved) {
+      appData = JSON.parse(localSaved);
+    }
+    saveData();
+  }
+  migrateData();
+  if (appData.user.name) {
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('appContainer').classList.add('active');
+    updateApp();
+  }
+}
+
+function saveToCloud() {
+  if (!currentFirebaseUser) return;
+  const dataToSave = JSON.parse(JSON.stringify(appData));
+  if (dataToSave.signatures) {
+    dataToSave.signatures = dataToSave.signatures.map(s => {
+      const copy = {...s};
+      delete copy.fileData;
+      delete copy.pdfData;
+      return copy;
+    });
+  }
+  db.collection('users').doc(currentFirebaseUser.uid).set({ appData: dataToSave, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => console.error('Cloud save error:', err));
+}
+
 // ============ DATA STORE ============
 let appData = {
   mode: '',
@@ -2503,16 +2654,6 @@ function migrateData() {
 }
 
 function init() {
-  const saved = localStorage.getItem('colink_data');
-  if (saved) {
-    appData = JSON.parse(saved);
-    migrateData();
-    if (appData.user.name) {
-      document.getElementById('onboarding').classList.add('hidden');
-      document.getElementById('appContainer').classList.add('active');
-      updateApp();
-    }
-  }
   addKidCard();
   document.getElementById('expenseInvoice').addEventListener('change', function() {
     document.getElementById('invoiceFileName').textContent = this.files[0] ? this.files[0].name : '';
@@ -2520,10 +2661,26 @@ function init() {
   document.getElementById('sigFile').addEventListener('change', function() {
     document.getElementById('sigFileName').textContent = this.files[0] ? this.files[0].name : '';
   });
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentFirebaseUser = user;
+      document.getElementById('authScreen').classList.add('hidden');
+      onAuthSuccess();
+    } else {
+      document.getElementById('authScreen').classList.remove('hidden');
+      const saved = localStorage.getItem('colink_data');
+      if (saved) {
+        appData = JSON.parse(saved);
+        migrateData();
+      }
+    }
+  });
 }
 
 function saveData() {
   localStorage.setItem('colink_data', JSON.stringify(appData));
+  saveToCloud();
 }
 
 function showToast(msg) {
