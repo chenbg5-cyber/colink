@@ -39,6 +39,7 @@ self.addEventListener('periodicsync', e => {
 async function checkAllRemindersBackground() {
   await checkBirthdaysBackground();
   await checkEventsBackground();
+  await checkCampsBackground();
 }
 
 async function checkBirthdaysBackground() {
@@ -103,6 +104,56 @@ async function checkEventsBackground() {
         badge: 'icons/icon-192.png',
         tag: 'event_' + key
       });
+    }
+  }
+}
+
+async function checkCampsBackground() {
+  const cache = await caches.open('colink-data');
+  const resp = await cache.match('birthdays');
+  if (!resp) return;
+  const data = await resp.json();
+  if (!data.camps || !data.camps.length) return;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sent = data.campSent || {};
+
+  for (const c of data.camps) {
+    if (!c.fromDate) continue;
+    const startDate = new Date(c.fromDate);
+    const diff = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+
+    if (diff === 5) {
+      const key = c.id + '_start_5';
+      if (sent[key]) continue;
+      const dateStr = startDate.getDate() + '/' + (startDate.getMonth() + 1);
+      self.registration.showNotification('☀ קייטנה מתחילה בעוד 5 ימים', {
+        body: c.name + ' (' + c.child + ') מתחילה ב-' + dateStr,
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-192.png',
+        tag: 'camp_' + key
+      });
+    }
+
+    if (c.toDate && c.endTime) {
+      const endDate = new Date(c.toDate);
+      if (today >= startDate && today <= endDate) {
+        const [endH, endM] = c.endTime.split(':').map(Number);
+        const endTimeToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM);
+        const msUntilEnd = endTimeToday - now;
+        const minutesUntilEnd = msUntilEnd / (1000 * 60);
+        if (minutesUntilEnd > 0 && minutesUntilEnd <= 60) {
+          const key = c.id + '_pickup_' + today.toISOString().split('T')[0];
+          if (sent[key]) continue;
+          self.registration.showNotification('☀ איסוף מהקייטנה בקרוב', {
+            body: c.name + ' (' + c.child + ') מסתיימת בשעה ' + c.endTime + (c.location ? ' · ' + c.location : ''),
+            icon: 'icons/icon-192.png',
+            badge: 'icons/icon-192.png',
+            tag: 'camp_' + key
+          });
+        }
+      }
     }
   }
 }

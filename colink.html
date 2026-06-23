@@ -1595,6 +1595,9 @@
       <button class="nav-item" onclick="showPage('activities', this)">
         <span class="nav-icon">◎</span> חוגים
       </button>
+      <button class="nav-item" onclick="showPage('camps', this)">
+        <span class="nav-icon">◈</span> קייטנות
+      </button>
       <button class="nav-item" onclick="showPage('signatures', this)">
         <span class="nav-icon">⊡</span> חתימות ואישורים
       </button>
@@ -1690,7 +1693,7 @@
       <div class="card card-compact" id="dashPendingSigsCard" style="display:none;">
         <div class="card-compact-header">
           <h3>✎ ממתינים לחתימה</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
         </div>
         <div id="dashPendingSigs"></div>
       </div>
@@ -1702,6 +1705,15 @@
           <button class="btn btn-primary btn-sm" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
         </div>
         <div id="dashActivities"></div>
+      </div>
+
+      <!-- Camps summary -->
+      <div class="card card-compact" id="dashCampsCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>☀ קייטנות</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])" style="padding:4px 10px;font-size:1rem;line-height:1;">👁</button>
+        </div>
+        <div id="dashCamps"></div>
       </div>
 
       <!-- Card 9: Our kids -->
@@ -1880,6 +1892,35 @@
           <div class="empty-state" id="activitiesEmpty">
             <div class="empty-icon">⚽</div>
             <p>אין חוגים עדיין</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camps -->
+    <div class="page" id="page-camps">
+      <div class="page-header">
+        <h1>קייטנות קיץ</h1>
+        <button class="btn btn-primary btn-sm" onclick="openCampModal()">+ קייטנה חדשה</button>
+      </div>
+      <div class="card">
+        <div id="campsList">
+          <table class="data-table" id="campsTable">
+            <thead>
+              <tr>
+                <th>שם הקייטנה</th>
+                <th>ילד/ה</th>
+                <th>תאריכים</th>
+                <th>שעות</th>
+                <th>מדריך/ה</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="campsBody"></tbody>
+          </table>
+          <div class="empty-state" id="campsEmpty">
+            <div class="empty-icon">☀</div>
+            <p>אין קייטנות עדיין</p>
           </div>
         </div>
       </div>
@@ -2276,6 +2317,67 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="campModal">
+  <div class="modal">
+    <h2 id="campModalTitle">הוספת קייטנה</h2>
+    <input type="hidden" id="campEditId" value="">
+    <div class="form-group">
+      <label>שם הקייטנה <span class="required">*</span></label>
+      <input type="text" id="campName" placeholder="למשל: קייטנת ספורט, קייטנת אמנות...">
+    </div>
+    <div class="form-group">
+      <label>ילד/ה <span class="required">*</span></label>
+      <select id="campChild"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מתאריך <span class="required">*</span></label>
+        <input type="date" id="campFromDate">
+      </div>
+      <div class="form-group">
+        <label>עד תאריך <span class="required">*</span></label>
+        <input type="date" id="campToDate">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שעת התחלה</label>
+        <input type="time" id="campStartTime">
+      </div>
+      <div class="form-group">
+        <label>שעת סיום</label>
+        <input type="time" id="campEndTime">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם מדריך/ה</label>
+        <input type="text" id="campInstructor" placeholder="">
+      </div>
+      <div class="form-group">
+        <label>טלפון מדריך/ה</label>
+        <input type="tel" id="campInstructorPhone" placeholder="050-0000000" dir="ltr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>מיקום</label>
+      <input type="text" id="campLocation" placeholder="כתובת / שם המקום">
+    </div>
+    <div class="form-group">
+      <label>עלות (₪)</label>
+      <input type="number" id="campCost" min="0" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="campNotes" rows="2" placeholder="ציוד נדרש, מידע נוסף..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveCamp()">שמירה</button>
+      <button class="btn btn-secondary" onclick="closeModal('campModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="signatureModal">
   <div class="modal">
     <h2>מסמך חדש לחתימה</h2>
@@ -2615,6 +2717,8 @@ function migrateData() {
   if (!appData.custodyChanges) appData.custodyChanges = [];
   if (!appData.signatures) appData.signatures = [];
   if (!appData.activities) appData.activities = [];
+  if (!appData.camps) appData.camps = [];
+  if (!appData.campReminders) appData.campReminders = {};
   if (!appData.weekendMode) appData.weekendMode = '';
   if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
   if (!appData.weekendStartDate) appData.weekendStartDate = '';
@@ -3171,6 +3275,7 @@ function updateApp() {
   populateSigChildSelect();
   renderActivities();
   populateActivityChildSelect();
+  renderCamps();
   renderHolidays();
   renderCalendar();
   renderProfile();
@@ -3386,6 +3491,7 @@ function updateDashboard() {
   checkBirthdayReminders();
   checkEventReminders();
   checkTaskReminders();
+  checkCampReminders();
 
   // Card 7: All my assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
@@ -3468,7 +3574,7 @@ function updateDashboard() {
     sigContainer.innerHTML = pendingSigs.map(s => {
       const whoSigned = s.signedBy.length > 0 ? s.signedBy.join(', ') + ' חתם/ה' : '';
       return `
-        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[8])">
+        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])">
           <div class="list-item-content">
             <div class="list-item-title" style="font-size:0.88rem;">${s.title}</div>
             <div class="list-item-meta">${s.child || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + whoSigned : ''}</div>
@@ -3499,6 +3605,36 @@ function updateDashboard() {
             <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
             <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}${custodyParent ? ' · אחריות: ' + custodyParent : ''}</div>
             ${instructorPart || phonePart ? '<div style="margin-top:2px;">' + [instructorPart, phonePart].filter(Boolean).join(' · ') + '</div>' : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Camps dashboard card — show only active/upcoming camps
+  const campsCard = document.getElementById('dashCampsCard');
+  const campsContainer = document.getElementById('dashCamps');
+  const camps = appData.camps || [];
+  const todayCamp = new Date(); todayCamp.setHours(0,0,0,0);
+  const activeCamps = camps.filter(c => c.toDate && new Date(c.toDate) >= todayCamp);
+  if (activeCamps.length === 0) {
+    campsCard.style.display = 'none';
+  } else {
+    campsCard.style.display = '';
+    const sorted = [...activeCamps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+    campsContainer.innerHTML = sorted.map(c => {
+      const from = new Date(c.fromDate);
+      const to = new Date(c.toDate);
+      const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
+      const toStr = to.getDate() + '/' + (to.getMonth() + 1);
+      const timeStr = c.startTime ? (c.endTime ? c.startTime + '-' + c.endTime : c.startTime) : '';
+      const started = from <= todayCamp;
+      const statusLabel = started ? '🟢 פעילה' : 'מתחילה ' + fromStr;
+      return `
+        <div class="list-item" style="padding:8px 10px;">
+          <div class="list-item-content">
+            <div class="list-item-title" style="font-size:0.88rem;">${c.name} · ${c.child}</div>
+            <div class="list-item-meta">${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''} · ${statusLabel}</div>
+            ${c.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
           </div>
         </div>`;
     }).join('');
@@ -3661,6 +3797,56 @@ function checkTaskReminders() {
   });
 }
 
+function checkCampReminders() {
+  if (!appData.camps || !appData.camps.length) return;
+  if (!appData.campReminders) appData.campReminders = {};
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = now.toISOString().split('T')[0];
+
+  appData.camps.forEach(c => {
+    if (!c.fromDate) return;
+    const startDate = new Date(c.fromDate);
+    const daysUntilStart = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilStart === 5) {
+      const key = c.id + '_start_5';
+      if (!appData.campReminders[key]) {
+        const dateStr = startDate.getDate() + '/' + (startDate.getMonth() + 1);
+        sendBirthdayNotification(
+          '☀ קייטנה מתחילה בעוד 5 ימים',
+          c.name + ' (' + c.child + ') מתחילה ב-' + dateStr + (c.startTime ? ' בשעה ' + c.startTime : '')
+        );
+        appData.campReminders[key] = todayKey;
+        saveData();
+      }
+    }
+
+    if (c.toDate && c.endTime) {
+      const endDate = new Date(c.toDate);
+      if (today >= startDate && today <= endDate) {
+        const [endH, endM] = c.endTime.split(':').map(Number);
+        const endTimeToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM);
+        const msUntilEnd = endTimeToday - now;
+        const minutesUntilEnd = msUntilEnd / (1000 * 60);
+
+        if (minutesUntilEnd > 0 && minutesUntilEnd <= 60) {
+          const key = c.id + '_pickup_' + todayKey;
+          if (!appData.campReminders[key]) {
+            const mins = Math.round(minutesUntilEnd);
+            sendBirthdayNotification(
+              '☀ איסוף מהקייטנה בעוד ' + mins + ' דקות',
+              c.name + ' (' + c.child + ') מסתיימת בשעה ' + c.endTime + (c.location ? ' · ' + c.location : '')
+            );
+            appData.campReminders[key] = todayKey;
+            saveData();
+          }
+        }
+      }
+    }
+  });
+}
+
 function sendBirthdayNotification(subject, body) {
   if ('Notification' in window) {
     if (Notification.permission === 'granted') {
@@ -3690,8 +3876,10 @@ async function cacheBirthdayData() {
     const data = {
       kids: (appData.kids || []).map(k => ({ name: k.name, dob: k.dob })),
       events: (appData.events || []).map(e => ({ id: e.id, title: e.title, date: e.date, forChild: e.forChild })),
+      camps: (appData.camps || []).map(c => ({ id: c.id, name: c.name, child: c.child, fromDate: c.fromDate, toDate: c.toDate, startTime: c.startTime, endTime: c.endTime, location: c.location })),
       sent: appData.birthdayReminders || {},
-      eventSent: appData.eventReminders || {}
+      eventSent: appData.eventReminders || {},
+      campSent: appData.campReminders || {}
     };
     await cache.put('birthdays', new Response(JSON.stringify(data)));
   } catch(e) {}
@@ -5178,6 +5366,139 @@ function renderActivities() {
         <div style="display:flex;gap:4px;">
           <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה">✎</button>
           <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ CAMPS ============
+function populateCampChildSelect() {
+  const sel = document.getElementById('campChild');
+  sel.innerHTML = '<option value="">בחרי...</option>' +
+    (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+}
+
+function openCampModal(id) {
+  document.getElementById('campEditId').value = id || '';
+  document.getElementById('campModalTitle').textContent = id ? 'עריכת קייטנה' : 'הוספת קייטנה';
+  document.getElementById('campName').value = '';
+  document.getElementById('campChild').value = '';
+  document.getElementById('campFromDate').value = '';
+  document.getElementById('campToDate').value = '';
+  document.getElementById('campStartTime').value = '';
+  document.getElementById('campEndTime').value = '';
+  document.getElementById('campInstructor').value = '';
+  document.getElementById('campInstructorPhone').value = '';
+  document.getElementById('campLocation').value = '';
+  document.getElementById('campCost').value = '';
+  document.getElementById('campNotes').value = '';
+  populateCampChildSelect();
+
+  if (id) {
+    const camp = (appData.camps || []).find(c => c.id === id);
+    if (camp) {
+      document.getElementById('campName').value = camp.name || '';
+      document.getElementById('campChild').value = camp.child || '';
+      document.getElementById('campFromDate').value = camp.fromDate || '';
+      document.getElementById('campToDate').value = camp.toDate || '';
+      document.getElementById('campStartTime').value = camp.startTime || '';
+      document.getElementById('campEndTime').value = camp.endTime || '';
+      document.getElementById('campInstructor').value = camp.instructor || '';
+      document.getElementById('campInstructorPhone').value = camp.instructorPhone || '';
+      document.getElementById('campLocation').value = camp.location || '';
+      document.getElementById('campCost').value = camp.cost || '';
+      document.getElementById('campNotes').value = camp.notes || '';
+    }
+  }
+  openModal('campModal');
+}
+
+function saveCamp() {
+  const name = document.getElementById('campName').value.trim();
+  const child = document.getElementById('campChild').value;
+  const fromDate = document.getElementById('campFromDate').value;
+  const toDate = document.getElementById('campToDate').value;
+  if (!name || !child || !fromDate || !toDate) {
+    showToast('נא למלא שם קייטנה, ילד/ה ותאריכים');
+    return;
+  }
+
+  const editId = document.getElementById('campEditId').value;
+  const data = {
+    name,
+    child,
+    fromDate,
+    toDate,
+    startTime: document.getElementById('campStartTime').value,
+    endTime: document.getElementById('campEndTime').value,
+    instructor: document.getElementById('campInstructor').value.trim(),
+    instructorPhone: document.getElementById('campInstructorPhone').value.trim(),
+    location: document.getElementById('campLocation').value.trim(),
+    cost: parseFloat(document.getElementById('campCost').value) || 0,
+    notes: document.getElementById('campNotes').value.trim()
+  };
+
+  if (editId) {
+    const idx = appData.camps.findIndex(c => c.id === parseInt(editId));
+    if (idx > -1) Object.assign(appData.camps[idx], data);
+  } else {
+    data.id = Date.now();
+    data.createdBy = getMyRole();
+    appData.camps.push(data);
+  }
+
+  saveData();
+  renderCamps();
+  closeModal('campModal');
+  showToast(editId ? 'הקייטנה עודכנה' : 'הקייטנה נוספה');
+}
+
+function deleteCamp(id) {
+  appData.camps = appData.camps.filter(c => c.id !== id);
+  saveData();
+  renderCamps();
+  showToast('הקייטנה נמחקה');
+}
+
+function renderCamps() {
+  const body = document.getElementById('campsBody');
+  const empty = document.getElementById('campsEmpty');
+  const table = document.getElementById('campsTable');
+  if (!body) return;
+
+  const camps = appData.camps || [];
+  if (camps.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  body.innerHTML = sorted.map(c => {
+    const from = new Date(c.fromDate);
+    const to = new Date(c.toDate);
+    const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
+    const toStr = to.getDate() + '/' + (to.getMonth() + 1);
+    const timeStr = c.startTime ? (c.endTime ? c.startTime + '-' + c.endTime : c.startTime) : '-';
+    const ended = to < today;
+    const active = from <= today && to >= today;
+    const statusBadge = ended ? '<span style="color:#aaa;font-size:0.7rem;"> (הסתיימה)</span>' : active ? '<span style="color:#00B894;font-size:0.7rem;"> (פעילה)</span>' : '';
+    return `<tr${ended ? ' style="opacity:0.5;"' : ''}>
+      <td><strong>${c.name}</strong>${statusBadge}${c.location ? '<br><span style="font-size:0.72rem;color:var(--text-light);">' + c.location + '</span>' : ''}</td>
+      <td>${c.child}</td>
+      <td style="white-space:nowrap;">${fromStr} - ${toStr}</td>
+      <td style="direction:ltr;text-align:right;">${timeStr}</td>
+      <td>${c.instructor || '-'}${c.instructorPhone ? '<br><a href="tel:' + c.instructorPhone + '" style="color:var(--primary);font-size:0.72rem;">' + c.instructorPhone + '</a>' : ''}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה">✎</button>
+          <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה">✕</button>
         </div>
       </td>
     </tr>`;
