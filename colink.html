@@ -2169,6 +2169,17 @@
 
 <!-- ============ MODALS ============ -->
 
+<!-- Pending Requests Modal -->
+<div class="modal-overlay" id="pendingModal">
+  <div class="modal" style="max-width:400px;">
+    <h2>ממתינות לאישורי</h2>
+    <div id="pendingModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('pendingModal')">סגירה</button>
+    </div>
+  </div>
+</div>
+
 <!-- Task Modal -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
@@ -3553,17 +3564,51 @@ function showPendingRequests() {
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
   const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole);
-  if (pendingTasks.length > 0) {
-    showPage('assignments', document.querySelectorAll('.nav-item')[2]);
-  } else if (pendingCustody.length > 0) {
-    showPage('custody', document.querySelectorAll('.nav-item')[4]);
-  } else if (pendingSigs.length > 0) {
-    showPage('signatures', document.querySelectorAll('.nav-item')[9]);
-  } else if (pendingExpenses.length > 0) {
-    showPage('expenses', document.querySelectorAll('.nav-item')[5]);
+  const total = pendingTasks.length + pendingCustody.length + pendingSigs.length + pendingExpenses.length;
+  const cont = document.getElementById('pendingModalContent');
+  if (total === 0) {
+    cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:1.5rem 0;">אין לך בקשות פתוחות</p>';
   } else {
-    showPage('assignments', document.querySelectorAll('.nav-item')[2]);
+    let html = '';
+    if (pendingTasks.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>◎ משימות (' + pendingTasks.length + ')</strong>';
+      pendingTasks.forEach(t => {
+        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'assignments\',document.querySelectorAll(\'.nav-item\')[2])">';
+        html += (t.title || 'ללא כותרת') + (t.forChild ? ' · ' + t.forChild : '');
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    if (pendingCustody.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>◎ החלפות משמורת (' + pendingCustody.length + ')</strong>';
+      pendingCustody.forEach(c => {
+        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[4])">';
+        html += (c.date || '') + ' · ' + (c.reason || 'בקשת החלפה');
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    if (pendingSigs.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>◎ חתימות (' + pendingSigs.length + ')</strong>';
+      pendingSigs.forEach(s => {
+        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[9])">';
+        html += (s.title || 'מסמך לחתימה') + (s.child ? ' · ' + s.child : '');
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    if (pendingExpenses.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>◎ הוצאות (' + pendingExpenses.length + ')</strong>';
+      pendingExpenses.forEach(e => {
+        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'expenses\',document.querySelectorAll(\'.nav-item\')[5])">';
+        html += (e.description || 'הוצאה') + ' · ₪' + (e.amount || 0);
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    cont.innerHTML = html;
   }
+  openModal('pendingModal');
 }
 
 function toggleActionsMenu(e) {
