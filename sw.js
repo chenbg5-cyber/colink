@@ -1,4 +1,28 @@
-const CACHE_NAME = 'colink-v10';
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyAj8Er3isZdjjgZ1AoV4Dh4pQOExIrtYbU",
+  authDomain: "colink-4300f.firebaseapp.com",
+  projectId: "colink-4300f",
+  storageBucket: "colink-4300f.firebasestorage.app",
+  messagingSenderId: "984947335109",
+  appId: "1:984947335109:web:68dcdc559e8c92796eb5ac"
+});
+
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage(payload => {
+  const { title, body } = payload.notification || {};
+  if (title) {
+    self.registration.showNotification(title, {
+      body: body || '',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png'
+    });
+  }
+});
+
+const CACHE_NAME = 'colink-v11';
 const ASSETS = [
   './colink.html',
   './manifest.json'

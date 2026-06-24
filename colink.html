@@ -1511,6 +1511,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
@@ -2672,23 +2673,7 @@
       </div>
       <div class="form-group">
         <label>כיתה / גן <span class="required">*</span></label>
-        <select id="kidModalClass" class="form-input">
-          <option value="">בחרי...</option>
-          <option value="גן טרום חובה">גן טרום חובה</option>
-          <option value="גן חובה">גן חובה</option>
-          <option value="א׳">כיתה א׳</option>
-          <option value="ב׳">כיתה ב׳</option>
-          <option value="ג׳">כיתה ג׳</option>
-          <option value="ד׳">כיתה ד׳</option>
-          <option value="ה׳">כיתה ה׳</option>
-          <option value="ו׳">כיתה ו׳</option>
-          <option value="ז׳">כיתה ז׳</option>
-          <option value="ח׳">כיתה ח׳</option>
-          <option value="ט׳">כיתה ט׳</option>
-          <option value="י׳">כיתה י׳</option>
-          <option value="י״א">כיתה י״א</option>
-          <option value="י״ב">כיתה י״ב</option>
-        </select>
+        <input type="text" id="kidModalClass" placeholder="לדוגמה: ג׳3, גן חובה">
       </div>
     </div>
     <div class="form-group">
@@ -2802,6 +2787,7 @@ async function onAuthSuccess() {
     cacheBirthdayData();
     registerPeriodicSync();
     listenToFamilyNotifications();
+    initFCM();
   }
 }
 
@@ -2836,6 +2822,33 @@ function sendFamilyNotification(title, body, forRole) {
     fromRole: getMyRole(),
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(() => {});
+}
+
+async function initFCM() {
+  if (!('Notification' in window) || !appData.familyCode || !currentFirebaseUser) return;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const messaging = firebase.messaging();
+    const reg = await navigator.serviceWorker.ready;
+    const token = await messaging.getToken({ serviceWorkerRegistration: reg });
+    if (token) {
+      db.collection('families').doc(appData.familyCode).collection('pushTokens').doc(currentFirebaseUser.uid).set({
+        token,
+        role: getMyRole(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+    messaging.onMessage(payload => {
+      const { title, body } = payload.notification || {};
+      if (title) {
+        new Notification(title, { body: body || '', icon: 'icons/icon-192.png' });
+        showToast(title);
+      }
+    });
+  } catch (e) {
+    console.log('FCM init skipped:', e.message);
+  }
 }
 
 function saveToCloud() {
@@ -3283,23 +3296,7 @@ function addKidCard() {
       </div>
       <div class="form-group">
         <label>כיתה / גן <span class="required">*</span></label>
-        <select class="kid-class form-input">
-          <option value="">בחרי...</option>
-          <option value="גן טרום חובה">גן טרום חובה</option>
-          <option value="גן חובה">גן חובה</option>
-          <option value="א׳">כיתה א׳</option>
-          <option value="ב׳">כיתה ב׳</option>
-          <option value="ג׳">כיתה ג׳</option>
-          <option value="ד׳">כיתה ד׳</option>
-          <option value="ה׳">כיתה ה׳</option>
-          <option value="ו׳">כיתה ו׳</option>
-          <option value="ז׳">כיתה ז׳</option>
-          <option value="ח׳">כיתה ח׳</option>
-          <option value="ט׳">כיתה ט׳</option>
-          <option value="י׳">כיתה י׳</option>
-          <option value="י״א">כיתה י״א</option>
-          <option value="י״ב">כיתה י״ב</option>
-        </select>
+        <input type="text" class="kid-class" placeholder="לדוגמה: ג׳3, גן חובה">
       </div>
     </div>
     <div class="form-group">
@@ -4353,6 +4350,7 @@ function saveKid() {
   saveData();
   renderKids();
   populateKidSelects();
+  updateDashboard();
   closeModal('kidModal');
 }
 
