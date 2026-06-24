@@ -2052,28 +2052,10 @@
         <h1>חוגים</h1>
         <button class="btn btn-primary btn-sm" onclick="openActivityModal()">+ חוג חדש</button>
       </div>
-      <div class="card">
-        <div id="activitiesList">
-          <table class="data-table" id="activitiesTable">
-            <thead>
-              <tr>
-                <th>שם החוג</th>
-                <th>ילד/ה</th>
-                <th>יום</th>
-                <th>שעה</th>
-                <th>מיקום</th>
-                <th>עלות</th>
-                <th>אחראי/ת</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="activitiesBody"></tbody>
-          </table>
-          <div class="empty-state" id="activitiesEmpty">
-            <div class="empty-icon">⚽</div>
-            <p>אין חוגים עדיין</p>
-          </div>
-        </div>
+      <div id="activitiesList"></div>
+      <div class="empty-state" id="activitiesEmpty">
+        <div class="empty-icon">⚽</div>
+        <p>אין חוגים עדיין</p>
       </div>
     </div>
 
@@ -5856,41 +5838,43 @@ function deleteActivity(id) {
 }
 
 function renderActivities() {
-  const body = document.getElementById('activitiesBody');
+  const list = document.getElementById('activitiesList');
   const empty = document.getElementById('activitiesEmpty');
-  const table = document.getElementById('activitiesTable');
-  if (!body) return;
+  if (!list) return;
 
   const acts = appData.activities || [];
   if (acts.length === 0) {
-    table.style.display = 'none';
+    list.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
 
-  table.style.display = 'table';
   empty.style.display = 'none';
 
   const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const sorted = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
 
-  body.innerHTML = sorted.map(a => {
-    const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '-';
-    return `<tr>
-      <td><strong>${a.name}</strong>${a.instructor ? '<br><span style="font-size:0.72rem;color:var(--text-light);">מדריך: ' + a.instructor + (a.instructorPhone ? ' · <a href="tel:' + a.instructorPhone + '" style="color:var(--primary);">' + a.instructorPhone + '</a>' : '') + '</span>' : ''}</td>
-      <td>${a.child}</td>
-      <td>${a.day}</td>
-      <td style="direction:ltr;text-align:right;">${timeStr}</td>
-      <td>${a.location || '-'}</td>
-      <td>${a.cost ? '₪' + a.cost : '-'}</td>
-      <td>${getActivityCustodyParent(a.day) || a.responsible || '-'}</td>
-      <td>
-        <div style="display:flex;gap:4px;">
-          <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה">✎</button>
-          <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה">✕</button>
+  list.innerHTML = sorted.map(a => {
+    const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
+    const custodyParent = getActivityCustodyParent(a.day) || a.responsible || '';
+    return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.95rem;">${a.name}</div>
+          <div style="font-size:0.8rem;color:var(--text-light);margin-top:4px;">
+            ${a.child} · יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}
+          </div>
+          ${a.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + a.instructor + (a.instructorPhone ? ' · <a href="tel:' + a.instructorPhone + '" style="color:var(--primary);">' + a.instructorPhone + '</a>' : '') + '</div>' : ''}
+          <div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">
+            ${a.cost ? '₪' + a.cost : ''}${a.cost && custodyParent ? ' · ' : ''}${custodyParent ? 'אחראי: ' + custodyParent : ''}
+          </div>
         </div>
-      </td>
-    </tr>`;
+        <div style="display:flex;gap:6px;margin-right:8px;">
+          <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
+          <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה" style="font-size:1.1rem;">✕</button>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -6280,7 +6264,7 @@ init();
 
 // PWA Service Worker — force update on new version
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=16', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=17', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
