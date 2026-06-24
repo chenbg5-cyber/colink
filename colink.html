@@ -1522,7 +1522,8 @@
 <div class="onboarding-overlay" id="authScreen" style="z-index:10000;">
   <div class="onboarding-card" style="text-align:center;">
     <div class="ob-logo">Co<span>Link</span></div>
-    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.9rem;">התחברות לשמירת הנתונים בענן</p>
+    <p style="color:var(--text);margin-bottom:6px;font-size:0.95rem;font-weight:500;">ניהול משפחתי משותף להורים גרושים</p>
+    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.8rem;line-height:1.5;">משימות, אירועים, משמורת, הוצאות, חתימות ועוד — הכל במקום אחד, מסונכרן בין שני ההורים</p>
 
     <button onclick="signInWithGoogle()" id="googleSignInBtn" style="width:100%;margin-top:12px;padding:14px;font-size:1rem;font-family:inherit;border:2px solid var(--border);border-radius:12px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:22px;height:22px;">
@@ -3988,8 +3989,8 @@ function updateDashboard() {
   const statActSummary = document.getElementById('statActivitiesSummary');
   if (statActSummary) {
     if (acts.length > 0) {
-      const summary = acts.slice(0, 2).map(a => a.child + ' — ' + a.name + ' (יום ' + a.day + ')').join(' · ');
-      statActSummary.textContent = acts.length > 2 ? summary + ' ...' : summary;
+      const next = acts[0];
+      statActSummary.textContent = next.child + ' — ' + next.name + ' (' + next.day + ')';
     } else {
       statActSummary.textContent = '';
     }
