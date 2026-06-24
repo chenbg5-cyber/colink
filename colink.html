@@ -4341,7 +4341,16 @@ function saveKid() {
     tzaaronLeadEmail: document.getElementById('kidModalTzaaronLeadEmail').value.trim()
   };
   if (editIdx >= 0) {
+    const oldName = appData.kids[editIdx].name;
     appData.kids[editIdx] = kidData;
+    if (oldName && oldName !== name) {
+      (appData.tasks || []).forEach(t => { if (t.forChild === oldName) t.forChild = name; });
+      (appData.events || []).forEach(e => { if (e.forChild === oldName) e.forChild = name; });
+      (appData.activities || []).forEach(a => { if (a.child === oldName) a.child = name; });
+      (appData.camps || []).forEach(c => { if (c.child === oldName) c.child = name; });
+      (appData.signatures || []).forEach(s => { if (s.child === oldName) s.child = name; });
+      (appData.expenses || []).forEach(e => { if (e.forChild === oldName) e.forChild = name; });
+    }
     showToast('פרטי הילד/ה עודכנו');
   } else {
     appData.kids.push(kidData);
@@ -4351,6 +4360,7 @@ function saveKid() {
   renderKids();
   populateKidSelects();
   updateDashboard();
+  updateApp();
   closeModal('kidModal');
 }
 
