@@ -4672,6 +4672,19 @@ function deleteTask(id) {
 function openNewTask() {
   document.getElementById('taskEditId').value = '';
   document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskRes').value = '';
+  document.getElementById('taskFor').value = '';
+  document.getElementById('taskPriority').value = '';
+  document.getElementById('taskDate').value = '';
+  document.getElementById('taskCategory').value = '';
+  document.getElementById('taskStatus').value = 'pending';
+  document.getElementById('taskRecurring').checked = false;
+  const freqEl = document.getElementById('taskRecurringFreq');
+  if (freqEl) freqEl.value = '';
+  const freqGroup = document.getElementById('recurringFreqGroup');
+  if (freqGroup) freqGroup.style.display = 'none';
   openModal('taskModal');
 }
 
@@ -6267,7 +6280,7 @@ init();
 
 // PWA Service Worker — force update on new version
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=15', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=16', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
