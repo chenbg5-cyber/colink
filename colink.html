@@ -2791,39 +2791,50 @@ function signInWithGoogle() {
 
 async function onAuthSuccess() {
   document.getElementById('authScreen').classList.add('hidden');
-  const docRef = db.collection('users').doc(currentFirebaseUser.uid);
-  let snap = null;
-  try {
-    snap = await docRef.get();
-  } catch (e) {
-    console.warn('Cloud read failed, using local data:', e);
-  }
   const localSaved = localStorage.getItem('colink_data');
   const localData = localSaved ? JSON.parse(localSaved) : null;
-  if (snap && snap.exists) {
-    const cloudData = snap.data().appData;
-    if (cloudData) {
-      if (localData && localData.user && localData.user.name && (!cloudData.user || !cloudData.user.name)) {
-        appData = localData;
-        saveData();
-      } else {
-        appData = cloudData;
-        localStorage.setItem('colink_data', JSON.stringify(appData));
-      }
+
+  // Load personal data from user doc
+  let userSnap = null;
+  try {
+    userSnap = await db.collection('users').doc(currentFirebaseUser.uid).get();
+  } catch (e) {
+    console.warn('User doc read failed:', e);
+  }
+
+  if (userSnap && userSnap.exists && userSnap.data().appData) {
+    const cloudPersonal = userSnap.data().appData;
+    appData.mode = cloudPersonal.mode || (localData ? localData.mode : '');
+    appData.familyCode = cloudPersonal.familyCode || (localData ? localData.familyCode : '');
+    appData.user = cloudPersonal.user || (localData ? localData.user : appData.user);
+  } else if (localData && localData.user && localData.user.name) {
+    appData.mode = localData.mode;
+    appData.familyCode = localData.familyCode;
+    appData.user = localData.user;
+  }
+
+  // Load shared data from family collection
+  if (appData.familyCode) {
+    let sharedSnap = null;
+    try {
+      sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+    } catch (e) {
+      console.warn('Shared data read failed:', e);
+    }
+
+    if (sharedSnap && sharedSnap.exists) {
+      const shared = sharedSnap.data();
+      SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
     } else if (localData) {
-      appData = localData;
+      // Migration: first time — push local shared data to family collection
+      SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
       saveData();
     }
-  } else if (!snap) {
-    if (localData && localData.user && localData.user.name) {
-      appData = localData;
-    }
-  } else {
-    if (localData) {
-      appData = localData;
-    }
-    saveData();
+  } else if (localData) {
+    SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
+
+  localStorage.setItem('colink_data', JSON.stringify(appData));
   migrateData();
   if (appData.user.name) {
     document.getElementById('onboarding').classList.add('hidden');
@@ -2835,6 +2846,7 @@ async function onAuthSuccess() {
     cacheBirthdayData();
     registerPeriodicSync();
     listenToFamilyNotifications();
+    listenToSharedData();
     initFCM();
   }
 }
@@ -2899,19 +2911,56 @@ async function initFCM() {
   }
 }
 
+const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','campReminders'];
+let sharedDataListener = null;
+let ignoringSnapshot = false;
+
 function saveToCloud() {
   if (!currentFirebaseUser) return;
   if (!appData.user || !appData.user.name) return;
-  const dataToSave = JSON.parse(JSON.stringify(appData));
-  if (dataToSave.signatures) {
-    dataToSave.signatures = dataToSave.signatures.map(s => {
+  const personalData = { mode: appData.mode, familyCode: appData.familyCode, user: appData.user };
+  db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => console.error('User save error:', err));
+  if (!appData.familyCode) return;
+  const shared = {};
+  SHARED_FIELDS.forEach(f => { if (appData[f] !== undefined) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
+  if (shared.signatures) {
+    shared.signatures = shared.signatures.map(s => {
       const copy = {...s};
       delete copy.fileData;
       delete copy.pdfData;
       return copy;
     });
   }
-  db.collection('users').doc(currentFirebaseUser.uid).set({ appData: dataToSave, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => console.error('Cloud save error:', err));
+  ignoringSnapshot = true;
+  db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
+    { ...shared, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  ).then(() => { setTimeout(() => { ignoringSnapshot = false; }, 1000); })
+   .catch(err => { ignoringSnapshot = false; console.error('Shared save error:', err); });
+}
+
+function listenToSharedData() {
+  if (sharedDataListener) sharedDataListener();
+  if (!appData.familyCode) return;
+  sharedDataListener = db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main')
+    .onSnapshot(snap => {
+      if (ignoringSnapshot) return;
+      if (!snap.exists) return;
+      const shared = snap.data();
+      let changed = false;
+      SHARED_FIELDS.forEach(f => {
+        if (shared[f] !== undefined) {
+          appData[f] = shared[f];
+          changed = true;
+        }
+      });
+      if (changed) {
+        localStorage.setItem('colink_data', JSON.stringify(appData));
+        if (document.getElementById('appContainer').classList.contains('active')) {
+          updateApp();
+        }
+      }
+    });
 }
 
 // ============ DATA STORE ============
@@ -3201,6 +3250,7 @@ async function generateUniqueFamilyCode() {
 function leaveFamily() {
   if (!confirm('בטוח שברצונך לעזוב את המשפחה?\nהנתונים המשותפים יישארו להורה השני.')) return;
   if (!confirm('פעולה זו תאפס את כל הנתונים המקומיים שלך. להמשיך?')) return;
+  if (sharedDataListener) { sharedDataListener(); sharedDataListener = null; }
   const uid = currentFirebaseUser ? currentFirebaseUser.uid : null;
   const familyCode = appData.familyCode;
   if (uid && familyCode) {
@@ -3506,6 +3556,7 @@ function enterApp() {
   document.getElementById('onboarding').classList.add('hidden');
   document.getElementById('appContainer').classList.add('active');
   updateApp();
+  listenToSharedData();
 }
 
 function populateKidSelects() {
