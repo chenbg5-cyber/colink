@@ -6174,7 +6174,7 @@ init();
 
 // PWA Service Worker — force update on new version
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=13', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
