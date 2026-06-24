@@ -2827,13 +2827,20 @@ async function onAuthSuccess() {
       console.warn('Shared data read failed:', e);
     }
 
+    let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
-      SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
-    } else {
-      // Migration: sharedData doesn't exist yet — migrate from old sources
+      const hasTasks = shared.tasks && shared.tasks.length > 0;
+      const hasKids = shared.kids && shared.kids.length > 0;
+      const hasEvents = shared.events && shared.events.length > 0;
+      sharedHasData = hasTasks || hasKids || hasEvents;
+      if (sharedHasData) {
+        SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+      }
+    }
+    if (!sharedHasData) {
       const source = oldCloudData || localData;
-      if (source) {
+      if (source && ((source.tasks && source.tasks.length > 0) || (source.kids && source.kids.length > 0))) {
         SHARED_FIELDS.forEach(f => { if (source[f] !== undefined) appData[f] = source[f]; });
         saveData();
       }
@@ -6182,7 +6189,7 @@ init();
 
 // PWA Service Worker — force update on new version
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=13', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=14', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
