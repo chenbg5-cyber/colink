@@ -6263,9 +6263,32 @@ history.pushState({ page: 'app' }, '');
 history.pushState({ page: 'app' }, '');
 init();
 
-// PWA Service Worker — force update on new version
+// Version-based force refresh
+const APP_VERSION = '19';
+const storedVersion = localStorage.getItem('colink_version');
+if (storedVersion && storedVersion !== APP_VERSION) {
+  localStorage.setItem('colink_version', APP_VERSION);
+  if ('caches' in window) {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+          window.location.reload(true);
+        });
+      } else {
+        window.location.reload(true);
+      }
+    });
+  } else {
+    window.location.reload(true);
+  }
+} else {
+  localStorage.setItem('colink_version', APP_VERSION);
+}
+
+// PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=18', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=19', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
