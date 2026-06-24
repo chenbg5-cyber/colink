@@ -4,8 +4,15 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    match /families/{familyCode}/{document=**} {
+    match /families/{familyCode} {
       allow read, write: if request.auth != null;
+      match /members/{memberId} {
+        allow read, write: if request.auth != null;
+      }
+      match /{subcol}/{docId} {
+        allow read, write: if request.auth != null
+          && exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+      }
     }
   }
 }

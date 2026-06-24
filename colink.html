@@ -3073,7 +3073,7 @@ function goToObStep(step) {
   });
 }
 
-function obNext(fromStep) {
+async function obNext(fromStep) {
   if (fromStep === 2) {
     const firstName = document.getElementById('obFirstName').value.trim();
     const lastName = document.getElementById('obLastName').value.trim();
@@ -3135,7 +3135,18 @@ function obNext(fromStep) {
     appData.kids = kids;
 
     if (appData.mode === 'new') {
-      appData.familyCode = generateFamilyCode();
+      appData.familyCode = await generateUniqueFamilyCode();
+    }
+
+    if (currentFirebaseUser) {
+      db.collection('families').doc(appData.familyCode).set({
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(() => {});
+      db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
+        role: appData.user.role,
+        name: appData.user.name,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(() => {});
     }
 
     document.getElementById('familyCodeValue').textContent = appData.familyCode;
@@ -3157,8 +3168,17 @@ function obBack() {
 function generateFamilyCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+async function generateUniqueFamilyCode() {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateFamilyCode();
+    const snap = await db.collection('families').doc(code).get();
+    if (!snap.exists) return code;
+  }
+  return generateFamilyCode();
 }
 
 function leaveFamily() {
@@ -3168,6 +3188,7 @@ function leaveFamily() {
   const familyCode = appData.familyCode;
   if (uid && familyCode) {
     db.collection('families').doc(familyCode).collection('pushTokens').doc(uid).delete().catch(() => {});
+    db.collection('families').doc(familyCode).collection('members').doc(uid).delete().catch(() => {});
   }
   if (uid) {
     db.collection('users').doc(uid).delete().catch(() => {});
