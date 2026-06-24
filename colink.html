@@ -2802,11 +2802,16 @@ async function onAuthSuccess() {
     console.warn('User doc read failed:', e);
   }
 
+  let oldCloudData = null;
   if (userSnap && userSnap.exists && userSnap.data().appData) {
     const cloudPersonal = userSnap.data().appData;
     appData.mode = cloudPersonal.mode || (localData ? localData.mode : '');
     appData.familyCode = cloudPersonal.familyCode || (localData ? localData.familyCode : '');
     appData.user = cloudPersonal.user || (localData ? localData.user : appData.user);
+    // Keep old cloud data for migration
+    if (cloudPersonal.tasks || cloudPersonal.kids || cloudPersonal.events) {
+      oldCloudData = cloudPersonal;
+    }
   } else if (localData && localData.user && localData.user.name) {
     appData.mode = localData.mode;
     appData.familyCode = localData.familyCode;
@@ -2825,10 +2830,13 @@ async function onAuthSuccess() {
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
       SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
-    } else if (localData) {
-      // Migration: first time — push local shared data to family collection
-      SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
-      saveData();
+    } else {
+      // Migration: sharedData doesn't exist yet — migrate from old sources
+      const source = oldCloudData || localData;
+      if (source) {
+        SHARED_FIELDS.forEach(f => { if (source[f] !== undefined) appData[f] = source[f]; });
+        saveData();
+      }
     }
   } else if (localData) {
     SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
