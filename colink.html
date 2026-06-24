@@ -2186,6 +2186,16 @@
 <!-- ============ MODALS ============ -->
 
 <!-- Pending Requests Modal -->
+<div class="modal-overlay" id="colinkConfirmModal" style="z-index:10001;">
+  <div class="modal" style="max-width:360px;text-align:center;padding:24px;">
+    <div style="font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:4px;">CoLink</div>
+    <p id="colinkConfirmMsg" style="margin:12px 0 20px;font-size:0.92rem;line-height:1.6;white-space:pre-line;"></p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn" id="colinkConfirmNo" style="background:var(--bg-card);color:var(--text);border:1px solid var(--border);padding:8px 24px;border-radius:10px;font-size:0.9rem;">ביטול</button>
+      <button class="btn" id="colinkConfirmYes" style="background:#e74c3c;color:white;padding:8px 24px;border-radius:10px;font-size:0.9rem;">אישור</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="pendingModal">
   <div class="modal" style="max-width:400px;">
     <h2>ממתינות לאישורי</h2>
@@ -3253,9 +3263,9 @@ async function generateUniqueFamilyCode() {
   return generateFamilyCode();
 }
 
-function leaveFamily() {
-  if (!confirm('בטוח שברצונך לעזוב את המשפחה?\nהנתונים המשותפים יישארו להורה השני.')) return;
-  if (!confirm('פעולה זו תאפס את כל הנתונים המקומיים שלך. להמשיך?')) return;
+async function leaveFamily() {
+  if (!await colinkConfirm('בטוח שברצונך לעזוב את המשפחה?\nהנתונים המשותפים יישארו להורה השני.')) return;
+  if (!await colinkConfirm('פעולה זו תאפס את כל הנתונים המקומיים שלך. להמשיך?')) return;
   if (sharedDataListener) { sharedDataListener(); sharedDataListener = null; }
   const uid = currentFirebaseUser ? currentFirebaseUser.uid : null;
   const familyCode = appData.familyCode;
@@ -4147,12 +4157,12 @@ function updateDashboard() {
   }
 }
 
-function toggleTaskStatus(id) {
+async function toggleTaskStatus(id) {
   const task = appData.tasks.find(t => t.id === id);
   if (task) {
     const wasPending = task.status !== 'done';
     const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
-    if (!confirm(msg)) return;
+    if (!await colinkConfirm(msg)) return;
     task.status = task.status === 'done' ? 'pending' : 'done';
     saveData();
     renderTasks();
@@ -4543,8 +4553,8 @@ function saveKid() {
   closeModal('kidModal');
 }
 
-function deleteKid(idx) {
-  if (!confirm('למחוק את ' + appData.kids[idx].name + '?')) return;
+async function deleteKid(idx) {
+  if (!await colinkConfirm('למחוק את ' + appData.kids[idx].name + '?')) return;
   appData.kids.splice(idx, 1);
   saveData();
   renderKids();
@@ -4646,8 +4656,8 @@ function changeTaskStatus(id, newStatus) {
   if (task) { task.status = newStatus; saveData(); renderTasks(); updateDashboard(); }
 }
 
-function deleteTask(id) {
-  if (!confirm('למחוק את המשימה?')) return;
+async function deleteTask(id) {
+  if (!await colinkConfirm('למחוק את המשימה?')) return;
   appData.tasks = appData.tasks.filter(t => t.id !== id);
   saveData(); renderTasks(); updateDashboard();
 }
@@ -4805,8 +4815,8 @@ function editEvent(id) {
   openModal('eventModal');
 }
 
-function deleteEvent(id) {
-  if (!confirm('למחוק את האירוע?')) return;
+async function deleteEvent(id) {
+  if (!await colinkConfirm('למחוק את האירוע?')) return;
   appData.events = appData.events.filter(e => e.id !== id);
   saveData(); renderEvents(); updateDashboard();
 }
@@ -5479,8 +5489,8 @@ function rejectSignature(id) {
   showToast('המסמך נדחה');
 }
 
-function deleteSignature(id) {
-  if (!confirm('למחוק את המסמך?')) return;
+async function deleteSignature(id) {
+  if (!await colinkConfirm('למחוק את המסמך?')) return;
   appData.signatures = appData.signatures.filter(s => s.id !== id);
   saveData();
   renderSignatures();
@@ -5830,8 +5840,8 @@ function saveActivity() {
   showToast(editId ? 'החוג עודכן' : 'החוג נוסף');
 }
 
-function deleteActivity(id) {
-  if (!confirm('למחוק את החוג?')) return;
+async function deleteActivity(id) {
+  if (!await colinkConfirm('למחוק את החוג?')) return;
   appData.activities = appData.activities.filter(a => a.id !== id);
   saveData();
   renderActivities();
@@ -5962,8 +5972,8 @@ function saveCamp() {
   showToast(editId ? 'הקייטנה עודכנה' : 'הקייטנה נוספה');
 }
 
-function deleteCamp(id) {
-  if (!confirm('למחוק את הקייטנה?')) return;
+async function deleteCamp(id) {
+  if (!await colinkConfirm('למחוק את הקייטנה?')) return;
   appData.camps = appData.camps.filter(c => c.id !== id);
   saveData();
   renderCamps();
@@ -6175,6 +6185,22 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+function colinkConfirm(msg) {
+  return new Promise(resolve => {
+    document.getElementById('colinkConfirmMsg').textContent = msg;
+    document.getElementById('colinkConfirmModal').classList.add('active');
+    const yesBtn = document.getElementById('colinkConfirmYes');
+    const noBtn = document.getElementById('colinkConfirmNo');
+    function cleanup() {
+      document.getElementById('colinkConfirmModal').classList.remove('active');
+      yesBtn.replaceWith(yesBtn.cloneNode(true));
+      noBtn.replaceWith(noBtn.cloneNode(true));
+    }
+    yesBtn.onclick = () => { cleanup(); resolve(true); };
+    noBtn.onclick = () => { cleanup(); resolve(false); };
+  });
+}
+
 function logout() {
   localStorage.removeItem('colink_data');
   location.reload();
@@ -6264,7 +6290,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6288,7 +6314,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=19', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=20', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
