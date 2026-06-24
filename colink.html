@@ -2035,7 +2035,13 @@
         <div class="custody-legend" style="margin-top:16px;">
           <span class="me">אצלי</span>
           <span class="other">אצל ההורה השני</span>
+          <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#6C63FF;display:inline-block;"></span> משימה</span>
+          <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> אירוע</span>
         </div>
+      </div>
+      <div class="card" id="calDayDetails" style="display:none;">
+        <h3 id="calDayDetailsTitle"></h3>
+        <div id="calDayDetailsList"></div>
       </div>
     </div>
 
@@ -2159,6 +2165,10 @@
         <span class="pending-badge" id="pendingBadge">0</span>
       </div>
       <div class="bottom-bar-label">ממתינות</div>
+    </div>
+    <div class="bottom-bar-actions-btn" onclick="showPage('calendar', document.querySelectorAll('.nav-item')[10])">
+      <div class="bottom-bar-icon" style="background:#34d399;">▣</div>
+      <div class="bottom-bar-label">יומן</div>
     </div>
     <div class="bottom-bar-actions-btn" onclick="toggleActionsMenu(event)">
       <div class="bottom-bar-icon">⊞</div>
@@ -6014,13 +6024,54 @@ function renderCalendar() {
     if (isToday) classes += ' today';
     if (holiday) classes += ' holiday';
 
-    html += `<div class="${classes}" title="${holiday ? holiday.name : ''}">
+    const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr);
+    const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
+    const hasItems = dayTasks.length > 0 || dayEvents.length > 0;
+    let dots = '';
+    if (dayTasks.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#6C63FF;display:inline-block;"></span>';
+    if (dayEvents.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>';
+
+    html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? holiday.name : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
       ${d}
       ${holiday ? '<div class="holiday-dot"></div>' : ''}
+      ${dots ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:1px;">' + dots + '</div>' : ''}
     </div>`;
   }
 
   grid.innerHTML = html;
+}
+
+function showCalDayDetails(dateStr) {
+  const tasks = (appData.tasks || []).filter(t => t.date === dateStr);
+  const events = (appData.events || []).filter(e => e.date === dateStr);
+  const card = document.getElementById('calDayDetails');
+  const title = document.getElementById('calDayDetailsTitle');
+  const list = document.getElementById('calDayDetailsList');
+  const d = new Date(dateStr);
+  title.textContent = HEB_DAYS[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  let html = '';
+  if (tasks.length > 0) {
+    html += '<div style="margin-bottom:8px;"><strong style="color:#6C63FF;">☐ משימות</strong>';
+    tasks.forEach(t => {
+      const isDone = t.status === 'done';
+      html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;display:flex;align-items:center;gap:8px;">';
+      html += '<span style="cursor:pointer;color:' + (isDone ? '#34d399' : '#ccc') + ';font-size:1.1rem;" onclick="toggleTaskStatus(' + t.id + ');showCalDayDetails(\'' + dateStr + '\')">' + (isDone ? '✓' : '○') + '</span>';
+      html += '<span style="cursor:pointer;' + (isDone ? 'text-decoration:line-through;opacity:0.6;' : '') + '" onclick="editTask(' + t.id + ')">' + t.title + (t.forChild ? ' · ' + t.forChild : '') + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  if (events.length > 0) {
+    html += '<div><strong style="color:#f59e0b;">◆ אירועים</strong>';
+    events.forEach(e => {
+      html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+      html += e.title + (e.time ? ' · ' + e.time : '') + (e.forChild ? ' · ' + e.forChild : '') + (e.location ? ' · ' + e.location : '');
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  list.innerHTML = html;
+  card.style.display = '';
 }
 
 function changeMonth(delta) {
