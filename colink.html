@@ -3626,11 +3626,10 @@ function renderBottomBarKids() {
 
 function updatePendingBadge() {
   const myRole = getMyRole();
-  const pendingTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done').length;
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole).length;
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole)).length;
   const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole).length;
-  const total = pendingTasks + pendingCustody + pendingSigs + pendingExpenses;
+  const total = pendingCustody + pendingSigs + pendingExpenses;
   const btn = document.getElementById('bottomBarPending');
   const badge = document.getElementById('pendingBadge');
   if (btn && badge) {
@@ -3641,49 +3640,46 @@ function updatePendingBadge() {
 
 function showPendingRequests() {
   const myRole = getMyRole();
-  const pendingTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done');
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
   const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole);
-  const total = pendingTasks.length + pendingCustody.length + pendingSigs.length + pendingExpenses.length;
+  const total = pendingCustody.length + pendingSigs.length + pendingExpenses.length;
   const cont = document.getElementById('pendingModalContent');
   if (total === 0) {
-    cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:1.5rem 0;">אין לך בקשות פתוחות</p>';
+    cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:1.5rem 0;">אין לך בקשות ממתינות לאישורך</p>';
   } else {
     let html = '';
-    if (pendingTasks.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>◎ משימות (' + pendingTasks.length + ')</strong>';
-      pendingTasks.forEach(t => {
-        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'assignments\',document.querySelectorAll(\'.nav-item\')[2])">';
-        html += (t.title || 'ללא כותרת') + (t.forChild ? ' · ' + t.forChild : '');
-        html += '</div>';
-      });
-      html += '</div>';
-    }
     if (pendingCustody.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>◎ החלפות משמורת (' + pendingCustody.length + ')</strong>';
+      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות החלפת משמורת (' + pendingCustody.length + ')</strong>';
       pendingCustody.forEach(c => {
-        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[4])">';
-        html += (c.date || '') + ' · ' + (c.reason || 'בקשת החלפה');
-        html += '</div>';
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+        html += '<div>' + (c.date ? formatDate(c.date) : '') + ' · ' + (c.reason || 'בקשת החלפה') + '</div>';
+        html += '<div style="display:flex;gap:8px;margin-top:6px;">';
+        html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'approved\');showPendingRequests()">אישור ✓</button>';
+        html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'rejected\');showPendingRequests()">דחייה ✕</button>';
+        html += '</div></div>';
       });
       html += '</div>';
     }
     if (pendingSigs.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>◎ חתימות (' + pendingSigs.length + ')</strong>';
+      html += '<div style="margin-bottom:0.75rem;"><strong>⊡ חתימות ממתינות (' + pendingSigs.length + ')</strong>';
       pendingSigs.forEach(s => {
-        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[9])">';
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[9])">';
         html += (s.title || 'מסמך לחתימה') + (s.child ? ' · ' + s.child : '');
+        html += '<div style="font-size:0.72rem;color:var(--text-light);">לחצ/י לחתימה</div>';
         html += '</div>';
       });
       html += '</div>';
     }
     if (pendingExpenses.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>◎ הוצאות (' + pendingExpenses.length + ')</strong>';
+      html += '<div style="margin-bottom:0.75rem;"><strong>₪ הוצאות לאישור (' + pendingExpenses.length + ')</strong>';
       pendingExpenses.forEach(e => {
-        html += '<div style="padding:0.35rem 0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'expenses\',document.querySelectorAll(\'.nav-item\')[5])">';
-        html += (e.description || 'הוצאה') + ' · ₪' + (e.amount || 0);
-        html += '</div>';
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+        html += '<div>' + (e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0) + (e.forChild ? ' · ' + e.forChild : '') + '</div>';
+        html += '<div style="display:flex;gap:8px;margin-top:6px;">';
+        html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="updateExpenseStatus(' + e.id + ',\'approved\');showPendingRequests()">אישור ✓</button>';
+        html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="updateExpenseStatus(' + e.id + ',\'rejected\');showPendingRequests()">דחייה ✕</button>';
+        html += '</div></div>';
       });
       html += '</div>';
     }
