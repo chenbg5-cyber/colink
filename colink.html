@@ -2146,6 +2146,13 @@
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
         </div>
       </div>
+      <div class="card" style="border:1px solid #f59e0b44;">
+        <h3 style="color:#f59e0b;">שחזור נתונים</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
+          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
+        </div>
+      </div>
       <div class="card" style="border:1px solid #e74c3c22;">
         <h3 style="color:#e74c3c;">אזור מסוכן</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
@@ -6173,6 +6180,77 @@ function closeModal(id) {
 function logout() {
   localStorage.removeItem('colink_data');
   location.reload();
+}
+
+async function recoverData() {
+  if (!currentFirebaseUser) { showToast('לא מחובר'); return; }
+  const uid = currentFirebaseUser.uid;
+  try {
+    let recovered = false;
+    let source = '';
+
+    // Source 1: family shared data doc
+    if (appData.familyCode) {
+      const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+      if (sharedSnap.exists) {
+        const shared = sharedSnap.data();
+        const hasTasks = shared.tasks && shared.tasks.length > 0;
+        const hasKids = shared.kids && shared.kids.length > 0;
+        if (hasTasks || hasKids) {
+          SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+          recovered = true;
+          source = 'shared doc';
+        }
+      }
+    }
+
+    // Source 2: old user doc (may still have shared data in appData)
+    if (!recovered) {
+      const userSnap = await db.collection('users').doc(uid).get();
+      if (userSnap.exists) {
+        const cloudData = userSnap.data().appData;
+        if (cloudData) {
+          const hasTasks = cloudData.tasks && cloudData.tasks.length > 0;
+          const hasKids = cloudData.kids && cloudData.kids.length > 0;
+          if (hasTasks || hasKids) {
+            SHARED_FIELDS.forEach(f => { if (cloudData[f] !== undefined) appData[f] = cloudData[f]; });
+            appData.mode = cloudData.mode || appData.mode;
+            appData.familyCode = cloudData.familyCode || appData.familyCode;
+            appData.user = cloudData.user || appData.user;
+            recovered = true;
+            source = 'user doc';
+          } else {
+            source = 'user doc ריק — מפתחות: ' + Object.keys(cloudData).join(',');
+          }
+        }
+      }
+    }
+
+    // Source 3: localStorage
+    if (!recovered) {
+      const localRaw = localStorage.getItem('colink_data');
+      if (localRaw) {
+        const localData = JSON.parse(localRaw);
+        const hasTasks = localData.tasks && localData.tasks.length > 0;
+        const hasKids = localData.kids && localData.kids.length > 0;
+        if (hasTasks || hasKids) {
+          SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
+          recovered = true;
+          source = 'localStorage';
+        }
+      }
+    }
+
+    if (recovered) {
+      saveData();
+      updateApp();
+      showToast('שוחזר מ-' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים');
+    } else {
+      showToast('לא נמצאו נתונים לשחזור. ' + source);
+    }
+  } catch (e) {
+    showToast('שגיאה: ' + e.message);
+  }
 }
 
 // Close modals on overlay click
