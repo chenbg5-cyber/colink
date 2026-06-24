@@ -3908,14 +3908,16 @@ function updateDashboard() {
   } else {
     dashChecklist.innerHTML = myTodayTasks.map(t => {
       const isDone = t.status === 'done';
+      const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.desc + '</div>' : '';
       return `
         <div class="list-item">
           <div class="list-item-check ${isDone ? 'checked' : ''}" onclick="toggleTaskStatus(${t.id})">
             ${isDone ? '✓' : ''}
           </div>
-          <div class="list-item-content">
+          <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
             <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''}</div>
             <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
+            ${desc}
           </div>
         </div>
       `;
