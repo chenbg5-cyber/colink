@@ -4014,6 +4014,8 @@ function toggleTaskStatus(id) {
   const task = appData.tasks.find(t => t.id === id);
   if (task) {
     const wasPending = task.status !== 'done';
+    const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
+    if (!confirm(msg)) return;
     task.status = task.status === 'done' ? 'pending' : 'done';
     saveData();
     renderTasks();
@@ -4659,6 +4661,7 @@ function editEvent(id) {
 }
 
 function deleteEvent(id) {
+  if (!confirm('למחוק את האירוע?')) return;
   appData.events = appData.events.filter(e => e.id !== id);
   saveData(); renderEvents(); updateDashboard();
 }
@@ -5683,6 +5686,7 @@ function saveActivity() {
 }
 
 function deleteActivity(id) {
+  if (!confirm('למחוק את החוג?')) return;
   appData.activities = appData.activities.filter(a => a.id !== id);
   saveData();
   renderActivities();
@@ -5812,6 +5816,7 @@ function saveCamp() {
 }
 
 function deleteCamp(id) {
+  if (!confirm('למחוק את הקייטנה?')) return;
   appData.camps = appData.camps.filter(c => c.id !== id);
   saveData();
   renderCamps();
