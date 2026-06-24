@@ -2739,6 +2739,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 auth.languageCode = 'he';
 
 let currentFirebaseUser = null;
@@ -2766,12 +2767,17 @@ function signInWithGoogle() {
 async function onAuthSuccess() {
   document.getElementById('authScreen').classList.add('hidden');
   const docRef = db.collection('users').doc(currentFirebaseUser.uid);
-  const snap = await docRef.get();
-  if (snap.exists) {
+  let snap = null;
+  try {
+    snap = await docRef.get();
+  } catch (e) {
+    console.warn('Cloud read failed, using local data:', e);
+  }
+  const localSaved = localStorage.getItem('colink_data');
+  const localData = localSaved ? JSON.parse(localSaved) : null;
+  if (snap && snap.exists) {
     const cloudData = snap.data().appData;
     if (cloudData) {
-      const localSaved = localStorage.getItem('colink_data');
-      const localData = localSaved ? JSON.parse(localSaved) : null;
       if (localData && localData.user && localData.user.name && (!cloudData.user || !cloudData.user.name)) {
         appData = localData;
         saveData();
@@ -2779,11 +2785,17 @@ async function onAuthSuccess() {
         appData = cloudData;
         localStorage.setItem('colink_data', JSON.stringify(appData));
       }
+    } else if (localData) {
+      appData = localData;
+      saveData();
+    }
+  } else if (!snap) {
+    if (localData && localData.user && localData.user.name) {
+      appData = localData;
     }
   } else {
-    const localSaved = localStorage.getItem('colink_data');
-    if (localSaved) {
-      appData = JSON.parse(localSaved);
+    if (localData) {
+      appData = localData;
     }
     saveData();
   }
@@ -2864,6 +2876,7 @@ async function initFCM() {
 
 function saveToCloud() {
   if (!currentFirebaseUser) return;
+  if (!appData.user || !appData.user.name) return;
   const dataToSave = JSON.parse(JSON.stringify(appData));
   if (dataToSave.signatures) {
     dataToSave.signatures = dataToSave.signatures.map(s => {
