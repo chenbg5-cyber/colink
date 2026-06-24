@@ -2126,10 +2126,18 @@
       </div>
       <div class="card">
         <h3>קוד משפחה</h3>
+        <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:12px;">הקוד הזה מזהה את המשפחה שלכם. רק מי שיודע את הקוד יכול להצטרף ולראות את הנתונים.</p>
         <div style="text-align:center;">
           <div class="code" id="profileFamilyCode" style="font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:8px;background:#F0EEFF;padding:16px 24px;border-radius:12px;display:inline-block;direction:ltr;"></div>
           <br>
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
+        </div>
+      </div>
+      <div class="card" style="border:1px solid #e74c3c22;">
+        <h3 style="color:#e74c3c;">אזור מסוכן</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
+          <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
     </div>
@@ -3151,6 +3159,29 @@ function generateFamilyCode() {
   let code = '';
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+function leaveFamily() {
+  if (!confirm('בטוח שברצונך לעזוב את המשפחה?\nהנתונים המשותפים יישארו להורה השני.')) return;
+  if (!confirm('פעולה זו תאפס את כל הנתונים המקומיים שלך. להמשיך?')) return;
+  const uid = currentFirebaseUser ? currentFirebaseUser.uid : null;
+  const familyCode = appData.familyCode;
+  if (uid && familyCode) {
+    db.collection('families').doc(familyCode).collection('pushTokens').doc(uid).delete().catch(() => {});
+  }
+  if (uid) {
+    db.collection('users').doc(uid).delete().catch(() => {});
+  }
+  localStorage.removeItem('colink_data');
+  appData = {
+    mode: '', familyCode: '', user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
+    custodyDays: [], weekendMode: '', weekendStartWithMe: null, weekendStartDate: '', weekendFixedWith: '',
+    weekendDays: [5, 6], alternatingDays: [], kids: [], tasks: [], events: [], expenses: [],
+    custodyChanges: [], signatures: [], holidayAssignments: {}
+  };
+  document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('onboarding').classList.remove('hidden');
+  showToast('עזבת את המשפחה בהצלחה');
 }
 
 function copyFamilyCode() {
