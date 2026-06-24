@@ -3834,9 +3834,10 @@ function updateDashboard() {
   checkTaskReminders();
   checkCampReminders();
 
-  // Card 7: All my assignments checklist
+  // Card 7: My assignments checklist (next 14 days)
   const dashChecklist = document.getElementById('dashTodayChecklist');
-  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date) - new Date(b.date));
+  const twoWeeks = new Date(now); twoWeeks.setDate(twoWeeks.getDate() + 14);
+  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done' && (!t.date || new Date(t.date) <= twoWeeks)).sort((a,b) => new Date(a.date) - new Date(b.date));
   if (myTodayTasks.length === 0) {
     dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
   } else {
