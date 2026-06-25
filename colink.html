@@ -2155,7 +2155,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v22</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v23</p>
     </div>
 
   </main>
@@ -2936,9 +2936,13 @@ const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','sign
 let sharedDataListener = null;
 let ignoringSnapshot = false;
 
+let lastSaveTime = 0;
+
 function saveToCloud() {
   if (!currentFirebaseUser) return;
-  if (!appData.user || !appData.user.name) return;
+  if (!appData.user) return;
+  const userName = appData.user.name || appData.user.firstName || '';
+  if (!userName) return;
   const personalData = { mode: appData.mode, familyCode: appData.familyCode, user: appData.user };
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => console.error('User save error:', err));
   if (!appData.familyCode) return;
@@ -2953,6 +2957,7 @@ function saveToCloud() {
     });
   }
   ignoringSnapshot = true;
+  lastSaveTime = Date.now();
   db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
     { ...shared, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
     { merge: true }
@@ -2966,6 +2971,7 @@ function listenToSharedData() {
   sharedDataListener = db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main')
     .onSnapshot(snap => {
       if (ignoringSnapshot) return;
+      if (Date.now() - lastSaveTime < 5000) return;
       if (!snap.exists) return;
       const shared = snap.data();
       let changed = false;
@@ -6311,7 +6317,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '22';
+const APP_VERSION = '23';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6335,7 +6341,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=22', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=23', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
