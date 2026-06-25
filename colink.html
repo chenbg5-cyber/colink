@@ -2848,6 +2848,17 @@ async function onAuthSuccess() {
     CUSTODY_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
 
+  // Fallback: use Firebase auth profile if user data is still empty
+  if (!appData.user.name && currentFirebaseUser) {
+    appData.user.name = currentFirebaseUser.displayName || '';
+    appData.user.email = currentFirebaseUser.email || '';
+    if (appData.user.name) {
+      const parts = appData.user.name.split(' ');
+      appData.user.firstName = parts[0] || '';
+      appData.user.lastName = parts.slice(1).join(' ') || '';
+    }
+  }
+
   // Register member + load shared data in parallel
   if (appData.familyCode && currentFirebaseUser) {
     const memberPromise = Promise.all([
@@ -6457,7 +6468,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '42';
+const APP_VERSION = '43';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6481,7 +6492,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=42', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=43', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
