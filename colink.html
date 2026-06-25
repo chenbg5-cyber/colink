@@ -4411,14 +4411,13 @@ function checkCampReminders() {
 function sendBirthdayNotification(subject, body) {
   if ('Notification' in window) {
     if (Notification.permission === 'granted') {
-      new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+      new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: subject, renotify: false });
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(p => {
-        if (p === 'granted') new Notification(subject, { body: body, icon: 'icons/icon-192.png' });
+        if (p === 'granted') new Notification(subject, { body: body, icon: 'icons/icon-192.png', tag: subject, renotify: false });
       });
     }
   }
-  showToast(subject);
 }
 
 function sendTaskNotification(taskTitle, assignedTo) {
@@ -6398,7 +6397,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '35';
+const APP_VERSION = '36';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
