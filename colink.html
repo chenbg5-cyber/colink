@@ -2161,7 +2161,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v31</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v32</p>
     </div>
 
   </main>
@@ -4598,10 +4598,10 @@ function saveKid() {
       (appData.signatures || []).forEach(s => { if (s.child === oldName) s.child = name; });
       (appData.expenses || []).forEach(e => { if (e.forChild === oldName) e.forChild = name; });
     }
-    showToast('פרטי הילד/ה עודכנו');
+    showToast('פרטי הילד/ה עודכנו ✅');
   } else {
     appData.kids.push(kidData);
-    showToast('ילד/ה נוספ/ה בהצלחה');
+    showToast('ילד/ה נוספ/ה בהצלחה ✅');
   }
   saveData();
   renderKids();
@@ -4706,7 +4706,7 @@ function addTask() {
   document.getElementById('recurringMonthDayGroup').style.display = 'none';
   renderTasks();
   updateDashboard();
-  showToast('משימה נוספה בהצלחה ✅');
+  showToast(editId ? 'המשימה עודכנה ✅' : 'משימה נוספה בהצלחה ✅');
 }
 
 function changeTaskStatus(id, newStatus) {
@@ -4832,7 +4832,7 @@ function addEvent() {
       ev.forChild = forChild;
       ev.location = document.getElementById('eventLocation').value.trim();
       ev.notes = document.getElementById('eventNotes').value.trim();
-      showToast('האירוע עודכן');
+      showToast('האירוע עודכן ✅');
     }
   } else {
     appData.events.push({
@@ -4842,7 +4842,7 @@ function addEvent() {
       notes: document.getElementById('eventNotes').value.trim(),
       createdBy: getMyRole()
     });
-    showToast('אירוע נוסף בהצלחה');
+    showToast('אירוע נוסף בהצלחה ✅');
   }
 
   saveData();
@@ -5287,7 +5287,7 @@ function addExpense() {
   document.getElementById('invoiceFileName').textContent = '';
   renderExpenses();
   updateDashboard();
-  showToast('בקשת קיזוז נשלחה');
+  showToast('בקשת קיזוז נשלחה ✅');
   notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
 }
 
@@ -5916,7 +5916,7 @@ function saveActivity() {
   saveData();
   updateApp();
   closeModal('activityModal');
-  showToast(editId ? 'החוג עודכן' : 'החוג נוסף');
+  showToast(editId ? 'החוג עודכן ✅' : 'החוג נוסף ✅');
 }
 
 async function deleteActivity(id) {
@@ -6050,7 +6050,7 @@ function saveCamp() {
   renderCamps();
   updateDashboard();
   closeModal('campModal');
-  showToast(editId ? 'הקייטנה עודכנה' : 'הקייטנה נוספה');
+  showToast(editId ? 'הקייטנה עודכנה ✅' : 'הקייטנה נוספה ✅');
 }
 
 async function deleteCamp(id) {
@@ -6263,7 +6263,7 @@ function saveProfile() {
   appData.user.role = role;
   saveData();
   updateApp();
-  showToast('הפרופיל עודכן בהצלחה');
+  showToast('הפרופיל עודכן בהצלחה ✅');
 }
 
 // ============ UTILS ============
@@ -6387,7 +6387,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '31';
+const APP_VERSION = '32';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
