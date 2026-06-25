@@ -2161,7 +2161,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v32</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v33</p>
     </div>
 
   </main>
@@ -4598,17 +4598,16 @@ function saveKid() {
       (appData.signatures || []).forEach(s => { if (s.child === oldName) s.child = name; });
       (appData.expenses || []).forEach(e => { if (e.forChild === oldName) e.forChild = name; });
     }
-    showToast('פרטי הילד/ה עודכנו ✅');
   } else {
     appData.kids.push(kidData);
-    showToast('ילד/ה נוספ/ה בהצלחה ✅');
   }
   saveData();
+  closeModal('kidModal');
+  showToast(editIdx >= 0 ? 'פרטי הילד/ה עודכנו ✅' : 'ילד/ה נוספ/ה בהצלחה ✅');
   renderKids();
   populateKidSelects();
   updateDashboard();
   updateApp();
-  closeModal('kidModal');
 }
 
 async function deleteKid(idx) {
@@ -4689,6 +4688,7 @@ function addTask() {
 
   saveData();
   closeModal('taskModal');
+  showToast(editId ? 'המשימה עודכנה ✅' : 'משימה נוספה בהצלחה ✅');
   document.getElementById('taskEditId').value = '';
   document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
   document.getElementById('taskTitle').value = '';
@@ -4706,7 +4706,6 @@ function addTask() {
   document.getElementById('recurringMonthDayGroup').style.display = 'none';
   renderTasks();
   updateDashboard();
-  showToast(editId ? 'המשימה עודכנה ✅' : 'משימה נוספה בהצלחה ✅');
 }
 
 function changeTaskStatus(id, newStatus) {
@@ -4832,7 +4831,6 @@ function addEvent() {
       ev.forChild = forChild;
       ev.location = document.getElementById('eventLocation').value.trim();
       ev.notes = document.getElementById('eventNotes').value.trim();
-      showToast('האירוע עודכן ✅');
     }
   } else {
     appData.events.push({
@@ -4842,11 +4840,11 @@ function addEvent() {
       notes: document.getElementById('eventNotes').value.trim(),
       createdBy: getMyRole()
     });
-    showToast('אירוע נוסף בהצלחה ✅');
   }
 
   saveData();
   closeModal('eventModal');
+  showToast(editId ? 'האירוע עודכן ✅' : 'אירוע נוסף בהצלחה ✅');
   document.getElementById('eventEditId').value = '';
   document.getElementById('eventModalTitle').textContent = 'אירוע חדש';
   document.getElementById('eventTitle').value = '';
@@ -5277,6 +5275,7 @@ function addExpense() {
 
   saveData();
   closeModal('expenseModal');
+  showToast('בקשת קיזוז נשלחה ✅');
   document.getElementById('expenseDetails').value = '';
   document.getElementById('expenseAmount').value = '';
   document.getElementById('expenseDate').value = '';
@@ -5287,7 +5286,6 @@ function addExpense() {
   document.getElementById('invoiceFileName').textContent = '';
   renderExpenses();
   updateDashboard();
-  showToast('בקשת קיזוז נשלחה ✅');
   notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
 }
 
@@ -5914,9 +5912,9 @@ function saveActivity() {
   }
 
   saveData();
-  updateApp();
   closeModal('activityModal');
   showToast(editId ? 'החוג עודכן ✅' : 'החוג נוסף ✅');
+  updateApp();
 }
 
 async function deleteActivity(id) {
@@ -6047,10 +6045,10 @@ function saveCamp() {
   }
 
   saveData();
-  renderCamps();
-  updateDashboard();
   closeModal('campModal');
   showToast(editId ? 'הקייטנה עודכנה ✅' : 'הקייטנה נוספה ✅');
+  renderCamps();
+  updateDashboard();
 }
 
 async function deleteCamp(id) {
@@ -6387,7 +6385,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '32';
+const APP_VERSION = '33';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
