@@ -4057,14 +4057,16 @@ function updateDashboard() {
   } else {
     dashChecklist.innerHTML = myTodayTasks.map(t => {
       const isDone = t.status === 'done';
+      const lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
       const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.desc + '</div>' : '';
+      const stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + t.completedBy + '</span>' : '';
       return `
         <div class="list-item">
-          <div class="list-item-check ${isDone ? 'checked' : ''}" onclick="toggleTaskStatus(${t.id})">
+          <div class="list-item-check ${isDone ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + t.completedBy + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
             ${isDone ? '✓' : ''}
           </div>
           <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
-            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''}</div>
+            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''} ${stamp}</div>
             <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
             ${desc}
           </div>
@@ -4232,16 +4234,28 @@ function updateDashboard() {
 
 async function toggleTaskStatus(id) {
   const task = appData.tasks.find(t => t.id === id);
-  if (task) {
-    const wasPending = task.status !== 'done';
-    const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
-    if (!await colinkConfirm(msg)) return;
-    task.status = task.status === 'done' ? 'pending' : 'done';
-    saveData();
-    renderTasks();
-    updateDashboard();
-    if (wasPending) showConfetti();
+  if (!task) return;
+  const myRole = getMyRole();
+  const wasPending = task.status !== 'done';
+  if (!wasPending && task.completedBy && task.completedBy !== myRole) {
+    showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
+    return;
   }
+  const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
+  if (!await colinkConfirm(msg)) return;
+  if (wasPending) {
+    task.status = 'done';
+    task.completedBy = myRole;
+    task.completedAt = new Date().toISOString();
+  } else {
+    task.status = 'pending';
+    delete task.completedBy;
+    delete task.completedAt;
+  }
+  saveData();
+  renderTasks();
+  updateDashboard();
+  if (wasPending) showConfetti();
 }
 
 function getPriorityLabel(p) {
@@ -4724,7 +4738,22 @@ function addTask() {
 
 function changeTaskStatus(id, newStatus) {
   const task = appData.tasks.find(t => t.id === id);
-  if (task) { task.status = newStatus; saveData(); renderTasks(); updateDashboard(); }
+  if (!task) return;
+  const myRole = getMyRole();
+  if (task.completedBy && task.completedBy !== myRole && task.status === 'done') {
+    showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
+    renderTasks();
+    return;
+  }
+  if (newStatus === 'done') {
+    task.completedBy = myRole;
+    task.completedAt = new Date().toISOString();
+  } else {
+    delete task.completedBy;
+    delete task.completedAt;
+  }
+  task.status = newStatus;
+  saveData(); renderTasks(); updateDashboard();
 }
 
 async function deleteTask(id) {
@@ -4799,6 +4828,8 @@ function renderTasks() {
   container.innerHTML = tasks.map(t => {
     const isDone = t.status === 'done';
     const canEdit = t.responsibility === myRole || t.responsibility === 'משותפת';
+    const lockedByOther = isDone && t.completedBy && t.completedBy !== myRole;
+    const completedStamp = t.completedBy ? `<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ ${t.completedBy}</span>` : '';
     return `
       <div class="list-item">
         <div class="list-item-content">
@@ -4807,16 +4838,16 @@ function renderTasks() {
             ${getCategoryIcon(t.category)} ${t.category || ''} · ${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${formatDate(t.date)}
             ${t.recurring ? ' · ' + t.recurringFreq : ''}
           </div>
-          <div class="list-item-meta">${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span></div>
+          <div class="list-item-meta">${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}</div>
         </div>
         <div class="list-item-actions">
-          <select onchange="changeTaskStatus(${t.id}, this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;">
+          <select onchange="changeTaskStatus(${t.id}, this.value)" ${lockedByOther ? 'disabled' : ''} style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;${lockedByOther ? 'opacity:0.5;' : ''}">
             <option value="pending" ${t.status==='pending'?'selected':''}>ממתין</option>
             <option value="inprocess" ${t.status==='inprocess'?'selected':''}>בתהליך</option>
             <option value="done" ${t.status==='done'?'selected':''}>בוצע</option>
           </select>
-          ${canEdit ? `<button class="icon-btn" onclick="editTask(${t.id})" title="עריכה">✎</button>` : ''}
-          ${canEdit ? `<button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">✕</button>` : ''}
+          ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="editTask(${t.id})" title="עריכה">✎</button>` : ''}
+          ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">✕</button>` : ''}
         </div>
       </div>
     `;
@@ -6401,7 +6432,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '38';
+const APP_VERSION = '39';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
