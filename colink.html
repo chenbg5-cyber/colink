@@ -6394,20 +6394,23 @@ async function recoverData() {
     let recovered = false;
     let source = '';
 
-    // Ensure member doc exists before reading shared data
-    if (appData.familyCode) {
-      await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
-        role: appData.user.role || '',
-        name: appData.user.name || '',
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).catch(() => {});
-    }
-
-    // Source 1: personal user doc (custody fields)
+    // Source 1: personal user doc (familyCode, user, custody fields)
     const userSnap = await db.collection('users').doc(uid).get();
     if (userSnap && userSnap.exists && userSnap.data().appData) {
       const cloudPersonal = userSnap.data().appData;
+      if (cloudPersonal.familyCode) appData.familyCode = cloudPersonal.familyCode;
+      if (cloudPersonal.mode) appData.mode = cloudPersonal.mode;
+      if (cloudPersonal.user) appData.user = cloudPersonal.user;
       CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
+    }
+
+    // Ensure member doc exists before reading shared data (needs familyCode from source 1)
+    if (appData.familyCode) {
+      await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
+        role: appData.user.role || '',
+        name: appData.user.name || appData.user.firstName || currentFirebaseUser.displayName || '',
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(() => {});
     }
 
     // Source 2: family shared data doc
@@ -6482,7 +6485,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '45';
+const APP_VERSION = '46';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6506,7 +6509,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=45', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=46', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
