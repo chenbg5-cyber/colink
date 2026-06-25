@@ -2155,7 +2155,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v24</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v25</p>
     </div>
 
   </main>
@@ -2866,6 +2866,13 @@ async function onAuthSuccess() {
     }
     cacheBirthdayData();
     registerPeriodicSync();
+    if (appData.familyCode && currentFirebaseUser) {
+      db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
+        role: appData.user.role || '',
+        name: appData.user.name || appData.user.firstName || '',
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(() => {});
+    }
     listenToFamilyNotifications();
     listenToSharedData();
     initFCM();
@@ -6315,7 +6322,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '24';
+const APP_VERSION = '25';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6339,7 +6346,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=24', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=25', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
