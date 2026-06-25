@@ -4997,7 +4997,6 @@ function renderEvents() {
 // ============ CUSTODY ============
 function renderCustody() {
   const container = document.getElementById('custodyDisplay');
-  const canEdit = appData.mode === 'new';
   const weekdays = [
     {i:0, short:'א׳', full:'ראשון'},
     {i:1, short:'ב׳', full:'שני'},
@@ -5006,12 +5005,12 @@ function renderCustody() {
     {i:4, short:'ה׳', full:'חמישי'}
   ];
   const hint = document.getElementById('custodyEditHint');
-  if (hint) hint.textContent = canEdit ? 'לחצ/י על יום כדי לשנות' : 'רק ההורה שהקים את המשפחה יכול לערוך';
+  if (hint) hint.textContent = 'לחצ/י על יום כדי לשנות';
 
   container.innerHTML = weekdays.map(d => {
     const isMine = appData.custodyDays.includes(d.i);
     return `
-      <button class="custody-day ${isMine ? 'mine' : ''}" ${canEdit ? `onclick="toggleCustodyEdit(${d.i}, this)"` : 'disabled style="opacity:0.7;cursor:default;"'}>
+      <button class="custody-day ${isMine ? 'mine' : ''}" onclick="toggleCustodyEdit(${d.i}, this)">
         <div class="day-name">${d.short}</div>
         <div class="day-label">${d.full}</div>
       </button>
@@ -5037,7 +5036,6 @@ function toggleCustodyEdit(day, el) {
 
 function renderWeekendEditor() {
   const container = document.getElementById('custodyWeekendEditor');
-  const canEdit = appData.mode === 'new';
   const mode = appData.weekendMode || '';
   const weekdays = [
     {i:0, short:'א׳', full:'ראשון'},
@@ -5049,12 +5047,11 @@ function renderWeekendEditor() {
   const wDays = appData.weekendDays || [5, 6];
   const hasFri = wDays.includes(5);
   const hasSat = wDays.includes(6);
-  const dis = canEdit ? '' : 'disabled';
 
   let html = `
     <div class="form-group" style="max-width:250px;">
       <label>סוג סופ״ש</label>
-      <select id="editWeekendMode" onchange="updateWeekendMode(this.value)" ${dis} style="width:100%;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;${canEdit?'':'opacity:0.7;'}">
+      <select id="editWeekendMode" onchange="updateWeekendMode(this.value)" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;">
         <option value="" ${mode===''?'selected':''}>לא הוגדר</option>
         <option value="alternating" ${mode==='alternating'?'selected':''}>משתנה</option>
         <option value="fixed" ${mode==='fixed'?'selected':''}>קבוע</option>
@@ -5068,8 +5065,8 @@ function renderWeekendEditor() {
       <div style="margin-top:12px;">
         <label style="font-size:0.85rem;font-weight:500;">ימי סופ״ש</label>
         <div style="display:flex;gap:8px;margin-top:6px;">
-          <button class="btn btn-sm ${hasFri ? 'btn-primary' : 'btn-secondary'}" ${canEdit ? 'onclick="toggleWeekendDayEdit(5)"' : dis} style="min-width:60px;${canEdit?'':'opacity:0.7;cursor:default;'}">שישי</button>
-          <button class="btn btn-sm ${hasSat ? 'btn-primary' : 'btn-secondary'}" ${canEdit ? 'onclick="toggleWeekendDayEdit(6)"' : dis} style="min-width:60px;${canEdit?'':'opacity:0.7;cursor:default;'}">שבת</button>
+          <button class="btn btn-sm ${hasFri ? 'btn-primary' : 'btn-secondary'}" onclick="toggleWeekendDayEdit(5)" style="min-width:60px;">שישי</button>
+          <button class="btn btn-sm ${hasSat ? 'btn-primary' : 'btn-secondary'}" onclick="toggleWeekendDayEdit(6)" style="min-width:60px;">שבת</button>
         </div>
       </div>
     `;
@@ -5079,13 +5076,13 @@ function renderWeekendEditor() {
     html += `
       <div style="margin-top:12px;">
         <label style="font-size:0.85rem;font-weight:500;">תאריך שישי שהילדים אצלך</label>
-        <input type="date" id="editWeekendRef" value="${appData.weekendStartDate || ''}" ${canEdit ? 'onchange="updateWeekendRef(this.value)"' : dis} style="margin-top:6px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;${canEdit?'':'opacity:0.7;'}">
+        <input type="date" id="editWeekendRef" value="${appData.weekendStartDate || ''}" onchange="updateWeekendRef(this.value)" style="margin-top:6px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
       </div>
       <div style="margin-top:12px;">
         <label style="font-size:0.85rem;font-weight:500;">ימי חול שמתחלפים עם הסופ״ש</label>
         <p style="font-size:0.75rem;color:var(--text-light);margin:4px 0 8px;">מי שהילדים אצלו בסופ״ש, באותם ימים הם לא איתו</p>
         <div class="custody-week" style="grid-template-columns:repeat(5,1fr);max-width:350px;">
-          ${weekdays.map(d => `<button class="custody-day alt-day-edit ${(appData.alternatingDays||[]).includes(d.i)?'mine':''}" data-day="${d.i}" ${canEdit ? `onclick="toggleAltDayEdit(${d.i}, this)"` : `disabled style="opacity:0.7;cursor:default;"`}><div class="day-name">${d.short}</div><div class="day-label">${d.full}</div></button>`).join('')}
+          ${weekdays.map(d => `<button class="custody-day alt-day-edit ${(appData.alternatingDays||[]).includes(d.i)?'mine':''}" data-day="${d.i}" onclick="toggleAltDayEdit(${d.i}, this)"><div class="day-name">${d.short}</div><div class="day-label">${d.full}</div></button>`).join('')}
         </div>
       </div>
     `;
@@ -5097,8 +5094,8 @@ function renderWeekendEditor() {
       <div style="margin-top:12px;">
         <label style="font-size:0.85rem;font-weight:500;">הילדים בסופ״ש תמיד אצל</label>
         <div style="display:flex;gap:8px;margin-top:6px;">
-          <button class="btn btn-sm ${who==='me'?'btn-primary':'btn-secondary'}" ${canEdit ? `onclick="updateWeekendFixed('me')"` : dis} style="${canEdit?'':'opacity:0.7;cursor:default;'}">אצלי</button>
-          <button class="btn btn-sm ${who==='partner'?'btn-primary':'btn-secondary'}" ${canEdit ? `onclick="updateWeekendFixed('partner')"` : dis} style="${canEdit?'':'opacity:0.7;cursor:default;'}">אצל ההורה השני</button>
+          <button class="btn btn-sm ${who==='me'?'btn-primary':'btn-secondary'}" onclick="updateWeekendFixed('me')">אצלי</button>
+          <button class="btn btn-sm ${who==='partner'?'btn-primary':'btn-secondary'}" onclick="updateWeekendFixed('partner')">אצל ההורה השני</button>
         </div>
       </div>
     `;
@@ -6485,7 +6482,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '46';
+const APP_VERSION = '47';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6509,7 +6506,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=46', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=47', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
