@@ -2859,6 +2859,18 @@ async function onAuthSuccess() {
     }
   }
 
+  // Recover role from member doc if missing
+  if (!appData.user.role && appData.familyCode && currentFirebaseUser) {
+    try {
+      const memberSnap = await db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).get();
+      if (memberSnap.exists && memberSnap.data().role) {
+        appData.user.role = memberSnap.data().role;
+      }
+    } catch (e) {
+      console.warn('Member role recovery failed:', e);
+    }
+  }
+
   // Register member + load shared data in parallel
   if (appData.familyCode && currentFirebaseUser) {
     const memberPromise = Promise.all([
@@ -6468,7 +6480,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '43';
+const APP_VERSION = '44';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6492,7 +6504,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=43', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=44', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
