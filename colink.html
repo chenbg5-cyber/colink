@@ -2151,6 +2151,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v21</p>
     </div>
 
   </main>
@@ -2951,7 +2952,7 @@ function saveToCloud() {
   db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
     { ...shared, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
     { merge: true }
-  ).then(() => { setTimeout(() => { ignoringSnapshot = false; }, 1000); })
+  ).then(() => { setTimeout(() => { ignoringSnapshot = false; }, 3000); })
    .catch(err => { ignoringSnapshot = false; console.error('Shared save error:', err); });
 }
 
@@ -6290,7 +6291,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '20';
+const APP_VERSION = '21';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6314,7 +6315,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=21', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
