@@ -2169,7 +2169,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v34</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v35</p>
     </div>
 
   </main>
@@ -6273,8 +6273,8 @@ function saveProfile() {
   appData.user.role = role;
   appData.familyName = document.getElementById('profileFamilyName').value.trim();
   saveData();
-  updateApp();
   showToast('הפרופיל עודכן בהצלחה ✅');
+  updateApp();
 }
 
 // ============ UTILS ============
@@ -6398,7 +6398,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '34';
+const APP_VERSION = '35';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
