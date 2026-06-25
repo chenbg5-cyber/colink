@@ -2161,7 +2161,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v29</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v30</p>
     </div>
 
   </main>
@@ -5845,11 +5845,16 @@ function openActivityModal(id) {
       const childSel = document.getElementById('activityChild');
       childSel.value = act.child || '';
       if (!childSel.value && act.child) {
-        const opt = document.createElement('option');
-        opt.value = act.child;
-        opt.textContent = act.child;
-        childSel.appendChild(opt);
-        childSel.value = act.child;
+        const match = (appData.kids || []).find(k => act.child.includes(k.name) || k.name.includes(act.child));
+        if (match) {
+          childSel.value = match.name;
+        } else {
+          const opt = document.createElement('option');
+          opt.value = act.child;
+          opt.textContent = act.child;
+          childSel.appendChild(opt);
+          childSel.value = act.child;
+        }
       }
       document.getElementById('activityDay').value = act.day || '';
       document.getElementById('activityStartTime').value = act.startTime || '';
@@ -5869,8 +5874,12 @@ function saveActivity() {
   const name = document.getElementById('activityName').value.trim();
   const child = document.getElementById('activityChild').value;
   const day = document.getElementById('activityDay').value;
-  if (!name || !child || !day) {
-    showToast('נא למלא שם חוג, ילד/ה ויום');
+  const missing = [];
+  if (!name) missing.push('שם חוג');
+  if (!child) missing.push('ילד/ה');
+  if (!day) missing.push('יום');
+  if (missing.length) {
+    showToast('נא למלא: ' + missing.join(', '));
     return;
   }
 
@@ -6370,7 +6379,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '29';
+const APP_VERSION = '30';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
