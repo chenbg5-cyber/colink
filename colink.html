@@ -1853,8 +1853,11 @@
       <!-- Today assignments checklist -->
       <div class="card card-compact">
         <div class="card-compact-header">
-          <h3>המשימות שלי</h3>
-          <button class="btn btn-primary btn-sm" onclick="openNewTask()">+</button>
+          <h3 style="cursor:pointer;" onclick="showPage('assignments', document.querySelectorAll('.nav-item')[2])">המשימות שלי</h3>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary btn-sm" onclick="openNewTask()">+</button>
+            <button class="btn btn-primary btn-sm" onclick="showPage('assignments', document.querySelectorAll('.nav-item')[2])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
+          </div>
         </div>
         <div id="dashTodayChecklist"></div>
       </div>
@@ -1862,8 +1865,11 @@
       <!-- Upcoming events -->
       <div class="card card-compact">
         <div class="card-compact-header">
-          <h3>אירועים קרובים</h3>
-          <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+</button>
+          <h3 style="cursor:pointer;" onclick="showPage('events', document.querySelectorAll('.nav-item')[3])">אירועים קרובים</h3>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+</button>
+            <button class="btn btn-primary btn-sm" onclick="showPage('events', document.querySelectorAll('.nav-item')[3])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
+          </div>
         </div>
         <div id="dashEvents"></div>
       </div>
@@ -2155,7 +2161,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v28</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v29</p>
     </div>
 
   </main>
@@ -4060,11 +4066,12 @@ function updateDashboard() {
     dashEvents.innerHTML = '<div class="empty-state"><p>אין אירועים החודש</p></div>';
   } else {
     dashEvents.innerHTML = monthEvents.map(e => `
-      <div class="list-item">
+      <div class="list-item" style="cursor:pointer;" onclick="showPage('events', document.querySelectorAll('.nav-item')[3])">
         <div class="list-item-content">
           <div class="list-item-title">${e.title}</div>
           <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
         </div>
+        <span style="color:var(--text-light);font-size:1rem;">←</span>
       </div>
     `).join('');
   }
@@ -4135,11 +4142,12 @@ function updateDashboard() {
     actContainer.innerHTML = sortedActs.map(a => {
       const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
       return `
-        <div class="list-item" style="padding:8px 10px;">
+        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">
           <div class="list-item-content">
             <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
             <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
           </div>
+          <span style="color:var(--text-light);font-size:1rem;">←</span>
         </div>`;
     }).join('');
   }
@@ -4167,12 +4175,13 @@ function updateDashboard() {
       const started = from <= todayCamp && to >= todayCamp;
       const statusLabel = ended ? 'הסתיימה' : started ? '● פעילה' : 'מתחילה ' + fromStr;
       return `
-        <div class="list-item" style="padding:8px 10px;${ended ? 'opacity:0.5;' : ''}">
+        <div class="list-item" style="padding:8px 10px;cursor:pointer;${ended ? 'opacity:0.5;' : ''}" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])">
           <div class="list-item-content">
             <div class="list-item-title" style="font-size:0.88rem;">${c.name} · ${c.child}</div>
             <div class="list-item-meta">${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''} · ${statusLabel}</div>
             ${c.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
           </div>
+          <span style="color:var(--text-light);font-size:1rem;">←</span>
         </div>`;
     }).join('');
   }
@@ -6361,7 +6370,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '28';
+const APP_VERSION = '29';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
