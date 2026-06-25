@@ -2108,25 +2108,29 @@
         <div class="form-row">
           <div class="form-group">
             <label>שם פרטי</label>
-            <input type="text" id="profileFirstName" readonly>
+            <input type="text" id="profileFirstName">
           </div>
           <div class="form-group">
             <label>שם משפחה</label>
-            <input type="text" id="profileLastName" readonly>
+            <input type="text" id="profileLastName">
           </div>
         </div>
         <div class="form-group">
           <label>אימייל</label>
-          <input type="email" id="profileEmail" readonly dir="ltr">
+          <input type="email" id="profileEmail" dir="ltr" readonly style="opacity:0.6;">
         </div>
         <div class="form-group">
           <label>טלפון</label>
-          <input type="tel" id="profilePhone" readonly dir="ltr">
+          <input type="tel" id="profilePhone" dir="ltr">
         </div>
         <div class="form-group">
           <label>תפקיד</label>
-          <input type="text" id="profileRole" readonly>
+          <select id="profileRole">
+            <option value="אמא">אמא</option>
+            <option value="אבא">אבא</option>
+          </select>
         </div>
+        <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:12px;width:100%;">שמירת שינויים</button>
       </div>
       <div class="card">
         <h3>קוד משפחה</h3>
@@ -2151,7 +2155,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v21</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v22</p>
     </div>
 
   </main>
@@ -6170,6 +6174,22 @@ function renderProfile() {
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
 }
 
+function saveProfile() {
+  const firstName = document.getElementById('profileFirstName').value.trim();
+  const lastName = document.getElementById('profileLastName').value.trim();
+  const phone = document.getElementById('profilePhone').value.trim();
+  const role = document.getElementById('profileRole').value;
+  if (!firstName) { showToast('נא למלא שם פרטי'); return; }
+  appData.user.firstName = firstName;
+  appData.user.lastName = lastName;
+  appData.user.name = firstName + (lastName ? ' ' + lastName : '');
+  appData.user.phone = phone;
+  appData.user.role = role;
+  saveData();
+  updateApp();
+  showToast('הפרופיל עודכן בהצלחה');
+}
+
 // ============ UTILS ============
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -6291,7 +6311,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '21';
+const APP_VERSION = '22';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6315,7 +6335,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=21', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=22', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
