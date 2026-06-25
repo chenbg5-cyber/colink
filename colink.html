@@ -2155,7 +2155,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v23</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v24</p>
     </div>
 
   </main>
@@ -2939,13 +2939,11 @@ let ignoringSnapshot = false;
 let lastSaveTime = 0;
 
 function saveToCloud() {
-  if (!currentFirebaseUser) return;
-  if (!appData.user) return;
-  const userName = appData.user.name || appData.user.firstName || '';
-  if (!userName) return;
+  if (!currentFirebaseUser) { console.warn('saveToCloud: no user'); return; }
+  if (!appData.user) { console.warn('saveToCloud: no appData.user'); return; }
   const personalData = { mode: appData.mode, familyCode: appData.familyCode, user: appData.user };
-  db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => console.error('User save error:', err));
-  if (!appData.familyCode) return;
+  db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
+  if (!appData.familyCode) { console.warn('saveToCloud: no familyCode'); return; }
   const shared = {};
   SHARED_FIELDS.forEach(f => { if (appData[f] !== undefined) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
   if (shared.signatures) {
@@ -2961,8 +2959,8 @@ function saveToCloud() {
   db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
     { ...shared, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
     { merge: true }
-  ).then(() => { setTimeout(() => { ignoringSnapshot = false; }, 3000); })
-   .catch(err => { ignoringSnapshot = false; console.error('Shared save error:', err); });
+  ).then(() => { console.log('Cloud save OK'); setTimeout(() => { ignoringSnapshot = false; }, 3000); })
+   .catch(err => { ignoringSnapshot = false; showToast('שגיאת ענן: ' + err.message); });
 }
 
 function listenToSharedData() {
@@ -6317,7 +6315,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '23';
+const APP_VERSION = '24';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6341,7 +6339,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=23', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=24', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
