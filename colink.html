@@ -2155,7 +2155,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v27</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v28</p>
     </div>
 
   </main>
@@ -3092,6 +3092,28 @@ function migrateData() {
   if (!appData.weekendFixedWith) appData.weekendFixedWith = '';
   if (!appData.weekendDays || !appData.weekendDays.length) appData.weekendDays = [5, 6];
   if (!appData.alternatingDays) appData.alternatingDays = [];
+
+  // Repair orphaned child names in activities/tasks/events/camps
+  const kidNames = appData.kids.map(k => k.name);
+  if (kidNames.length > 0) {
+    ['activities','camps'].forEach(col => {
+      (appData[col] || []).forEach(item => {
+        if (item.child && !kidNames.includes(item.child)) {
+          const match = kidNames.find(n => item.child.includes(n) || n.includes(item.child));
+          if (match) item.child = match;
+        }
+      });
+    });
+    ['tasks','events','expenses'].forEach(col => {
+      (appData[col] || []).forEach(item => {
+        if (item.forChild && !kidNames.includes(item.forChild)) {
+          const match = kidNames.find(n => item.forChild.includes(n) || n.includes(item.forChild));
+          if (match) item.forChild = match;
+        }
+      });
+    });
+  }
+
   saveData();
 }
 
@@ -5811,7 +5833,15 @@ function openActivityModal(id) {
     const act = (appData.activities || []).find(a => a.id === id);
     if (act) {
       document.getElementById('activityName').value = act.name || '';
-      document.getElementById('activityChild').value = act.child || '';
+      const childSel = document.getElementById('activityChild');
+      childSel.value = act.child || '';
+      if (!childSel.value && act.child) {
+        const opt = document.createElement('option');
+        opt.value = act.child;
+        opt.textContent = act.child;
+        childSel.appendChild(opt);
+        childSel.value = act.child;
+      }
       document.getElementById('activityDay').value = act.day || '';
       document.getElementById('activityStartTime').value = act.startTime || '';
       document.getElementById('activityEndTime').value = act.endTime || '';
@@ -6331,7 +6361,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '27';
+const APP_VERSION = '28';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
