@@ -2865,6 +2865,7 @@ async function onAuthSuccess() {
       console.warn('Shared data read failed:', e);
     }
 
+    const localPhotos = (localData && localData.kids || []).reduce((m, k) => { if (k.photo) m[k.name] = k.photo; return m; }, {});
     let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
@@ -2882,6 +2883,9 @@ async function onAuthSuccess() {
         SHARED_FIELDS.forEach(f => { if (source[f] !== undefined) appData[f] = source[f]; });
         saveData();
       }
+    }
+    if (appData.kids) {
+      appData.kids.forEach(k => { if (!k.photo && localPhotos[k.name]) k.photo = localPhotos[k.name]; });
     }
   } else if (localData) {
     SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
@@ -2988,6 +2992,13 @@ function saveToCloud() {
       return copy;
     });
   }
+  if (shared.kids) {
+    shared.kids = shared.kids.map(k => {
+      const copy = {...k};
+      delete copy.photo;
+      return copy;
+    });
+  }
   ignoringSnapshot = true;
   lastSaveTime = Date.now();
   db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
@@ -3006,6 +3017,7 @@ function listenToSharedData() {
       if (Date.now() - lastSaveTime < 5000) return;
       if (!snap.exists) return;
       const shared = snap.data();
+      const localPhotos = (appData.kids || []).reduce((m, k) => { if (k.photo) m[k.name] = k.photo; return m; }, {});
       let changed = false;
       SHARED_FIELDS.forEach(f => {
         if (shared[f] !== undefined) {
@@ -3013,6 +3025,9 @@ function listenToSharedData() {
           changed = true;
         }
       });
+      if (changed && appData.kids) {
+        appData.kids.forEach(k => { if (!k.photo && localPhotos[k.name]) k.photo = localPhotos[k.name]; });
+      }
       if (changed) {
         localStorage.setItem('colink_data', JSON.stringify(appData));
         if (document.getElementById('appContainer').classList.contains('active')) {
@@ -6355,7 +6370,23 @@ async function recoverData() {
     let recovered = false;
     let source = '';
 
-    // Source 1: family shared data doc
+    // Ensure member doc exists before reading shared data
+    if (appData.familyCode) {
+      await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
+        role: appData.user.role || '',
+        name: appData.user.name || '',
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(() => {});
+    }
+
+    // Source 1: personal user doc (custody fields)
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (userSnap && userSnap.exists && userSnap.data().appData) {
+      const cloudPersonal = userSnap.data().appData;
+      CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
+    }
+
+    // Source 2: family shared data doc
     if (appData.familyCode) {
       const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
       if (sharedSnap.exists) {
@@ -6365,34 +6396,29 @@ async function recoverData() {
         if (hasTasks || hasKids) {
           SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
           recovered = true;
-          source = 'shared doc';
+          source = 'ענן';
         }
       }
     }
 
-    // Source 2: old user doc (may still have shared data in appData)
-    if (!recovered) {
-      const userSnap = await db.collection('users').doc(uid).get();
-      if (userSnap.exists) {
-        const cloudData = userSnap.data().appData;
-        if (cloudData) {
-          const hasTasks = cloudData.tasks && cloudData.tasks.length > 0;
-          const hasKids = cloudData.kids && cloudData.kids.length > 0;
-          if (hasTasks || hasKids) {
-            SHARED_FIELDS.forEach(f => { if (cloudData[f] !== undefined) appData[f] = cloudData[f]; });
-            appData.mode = cloudData.mode || appData.mode;
-            appData.familyCode = cloudData.familyCode || appData.familyCode;
-            appData.user = cloudData.user || appData.user;
-            recovered = true;
-            source = 'user doc';
-          } else {
-            source = 'user doc ריק — מפתחות: ' + Object.keys(cloudData).join(',');
-          }
+    // Source 3: old user doc (may still have shared data in appData)
+    if (!recovered && userSnap && userSnap.exists) {
+      const cloudData = userSnap.data().appData;
+      if (cloudData) {
+        const hasTasks = cloudData.tasks && cloudData.tasks.length > 0;
+        const hasKids = cloudData.kids && cloudData.kids.length > 0;
+        if (hasTasks || hasKids) {
+          SHARED_FIELDS.forEach(f => { if (cloudData[f] !== undefined) appData[f] = cloudData[f]; });
+          appData.mode = cloudData.mode || appData.mode;
+          appData.familyCode = cloudData.familyCode || appData.familyCode;
+          appData.user = cloudData.user || appData.user;
+          recovered = true;
+          source = 'גיבוי אישי';
         }
       }
     }
 
-    // Source 3: localStorage
+    // Source 4: localStorage
     if (!recovered) {
       const localRaw = localStorage.getItem('colink_data');
       if (localRaw) {
@@ -6402,7 +6428,7 @@ async function recoverData() {
         if (hasTasks || hasKids) {
           SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
           recovered = true;
-          source = 'localStorage';
+          source = 'מקומי';
         }
       }
     }
@@ -6410,9 +6436,9 @@ async function recoverData() {
     if (recovered) {
       saveData();
       updateApp();
-      showToast('שוחזר מ-' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים');
+      showToast('שוחזר מ' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
     } else {
-      showToast('לא נמצאו נתונים לשחזור. ' + source);
+      showToast('לא נמצאו נתונים לשחזור');
     }
   } catch (e) {
     showToast('שגיאה: ' + e.message);
@@ -6432,7 +6458,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '39';
+const APP_VERSION = '40';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
