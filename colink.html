@@ -1594,6 +1594,10 @@
           <option value="אפוטרופוס">אפוטרופוס</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>שם משפחת הילדים <span class="required">*</span></label>
+        <input type="text" id="obFamilyName" placeholder="שם המשפחה המשותף לילדים">
+      </div>
       <div class="form-group" id="obPartnerEmailGroup">
         <label>אימייל ההורה השני <span class="required">*</span></label>
         <input type="email" id="obPartnerEmail" placeholder="email@example.com" dir="ltr">
@@ -2130,6 +2134,10 @@
           <input type="tel" id="profilePhone" dir="ltr">
         </div>
         <div class="form-group">
+          <label>שם משפחת הילדים</label>
+          <input type="text" id="profileFamilyName" placeholder="שם המשפחה המשותף לילדים">
+        </div>
+        <div class="form-group">
           <label>תפקיד</label>
           <select id="profileRole">
             <option value="אמא">אמא</option>
@@ -2161,7 +2169,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v33</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v34</p>
     </div>
 
   </main>
@@ -2954,7 +2962,7 @@ async function initFCM() {
   }
 }
 
-const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','campReminders'];
+const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','campReminders','familyName'];
 let sharedDataListener = null;
 let ignoringSnapshot = false;
 
@@ -3014,6 +3022,7 @@ function listenToSharedData() {
 let appData = {
   mode: '',
   familyCode: '',
+  familyName: '',
   user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
   custodyDays: [],
   weekendMode: '',
@@ -3212,11 +3221,12 @@ async function obNext(fromStep) {
   if (fromStep === 2) {
     const firstName = document.getElementById('obFirstName').value.trim();
     const lastName = document.getElementById('obLastName').value.trim();
+    const familyName = document.getElementById('obFamilyName').value.trim();
     const email = document.getElementById('obEmail').value.trim();
     const phone = document.getElementById('obPhone').value.trim();
     const role = document.getElementById('obRole').value;
 
-    if (!firstName || !lastName || !email || !phone || !role) {
+    if (!firstName || !lastName || !familyName || !email || !phone || !role) {
       showToast('נא למלא את כל השדות הנדרשים');
       return;
     }
@@ -3231,6 +3241,7 @@ async function obNext(fromStep) {
     appData.user.email = email;
     appData.user.phone = phone;
     appData.user.role = role;
+    appData.familyName = familyName;
 
     if (appData.mode === 'new') {
       const partnerEmail = document.getElementById('obPartnerEmail').value.trim();
@@ -3716,7 +3727,7 @@ function updateSidebar() {
   const dateStr = `יום ${dayName}, ${now.getDate()} ${HEB_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('sidebarDate').textContent = dateStr;
 
-  const familyName = appData.user.lastName || appData.user.name.split(' ').pop();
+  const familyName = appData.familyName || appData.user.lastName || appData.user.name.split(' ').pop();
   document.getElementById('sidebarFamily').textContent = `משפחת ${familyName}`;
 }
 
@@ -6244,6 +6255,7 @@ function renderProfile() {
   document.getElementById('profileLastName').value = appData.user.lastName || (appData.user.name ? appData.user.name.split(' ').slice(1).join(' ') : '');
   document.getElementById('profileEmail').value = appData.user.email;
   document.getElementById('profilePhone').value = appData.user.phone;
+  document.getElementById('profileFamilyName').value = appData.familyName || '';
   document.getElementById('profileRole').value = appData.user.role;
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
 }
@@ -6259,6 +6271,7 @@ function saveProfile() {
   appData.user.name = firstName + (lastName ? ' ' + lastName : '');
   appData.user.phone = phone;
   appData.user.role = role;
+  appData.familyName = document.getElementById('profileFamilyName').value.trim();
   saveData();
   updateApp();
   showToast('הפרופיל עודכן בהצלחה ✅');
@@ -6385,7 +6398,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '33';
+const APP_VERSION = '34';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);

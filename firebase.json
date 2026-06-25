@@ -1,4 +1,23 @@
 {
+  "hosting": {
+    "site": "colink-app",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "functions/**",
+      "node_modules/**",
+      ".claude/**",
+      ".git/**",
+      "*.ps1"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/colink.html"
+      }
+    ]
+  },
   "functions": {
     "source": "functions"
   },
