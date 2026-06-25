@@ -2161,7 +2161,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v30</p>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v31</p>
     </div>
 
   </main>
@@ -3699,7 +3699,9 @@ function updateApp() {
   renderSignatures();
   populateSigChildSelect();
   renderActivities();
-  populateActivityChildSelect();
+  if (!document.getElementById('activityModal').classList.contains('active')) {
+    populateActivityChildSelect();
+  }
   renderCamps();
   renderHolidays();
   renderCalendar();
@@ -5379,8 +5381,10 @@ let sigPadDrawing = false;
 function populateSigChildSelect() {
   const el = document.getElementById('sigForChild');
   if (!el) return;
+  const prev = el.value;
   el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
     appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+  if (prev) el.value = prev;
 }
 
 function initSigPad() {
@@ -5817,9 +5821,11 @@ function getActivityCustodyParent(dayName) {
 function populateActivityChildSelect() {
   const sel = document.getElementById('activityChild');
   if (!sel) return;
+  const prev = sel.value;
   sel.innerHTML = '<option value="">בחר ילד/ה</option>' +
     (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('') +
     '<option value="כל הילדים">כל הילדים</option>';
+  if (prev) sel.value = prev;
 }
 
 function openActivityModal(id) {
@@ -5965,8 +5971,10 @@ function renderActivities() {
 // ============ CAMPS ============
 function populateCampChildSelect() {
   const sel = document.getElementById('campChild');
+  const prev = sel.value;
   sel.innerHTML = '<option value="">בחרי...</option>' +
     (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+  if (prev) sel.value = prev;
 }
 
 function openCampModal(id) {
@@ -6379,7 +6387,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '30';
+const APP_VERSION = '31';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
