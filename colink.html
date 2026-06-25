@@ -2169,7 +2169,7 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;">גרסה v35</p>
+      <p id="versionDisplay" style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;"></p>
     </div>
 
   </main>
@@ -3740,6 +3740,8 @@ function filterEvents(filter, btn) {
 }
 
 function updateApp() {
+  const vd = document.getElementById('versionDisplay');
+  if (vd) vd.textContent = 'גרסה v' + APP_VERSION;
   populateKidSelects();
   updateSidebar();
   updateDashboard();
@@ -6480,7 +6482,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '44';
+const APP_VERSION = '45';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6504,7 +6506,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=44', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=45', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
