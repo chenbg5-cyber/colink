@@ -2814,6 +2814,15 @@ async function onAuthSuccess() {
   const localSaved = localStorage.getItem('colink_data');
   const localData = localSaved ? JSON.parse(localSaved) : null;
 
+  // Show app immediately from local data while cloud loads
+  if (localData && localData.user && localData.user.name) {
+    Object.assign(appData, localData);
+    migrateData();
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('appContainer').classList.add('active');
+    updateApp();
+  }
+
   // Load personal data from user doc
   let userSnap = null;
   try {
@@ -2829,7 +2838,6 @@ async function onAuthSuccess() {
     appData.familyCode = cloudPersonal.familyCode || (localData ? localData.familyCode : '');
     appData.user = cloudPersonal.user || (localData ? localData.user : appData.user);
     CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
-    // Keep old cloud data for migration
     if (cloudPersonal.tasks || cloudPersonal.kids || cloudPersonal.events) {
       oldCloudData = cloudPersonal;
     }
@@ -2840,24 +2848,18 @@ async function onAuthSuccess() {
     CUSTODY_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
 
-  // Ensure member doc exists before accessing shared data
+  // Register member + load shared data in parallel
   if (appData.familyCode && currentFirebaseUser) {
-    try {
-      await db.collection('families').doc(appData.familyCode).set({
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      await db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
-        role: appData.user.role || '',
-        name: appData.user.name || appData.user.firstName || '',
+    const memberPromise = Promise.all([
+      db.collection('families').doc(appData.familyCode).set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }),
+      db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
+        role: appData.user.role || '', name: appData.user.name || appData.user.firstName || '',
         joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    } catch (e) {
-      console.warn('Member registration failed:', e);
-    }
-  }
+      }, { merge: true })
+    ]).catch(e => console.warn('Member registration failed:', e));
 
-  // Load shared data from family collection
-  if (appData.familyCode) {
+    await memberPromise;
+
     let sharedSnap = null;
     try {
       sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
@@ -2869,10 +2871,7 @@ async function onAuthSuccess() {
     let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
-      const hasTasks = shared.tasks && shared.tasks.length > 0;
-      const hasKids = shared.kids && shared.kids.length > 0;
-      const hasEvents = shared.events && shared.events.length > 0;
-      sharedHasData = hasTasks || hasKids || hasEvents;
+      sharedHasData = (shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0);
       if (sharedHasData) {
         SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
       }
@@ -6458,7 +6457,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '41';
+const APP_VERSION = '42';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6482,7 +6481,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=41', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=42', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
