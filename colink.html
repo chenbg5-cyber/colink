@@ -2156,12 +2156,14 @@
         </div>
       </div>
       <div class="card" style="border:1px solid #f59e0b44;">
+        <h3 style="color:#f59e0b;">שחזור נתונים</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
           <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
         </div>
       </div>
       <div class="card" style="border:1px solid #e74c3c22;">
+        <h3 style="color:#e74c3c;">אזור מסוכן</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
@@ -6510,7 +6512,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '50';
+const APP_VERSION = '51';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6534,7 +6536,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=50', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=51', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
