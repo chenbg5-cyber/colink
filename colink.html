@@ -3415,8 +3415,19 @@ async function leaveFamily() {
   showToast('עזבת את המשפחה בהצלחה');
 }
 
-function copyFamilyCode() {
-  const code = appData.familyCode || document.getElementById('profileFamilyCode').textContent.trim();
+async function copyFamilyCode() {
+  let code = appData.familyCode || document.getElementById('profileFamilyCode').textContent.trim();
+  if (!code && currentFirebaseUser) {
+    try {
+      const snap = await db.collection('users').doc(currentFirebaseUser.uid).get();
+      if (snap.exists && snap.data().appData && snap.data().appData.familyCode) {
+        code = snap.data().appData.familyCode;
+        appData.familyCode = code;
+        localStorage.setItem('colink_data', JSON.stringify(appData));
+        document.getElementById('profileFamilyCode').textContent = code;
+      }
+    } catch (e) {}
+  }
   if (!code) { showToast('אין קוד משפחה'); return; }
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).then(() => showToast('הקוד הועתק: ' + code)).catch(() => fallbackCopy(code));
@@ -6552,7 +6563,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '55';
+const APP_VERSION = '56';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6576,7 +6587,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=55', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=56', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
