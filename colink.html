@@ -3742,7 +3742,9 @@ function populateKidSelects() {
 function toggleRecurring() {
   const checked = document.getElementById('taskRecurring').checked;
   document.getElementById('recurringFreqGroup').style.display = checked ? 'block' : 'none';
-  document.getElementById('taskDateRequired').style.display = checked ? 'none' : '';
+  const dateGroup = document.getElementById('taskDate').closest('.form-group');
+  if (dateGroup) dateGroup.style.display = checked ? 'none' : 'block';
+  if (checked) document.getElementById('taskDate').value = '';
   if (!checked) {
     document.getElementById('recurringDaysGroup').style.display = 'none';
     document.getElementById('recurringEveryGroup').style.display = 'none';
@@ -4774,7 +4776,7 @@ function addTask() {
     const task = appData.tasks.find(t => t.id === parseInt(editId));
     if (task) {
       task.title = title; task.desc = desc; task.responsibility = res;
-      task.forChild = forChild; task.priority = priority; task.date = date;
+      task.forChild = forChild; task.priority = priority; task.date = recurring ? '' : date;
       task.category = category; task.status = status;
       task.recurring = recurring; task.recurringFreq = recurring ? recurringDetail : '';
     }
@@ -4783,7 +4785,7 @@ function addTask() {
     children.forEach((child, i) => {
       appData.tasks.push({
         id: Date.now() + i,
-        title, desc, responsibility: res, forChild: child, priority, date, category, status,
+        title, desc, responsibility: res, forChild: child, priority, date: recurring ? '' : date, category, status,
         recurring, recurringFreq: recurring ? recurringDetail : '',
         createdAt: new Date().toISOString()
       });
@@ -4853,8 +4855,7 @@ function openNewTask() {
   document.getElementById('taskRecurring').checked = false;
   const freqEl = document.getElementById('taskRecurringFreq');
   if (freqEl) freqEl.value = '';
-  const freqGroup = document.getElementById('recurringFreqGroup');
-  if (freqGroup) freqGroup.style.display = 'none';
+  toggleRecurring();
   openModal('taskModal');
 }
 
@@ -6526,7 +6527,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '53';
+const APP_VERSION = '54';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6550,7 +6551,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=53', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=54', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
