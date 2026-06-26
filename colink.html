@@ -2913,14 +2913,22 @@ async function onAuthSuccess() {
         SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
         if (appData.tasks) {
           let merged = false;
-          appData.tasks.forEach(t => {
+          appData.tasks = appData.tasks.map(t => {
             const loc = localTasks[t.id];
-            if (loc && loc.status === 'done' && t.status !== 'done' && loc.completedAt) {
-              t.status = 'done';
-              t.completedBy = loc.completedBy;
-              t.completedAt = loc.completedAt;
+            if (!loc) return t;
+            if (loc.updatedAt && (!t.updatedAt || loc.updatedAt > t.updatedAt)) {
               merged = true;
+              return loc;
             }
+            if (loc.status === 'done' && t.status !== 'done' && loc.completedAt) {
+              merged = true;
+              return Object.assign({}, t, { status: 'done', completedBy: loc.completedBy, completedAt: loc.completedAt });
+            }
+            return t;
+          });
+          const cloudIds = new Set(appData.tasks.map(t => t.id));
+          Object.values(localTasks).forEach(loc => {
+            if (!cloudIds.has(loc.id)) { appData.tasks.push(loc); merged = true; }
           });
           if (merged) saveData();
         }
@@ -4367,10 +4375,12 @@ async function toggleTaskStatus(id) {
     task.status = 'done';
     task.completedBy = myRole;
     task.completedAt = new Date().toISOString();
+    task.updatedAt = task.completedAt;
   } else {
     task.status = 'pending';
     delete task.completedBy;
     delete task.completedAt;
+    task.updatedAt = new Date().toISOString();
   }
   saveData();
   renderTasks();
@@ -4820,6 +4830,7 @@ function addTask() {
       task.forChild = forChild; task.priority = priority; task.date = recurring ? '' : date;
       task.category = category; task.status = status;
       task.recurring = recurring; task.recurringFreq = recurring ? recurringDetail : '';
+      task.updatedAt = new Date().toISOString();
     }
   } else {
     const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
@@ -6593,7 +6604,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '58';
+const APP_VERSION = '59';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6617,7 +6628,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=58', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=59', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
