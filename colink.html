@@ -3416,7 +3416,7 @@ async function leaveFamily() {
 }
 
 function copyFamilyCode() {
-  const code = appData.familyCode;
+  const code = appData.familyCode || document.getElementById('profileFamilyCode').textContent.trim();
   if (!code) { showToast('אין קוד משפחה'); return; }
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).then(() => showToast('הקוד הועתק: ' + code)).catch(() => fallbackCopy(code));
@@ -4874,6 +4874,31 @@ function editTask(id) {
   document.getElementById('taskStatus').value = t.status || 'pending';
   document.getElementById('taskRecurring').checked = !!t.recurring;
   toggleRecurring();
+  if (t.recurring && t.recurringFreq) {
+    const rf = t.recurringFreq;
+    let baseFreq = '';
+    if (rf === 'יומי') baseFreq = 'יומי';
+    else if (rf.startsWith('שבועי')) baseFreq = 'שבועי';
+    else if (rf.startsWith('חודשי')) baseFreq = 'חודשי';
+    else if (/כל \d+ ימים/.test(rf)) baseFreq = 'כל X ימים';
+    else if (/כל \d+ שבועות/.test(rf)) baseFreq = 'כל X שבועות';
+    else if (/כל \d+ חודשים/.test(rf)) baseFreq = 'כל X חודשים';
+    document.getElementById('taskRecurringFreq').value = baseFreq;
+    toggleRecurringDetails();
+    if (baseFreq === 'שבועי' && rf.includes('·')) {
+      const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+      const selected = rf.split('·')[1].trim().split(',').map(d => d.trim());
+      document.querySelectorAll('.recurring-day-cb').forEach(cb => {
+        cb.checked = selected.includes(dayNames[parseInt(cb.value)]);
+      });
+    } else if (baseFreq === 'חודשי' && rf.includes('·')) {
+      const m = rf.match(/יום (\d+)/);
+      if (m) document.getElementById('recurringMonthDay').value = m[1];
+    } else if (baseFreq.startsWith('כל X')) {
+      const m = rf.match(/\d+/);
+      if (m) document.getElementById('recurringEveryN').value = m[0];
+    }
+  }
   openModal('taskModal');
 }
 
@@ -6527,7 +6552,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '54';
+const APP_VERSION = '55';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6551,7 +6576,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=54', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=55', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
