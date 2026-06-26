@@ -2846,6 +2846,21 @@ async function onAuthSuccess() {
     CUSTODY_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
 
+  // Recover familyCode by searching member docs if missing
+  if (!appData.familyCode && currentFirebaseUser) {
+    try {
+      const familiesSnap = await db.collection('families').get();
+      for (const famDoc of familiesSnap.docs) {
+        const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(currentFirebaseUser.uid).get();
+        if (memSnap.exists) {
+          appData.familyCode = famDoc.id;
+          if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
+          break;
+        }
+      }
+    } catch (e) { console.warn('Family code recovery failed:', e); }
+  }
+
   // Fallback: use Firebase auth profile if user data is still empty
   if (!appData.user.name && currentFirebaseUser) {
     appData.user.name = currentFirebaseUser.displayName || '';
@@ -2998,7 +3013,8 @@ let lastSaveTime = 0;
 function saveToCloud() {
   if (!currentFirebaseUser) { console.warn('saveToCloud: no user'); return; }
   if (!appData.user) { console.warn('saveToCloud: no appData.user'); return; }
-  const personalData = { mode: appData.mode, familyCode: appData.familyCode, user: appData.user };
+  const personalData = { mode: appData.mode, user: appData.user };
+  if (appData.familyCode) personalData.familyCode = appData.familyCode;
   CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) personalData[f] = appData[f]; });
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
   if (!appData.familyCode) { console.warn('saveToCloud: no familyCode'); return; }
@@ -6563,7 +6579,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '56';
+const APP_VERSION = '57';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6587,7 +6603,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=56', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=57', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
