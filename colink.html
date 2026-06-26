@@ -2904,12 +2904,26 @@ async function onAuthSuccess() {
     }
 
     const localPhotos = (localData && localData.kids || []).reduce((m, k) => { if (k.photo) m[k.name] = k.photo; return m; }, {});
+    const localTasks = (appData.tasks || []).reduce((m, t) => { m[t.id] = t; return m; }, {});
     let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
       sharedHasData = (shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0);
       if (sharedHasData) {
         SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+        if (appData.tasks) {
+          let merged = false;
+          appData.tasks.forEach(t => {
+            const loc = localTasks[t.id];
+            if (loc && loc.status === 'done' && t.status !== 'done' && loc.completedAt) {
+              t.status = 'done';
+              t.completedBy = loc.completedBy;
+              t.completedAt = loc.completedAt;
+              merged = true;
+            }
+          });
+          if (merged) saveData();
+        }
       }
     }
     if (!sharedHasData) {
@@ -6579,7 +6593,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '57';
+const APP_VERSION = '58';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6603,7 +6617,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=57', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=58', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
