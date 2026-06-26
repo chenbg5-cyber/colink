@@ -5030,6 +5030,7 @@ function toggleCustodyEdit(day, el) {
     if (!appData.custodyDays.includes(day)) appData.custodyDays.push(day);
   }
   saveData();
+  showToast('נשמר ✓');
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
@@ -5116,6 +5117,7 @@ function updateWeekendMode(mode) {
     appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
   }
   saveData();
+  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -5131,6 +5133,7 @@ function toggleWeekendDayEdit(day) {
   }
   appData.weekendDays = wDays;
   saveData();
+  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -5148,6 +5151,7 @@ function updateWeekendRef(val) {
   const input = document.getElementById('editWeekendRef');
   if (input) input.value = appData.weekendStartDate;
   saveData();
+  showToast('נשמר ✓');
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
@@ -5158,6 +5162,7 @@ function updateWeekendFixed(who) {
   appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
   if (who === 'me') wDays.forEach(d => appData.custodyDays.push(d));
   saveData();
+  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -5174,6 +5179,7 @@ function toggleAltDayEdit(day, el) {
     el.classList.add('mine');
   }
   saveData();
+  showToast('נשמר ✓');
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
@@ -6482,7 +6488,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '47';
+const APP_VERSION = '48';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6506,7 +6512,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=47', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=48', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
