@@ -2155,15 +2155,7 @@
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
         </div>
       </div>
-      <div class="card" style="border:1px solid #f59e0b44;">
-        <h3 style="color:#f59e0b;">שחזור נתונים</h3>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
-          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
-        </div>
-      </div>
       <div class="card" style="border:1px solid #e74c3c22;">
-        <h3 style="color:#e74c3c;">אזור מסוכן</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
@@ -3021,6 +3013,10 @@ function saveToCloud() {
       return copy;
     });
   }
+  if (appData.user.role) {
+    shared.custodySync = { setBy: appData.user.role };
+    CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
+  }
   ignoringSnapshot = true;
   lastSaveTime = Date.now();
   db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').set(
@@ -3049,6 +3045,26 @@ function listenToSharedData() {
       });
       if (changed && appData.kids) {
         appData.kids.forEach(k => { if (!k.photo && localPhotos[k.name]) k.photo = localPhotos[k.name]; });
+      }
+      if (shared.custodySync && shared.custodySync.setBy && shared.custodySync.setBy !== getMyRole()) {
+        const sync = shared.custodySync;
+        const allWeekdays = [0, 1, 2, 3, 4];
+        appData.custodyDays = allWeekdays.filter(d => !(sync.custodyDays || []).includes(d));
+        appData.weekendMode = sync.weekendMode || '';
+        appData.weekendDays = sync.weekendDays || [5, 6];
+        appData.weekendStartDate = sync.weekendStartDate || '';
+        appData.alternatingDays = sync.alternatingDays || [];
+        if (sync.weekendStartWithMe !== null && sync.weekendStartWithMe !== undefined) {
+          appData.weekendStartWithMe = !sync.weekendStartWithMe;
+        }
+        if (sync.weekendFixedWith === 'me') {
+          appData.weekendFixedWith = 'partner';
+          appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
+        } else if (sync.weekendFixedWith === 'partner') {
+          appData.weekendFixedWith = 'me';
+          (sync.weekendDays || [5, 6]).forEach(d => { if (!appData.custodyDays.includes(d)) appData.custodyDays.push(d); });
+        }
+        changed = true;
       }
       if (changed) {
         localStorage.setItem('colink_data', JSON.stringify(appData));
@@ -6488,7 +6504,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '48';
+const APP_VERSION = '49';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6512,7 +6528,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=48', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=49', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
