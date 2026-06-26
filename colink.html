@@ -2155,6 +2155,12 @@
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
         </div>
       </div>
+      <div class="card" style="border:1px solid #f59e0b44;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
+          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
+        </div>
+      </div>
       <div class="card" style="border:1px solid #e74c3c22;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
@@ -6504,7 +6510,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '49';
+const APP_VERSION = '50';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6528,7 +6534,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=49', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=50', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
