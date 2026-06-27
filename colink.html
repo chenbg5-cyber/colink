@@ -3453,14 +3453,18 @@ async function leaveFamily() {
     db.collection('families').doc(familyCode).collection('members').doc(uid).delete().catch(() => {});
   }
   if (uid) {
-    db.collection('users').doc(uid).delete().catch(() => {});
+    db.collection('users').doc(uid).set({
+      appData: { familyCode: '', user: appData.user, mode: '' },
+      previousFamilyCode: familyCode,
+      leftAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(() => {});
   }
   localStorage.removeItem('colink_data');
   appData = {
-    mode: '', familyCode: '', user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
+    mode: '', familyCode: '', familyName: '', user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
     custodyDays: [], weekendMode: '', weekendStartWithMe: null, weekendStartDate: '', weekendFixedWith: '',
     weekendDays: [5, 6], alternatingDays: [], kids: [], tasks: [], events: [], expenses: [],
-    custodyChanges: [], signatures: [], holidayAssignments: {}
+    custodyChanges: [], signatures: [], activities: [], camps: [], holidayAssignments: {}
   };
   document.getElementById('appContainer').classList.remove('active');
   document.getElementById('onboarding').classList.remove('hidden');
@@ -6516,6 +6520,7 @@ function colinkConfirm(msg) {
 }
 
 function logout() {
+  saveToCloud();
   localStorage.removeItem('colink_data');
   location.reload();
 }
@@ -6529,15 +6534,36 @@ async function recoverData() {
 
     // Source 1: personal user doc (familyCode, user, custody fields)
     const userSnap = await db.collection('users').doc(uid).get();
-    if (userSnap && userSnap.exists && userSnap.data().appData) {
-      const cloudPersonal = userSnap.data().appData;
-      if (cloudPersonal.familyCode) appData.familyCode = cloudPersonal.familyCode;
-      if (cloudPersonal.mode) appData.mode = cloudPersonal.mode;
-      if (cloudPersonal.user) appData.user = cloudPersonal.user;
-      CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
+    if (userSnap && userSnap.exists) {
+      const userData = userSnap.data();
+      if (userData.appData) {
+        const cloudPersonal = userData.appData;
+        if (cloudPersonal.familyCode) appData.familyCode = cloudPersonal.familyCode;
+        if (cloudPersonal.mode) appData.mode = cloudPersonal.mode;
+        if (cloudPersonal.user) appData.user = cloudPersonal.user;
+        CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
+      }
+      if (!appData.familyCode && userData.previousFamilyCode) {
+        appData.familyCode = userData.previousFamilyCode;
+      }
     }
 
-    // Ensure member doc exists before reading shared data (needs familyCode from source 1)
+    // Source 1b: search member docs for familyCode if still missing
+    if (!appData.familyCode) {
+      try {
+        const familiesSnap = await db.collection('families').get();
+        for (const famDoc of familiesSnap.docs) {
+          const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(uid).get();
+          if (memSnap.exists) {
+            appData.familyCode = famDoc.id;
+            if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
+            break;
+          }
+        }
+      } catch (e) { console.warn('Family search failed:', e); }
+    }
+
+    // Re-register member doc
     if (appData.familyCode) {
       await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
         role: appData.user.role || '',
@@ -6553,7 +6579,8 @@ async function recoverData() {
         const shared = sharedSnap.data();
         const hasTasks = shared.tasks && shared.tasks.length > 0;
         const hasKids = shared.kids && shared.kids.length > 0;
-        if (hasTasks || hasKids) {
+        const hasEvents = shared.events && shared.events.length > 0;
+        if (hasTasks || hasKids || hasEvents) {
           SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
           recovered = true;
           source = 'ענן';
@@ -6594,14 +6621,21 @@ async function recoverData() {
     }
 
     if (recovered) {
+      if (!appData.user.name && currentFirebaseUser) {
+        appData.user.name = currentFirebaseUser.displayName || '';
+        appData.user.email = currentFirebaseUser.email || '';
+      }
+      appData.mode = appData.mode || 'join';
       saveData();
+      listenToSharedData();
       updateApp();
       showToast('שוחזר מ' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
     } else {
       showToast('לא נמצאו נתונים לשחזור');
     }
   } catch (e) {
-    showToast('שגיאה: ' + e.message);
+    console.error('Recovery error:', e);
+    showToast('שגיאת שחזור: ' + e.message);
   }
 }
 
@@ -6618,7 +6652,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '60';
+const APP_VERSION = '61';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6642,7 +6676,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=60', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=61', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
