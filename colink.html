@@ -6563,29 +6563,33 @@ async function recoverData() {
       } catch (e) { console.warn('Family search failed:', e); }
     }
 
-    // Re-register member doc
+    // Re-register member doc (required for shared data access)
     if (appData.familyCode) {
-      await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
-        role: appData.user.role || '',
-        name: appData.user.name || appData.user.firstName || currentFirebaseUser.displayName || '',
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).catch(() => {});
+      try {
+        await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
+          role: appData.user.role || '',
+          name: appData.user.name || appData.user.firstName || currentFirebaseUser.displayName || '',
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (e) { console.warn('Member re-register failed:', e); }
     }
 
     // Source 2: family shared data doc
     if (appData.familyCode) {
-      const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
-      if (sharedSnap.exists) {
-        const shared = sharedSnap.data();
-        const hasTasks = shared.tasks && shared.tasks.length > 0;
-        const hasKids = shared.kids && shared.kids.length > 0;
-        const hasEvents = shared.events && shared.events.length > 0;
-        if (hasTasks || hasKids || hasEvents) {
-          SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
-          recovered = true;
-          source = 'ענן';
+      try {
+        const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+        if (sharedSnap.exists) {
+          const shared = sharedSnap.data();
+          const hasTasks = shared.tasks && shared.tasks.length > 0;
+          const hasKids = shared.kids && shared.kids.length > 0;
+          const hasEvents = shared.events && shared.events.length > 0;
+          if (hasTasks || hasKids || hasEvents) {
+            SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+            recovered = true;
+            source = 'ענן';
+          }
         }
-      }
+      } catch (e) { console.warn('Shared data read failed:', e); }
     }
 
     // Source 3: old user doc (may still have shared data in appData)
@@ -6620,6 +6624,31 @@ async function recoverData() {
       }
     }
 
+    // Source 5: manual family code input as last resort
+    if (!recovered && !appData.familyCode) {
+      const manualCode = prompt('לא נמצא קוד משפחה. הזינ/י את קוד המשפחה שקיבלת מההורה השני:');
+      if (manualCode && manualCode.trim()) {
+        appData.familyCode = manualCode.trim();
+        try {
+          await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
+            role: appData.user.role || '',
+            name: currentFirebaseUser.displayName || '',
+            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+          if (sharedSnap.exists) {
+            const shared = sharedSnap.data();
+            SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+            recovered = true;
+            source = 'קוד ידני';
+          }
+        } catch (e) {
+          console.warn('Manual code recovery failed:', e);
+          appData.familyCode = '';
+        }
+      }
+    }
+
     if (recovered) {
       if (!appData.user.name && currentFirebaseUser) {
         appData.user.name = currentFirebaseUser.displayName || '';
@@ -6631,7 +6660,7 @@ async function recoverData() {
       updateApp();
       showToast('שוחזר מ' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
     } else {
-      showToast('לא נמצאו נתונים לשחזור');
+      showToast('לא נמצאו נתונים לשחזור. בקשי את הקוד מההורה השני ונסי שוב.');
     }
   } catch (e) {
     console.error('Recovery error:', e);
@@ -6652,7 +6681,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '61';
+const APP_VERSION = '62';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6676,7 +6705,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=61', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=62', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
