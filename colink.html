@@ -3080,10 +3080,24 @@ function listenToSharedData() {
       if (!snap.exists) return;
       const shared = snap.data();
       const localPhotos = (appData.kids || []).reduce((m, k) => { if (k.photo) m[k.name] = k.photo; return m; }, {});
+      const localTaskMap = (appData.tasks || []).reduce((m, t) => { m[t.id] = t; return m; }, {});
       let changed = false;
       SHARED_FIELDS.forEach(f => {
         if (shared[f] !== undefined) {
-          appData[f] = shared[f];
+          if (f === 'tasks') {
+            const mergedTasks = shared.tasks.map(ct => {
+              const loc = localTaskMap[ct.id];
+              if (loc && loc.updatedAt && (!ct.updatedAt || loc.updatedAt > ct.updatedAt)) return loc;
+              return ct;
+            });
+            const cloudIds = new Set(shared.tasks.map(t => t.id));
+            Object.values(localTaskMap).forEach(loc => {
+              if (!cloudIds.has(loc.id)) mergedTasks.push(loc);
+            });
+            appData.tasks = mergedTasks;
+          } else {
+            appData[f] = shared[f];
+          }
           changed = true;
         }
       });
@@ -6604,7 +6618,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '59';
+const APP_VERSION = '60';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6628,7 +6642,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=59', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=60', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
