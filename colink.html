@@ -3039,7 +3039,7 @@ function saveToCloud() {
   if (appData.familyCode) personalData.familyCode = appData.familyCode;
   CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) personalData[f] = appData[f]; });
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
-  if (!appData.familyCode) { console.warn('saveToCloud: no familyCode'); return; }
+  if (!appData.familyCode) { console.warn('saveToCloud: no familyCode — shared data not synced'); return; }
   const shared = {};
   SHARED_FIELDS.forEach(f => { if (appData[f] !== undefined) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
   if (shared.signatures) {
@@ -4816,10 +4816,12 @@ function addTask() {
   const recurring = document.getElementById('taskRecurring').checked;
   const recurringFreq = document.getElementById('taskRecurringFreq').value;
 
-  if (!title || !res || !forChild || (!date && !recurring) || !category) {
-    showToast('נא למלא את כל השדות הנדרשים');
-    return;
-  }
+  if (!title) { showToast('נא להזין שם משימה'); return; }
+  if (!res) { showToast('נא לבחור באחריות מי'); return; }
+  if (!forChild && appData.kids.length === 0) { forChild = 'כללי'; }
+  if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
+  if (!date && !recurring) { showToast('נא לבחור תאריך או לסמן משימה חוזרת'); return; }
+  if (!category) { showToast('נא לבחור קטגוריה'); return; }
   if (recurring && !recurringFreq) {
     showToast('נא לבחור תדירות למשימה חוזרת');
     return;
@@ -6681,7 +6683,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '62';
+const APP_VERSION = '63';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6705,7 +6707,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=62', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=63', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
