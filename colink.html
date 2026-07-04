@@ -6533,44 +6533,49 @@ function logout() {
 }
 
 async function recoverData() {
-  if (!currentFirebaseUser) { showToast('לא מחובר'); return; }
+  if (!currentFirebaseUser) { showToast('לא מחובר — נא להתחבר קודם'); return; }
   const uid = currentFirebaseUser.uid;
+  try { await currentFirebaseUser.getIdToken(true); } catch (e) { showToast('שגיאת אימות — נסי להתנתק ולהתחבר מחדש'); return; }
+  showToast('מתחיל שחזור...');
   try {
     let recovered = false;
     let source = '';
 
-    // Source 1: personal user doc (familyCode, user, custody fields)
-    const userSnap = await db.collection('users').doc(uid).get();
+    // Source 1: personal user doc
+    let userSnap = null;
+    try { userSnap = await db.collection('users').doc(uid).get(); } catch (e) { console.warn('S1 err:', e); }
     if (userSnap && userSnap.exists) {
       const userData = userSnap.data();
       if (userData.appData) {
-        const cloudPersonal = userData.appData;
-        if (cloudPersonal.familyCode) appData.familyCode = cloudPersonal.familyCode;
-        if (cloudPersonal.mode) appData.mode = cloudPersonal.mode;
-        if (cloudPersonal.user) appData.user = cloudPersonal.user;
-        CUSTODY_FIELDS.forEach(f => { if (cloudPersonal[f] !== undefined) appData[f] = cloudPersonal[f]; });
+        const cp = userData.appData;
+        if (cp.familyCode) appData.familyCode = cp.familyCode;
+        if (cp.mode) appData.mode = cp.mode;
+        if (cp.user) appData.user = cp.user;
+        CUSTODY_FIELDS.forEach(f => { if (cp[f] !== undefined) appData[f] = cp[f]; });
       }
       if (!appData.familyCode && userData.previousFamilyCode) {
         appData.familyCode = userData.previousFamilyCode;
       }
     }
 
-    // Source 1b: search member docs for familyCode if still missing
+    // Source 1b: search member docs for familyCode
     if (!appData.familyCode) {
       try {
         const familiesSnap = await db.collection('families').get();
         for (const famDoc of familiesSnap.docs) {
-          const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(uid).get();
-          if (memSnap.exists) {
-            appData.familyCode = famDoc.id;
-            if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
-            break;
-          }
+          try {
+            const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(uid).get();
+            if (memSnap.exists) {
+              appData.familyCode = famDoc.id;
+              if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
+              break;
+            }
+          } catch (e) { continue; }
         }
-      } catch (e) { console.warn('Family search failed:', e); }
+      } catch (e) { console.warn('S1b err:', e); }
     }
 
-    // Re-register member doc (required for shared data access)
+    // Re-register member doc + wait for consistency
     if (appData.familyCode) {
       try {
         await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
@@ -6578,34 +6583,36 @@ async function recoverData() {
           name: appData.user.name || appData.user.firstName || currentFirebaseUser.displayName || '',
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-      } catch (e) { console.warn('Member re-register failed:', e); }
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (e) { console.warn('Member reg err:', e); }
     }
 
-    // Source 2: family shared data doc
+    // Source 2: family shared data (with retry)
     if (appData.familyCode) {
-      try {
-        const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
-        if (sharedSnap.exists) {
-          const shared = sharedSnap.data();
-          const hasTasks = shared.tasks && shared.tasks.length > 0;
-          const hasKids = shared.kids && shared.kids.length > 0;
-          const hasEvents = shared.events && shared.events.length > 0;
-          if (hasTasks || hasKids || hasEvents) {
-            SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
-            recovered = true;
-            source = 'ענן';
+      for (let attempt = 0; attempt < 3 && !recovered; attempt++) {
+        try {
+          const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+          if (sharedSnap.exists) {
+            const shared = sharedSnap.data();
+            if ((shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0)) {
+              SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+              recovered = true;
+              source = 'ענן';
+            }
           }
+          break;
+        } catch (e) {
+          console.warn('S2 attempt ' + attempt + ':', e.code || e.message);
+          if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
         }
-      } catch (e) { console.warn('Shared data read failed:', e); }
+      }
     }
 
-    // Source 3: old user doc (may still have shared data in appData)
+    // Source 3: old user doc appData
     if (!recovered && userSnap && userSnap.exists) {
-      const cloudData = userSnap.data().appData;
+      const cloudData = (userSnap.data() || {}).appData;
       if (cloudData) {
-        const hasTasks = cloudData.tasks && cloudData.tasks.length > 0;
-        const hasKids = cloudData.kids && cloudData.kids.length > 0;
-        if (hasTasks || hasKids) {
+        if ((cloudData.tasks && cloudData.tasks.length > 0) || (cloudData.kids && cloudData.kids.length > 0)) {
           SHARED_FIELDS.forEach(f => { if (cloudData[f] !== undefined) appData[f] = cloudData[f]; });
           appData.mode = cloudData.mode || appData.mode;
           appData.familyCode = cloudData.familyCode || appData.familyCode;
@@ -6618,23 +6625,23 @@ async function recoverData() {
 
     // Source 4: localStorage
     if (!recovered) {
-      const localRaw = localStorage.getItem('colink_data');
-      if (localRaw) {
-        const localData = JSON.parse(localRaw);
-        const hasTasks = localData.tasks && localData.tasks.length > 0;
-        const hasKids = localData.kids && localData.kids.length > 0;
-        if (hasTasks || hasKids) {
-          SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
-          recovered = true;
-          source = 'מקומי';
+      try {
+        const localRaw = localStorage.getItem('colink_data');
+        if (localRaw) {
+          const localData = JSON.parse(localRaw);
+          if ((localData.tasks && localData.tasks.length > 0) || (localData.kids && localData.kids.length > 0)) {
+            SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
+            recovered = true;
+            source = 'מקומי';
+          }
         }
-      }
+      } catch (e) { console.warn('S4 err:', e); }
     }
 
     // Source 5: brute-force search all families
     if (!recovered) {
       try {
-        showToast('מחפש נתונים...');
+        showToast('מחפש בכל המשפחות...');
         const familiesSnap = await db.collection('families').get();
         for (const famDoc of familiesSnap.docs) {
           try {
@@ -6642,6 +6649,7 @@ async function recoverData() {
               role: appData.user.role || '', name: currentFirebaseUser.displayName || '',
               joinedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
+            await new Promise(r => setTimeout(r, 1500));
             const sharedSnap = await db.collection('families').doc(famDoc.id).collection('sharedData').doc('main').get();
             if (sharedSnap.exists) {
               const shared = sharedSnap.data();
@@ -6654,9 +6662,9 @@ async function recoverData() {
               }
             }
             await db.collection('families').doc(famDoc.id).collection('members').doc(uid).delete().catch(() => {});
-          } catch (e) { continue; }
+          } catch (e) { console.warn('S5 fam ' + famDoc.id + ':', e.code || e.message); continue; }
         }
-      } catch (e) { console.warn('Family search failed:', e); }
+      } catch (e) { console.warn('S5 err:', e); }
     }
 
     if (recovered) {
@@ -6670,19 +6678,21 @@ async function recoverData() {
       updateApp();
       showToast('שוחזר מ' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
     } else {
-      showToast('לא נמצאו נתונים לשחזור');
+      showToast('לא נמצאו נתונים לשחזור — נסי שחזור עם קוד משפחה');
     }
   } catch (e) {
     console.error('Recovery error:', e);
-    showToast('שגיאת שחזור: ' + e.message);
+    showToast('שגיאה: ' + (e.code || '') + ' ' + e.message);
   }
 }
 
 async function recoverWithCode() {
-  if (!currentFirebaseUser) { showToast('לא מחובר'); return; }
+  if (!currentFirebaseUser) { showToast('לא מחובר — נא להתחבר קודם'); return; }
   const code = (document.getElementById('manualFamilyCode').value || '').trim();
   if (!code) { showToast('נא להזין קוד משפחה'); return; }
   const uid = currentFirebaseUser.uid;
+  try { await currentFirebaseUser.getIdToken(true); } catch (e) { showToast('שגיאת אימות'); return; }
+  showToast('מנסה שחזור עם קוד ' + code + '...');
   try {
     appData.familyCode = code;
     await db.collection('families').doc(code).collection('members').doc(uid).set({
@@ -6690,8 +6700,17 @@ async function recoverWithCode() {
       name: appData.user.name || currentFirebaseUser.displayName || '',
       joinedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-    const sharedSnap = await db.collection('families').doc(code).collection('sharedData').doc('main').get();
-    if (sharedSnap.exists) {
+    await new Promise(r => setTimeout(r, 1500));
+    let sharedSnap = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        sharedSnap = await db.collection('families').doc(code).collection('sharedData').doc('main').get();
+        break;
+      } catch (e) {
+        if (attempt < 2) { await new Promise(r => setTimeout(r, 2000)); } else { throw e; }
+      }
+    }
+    if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
       SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
       if (!appData.user.name && currentFirebaseUser) {
@@ -6710,7 +6729,7 @@ async function recoverWithCode() {
   } catch (e) {
     console.error('Manual recovery error:', e);
     appData.familyCode = '';
-    showToast('שגיאה: ' + e.message);
+    showToast('שגיאה: ' + (e.code || '') + ' ' + e.message);
   }
 }
 
@@ -6727,7 +6746,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '65';
+const APP_VERSION = '66';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
