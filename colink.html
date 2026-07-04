@@ -2159,6 +2159,11 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
           <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <input type="text" id="manualFamilyCode" placeholder="הזנת קוד משפחה ידנית" style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
+            <button class="btn" style="background:#10b981;color:white;padding:10px 14px;border-radius:10px;white-space:nowrap;" onclick="recoverWithCode()">שחזור עם קוד</button>
+          </div>
+          <p style="font-size:0.7rem;color:var(--text-light);">אם השחזור הרגיל לא עובד, בקשי את הקוד מההורה השני והזיני כאן.</p>
         </div>
       </div>
       <div class="card" style="border:1px solid #e74c3c22;">
@@ -4808,7 +4813,7 @@ function addTask() {
   const title = document.getElementById('taskTitle').value.trim();
   const desc = document.getElementById('taskDesc').value.trim();
   const res = document.getElementById('taskRes').value;
-  const forChild = document.getElementById('taskFor').value;
+  let forChild = document.getElementById('taskFor').value;
   const priority = document.getElementById('taskPriority').value;
   const date = document.getElementById('taskDate').value;
   const category = document.getElementById('taskCategory').value;
@@ -6626,31 +6631,6 @@ async function recoverData() {
       }
     }
 
-    // Source 5: manual family code input as last resort
-    if (!recovered && !appData.familyCode) {
-      const manualCode = prompt('לא נמצא קוד משפחה. הזינ/י את קוד המשפחה שקיבלת מההורה השני:');
-      if (manualCode && manualCode.trim()) {
-        appData.familyCode = manualCode.trim();
-        try {
-          await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
-            role: appData.user.role || '',
-            name: currentFirebaseUser.displayName || '',
-            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
-          if (sharedSnap.exists) {
-            const shared = sharedSnap.data();
-            SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
-            recovered = true;
-            source = 'קוד ידני';
-          }
-        } catch (e) {
-          console.warn('Manual code recovery failed:', e);
-          appData.familyCode = '';
-        }
-      }
-    }
-
     if (recovered) {
       if (!appData.user.name && currentFirebaseUser) {
         appData.user.name = currentFirebaseUser.displayName || '';
@@ -6670,6 +6650,42 @@ async function recoverData() {
   }
 }
 
+async function recoverWithCode() {
+  if (!currentFirebaseUser) { showToast('לא מחובר'); return; }
+  const code = (document.getElementById('manualFamilyCode').value || '').trim();
+  if (!code) { showToast('נא להזין קוד משפחה'); return; }
+  const uid = currentFirebaseUser.uid;
+  try {
+    appData.familyCode = code;
+    await db.collection('families').doc(code).collection('members').doc(uid).set({
+      role: appData.user.role || '',
+      name: appData.user.name || currentFirebaseUser.displayName || '',
+      joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    const sharedSnap = await db.collection('families').doc(code).collection('sharedData').doc('main').get();
+    if (sharedSnap.exists) {
+      const shared = sharedSnap.data();
+      SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+      if (!appData.user.name && currentFirebaseUser) {
+        appData.user.name = currentFirebaseUser.displayName || '';
+        appData.user.email = currentFirebaseUser.email || '';
+      }
+      appData.mode = appData.mode || 'join';
+      saveData();
+      listenToSharedData();
+      updateApp();
+      showToast('שוחזר בהצלחה: ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
+    } else {
+      appData.familyCode = '';
+      showToast('לא נמצאו נתונים עבור קוד זה');
+    }
+  } catch (e) {
+    console.error('Manual recovery error:', e);
+    appData.familyCode = '';
+    showToast('שגיאה: ' + e.message);
+  }
+}
+
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', function(e) {
@@ -6683,7 +6699,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '63';
+const APP_VERSION = '64';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -6707,7 +6723,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=63', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=64', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
