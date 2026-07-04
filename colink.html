@@ -6532,10 +6532,23 @@ function logout() {
   location.reload();
 }
 
+async function showRecoveryLog(log) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;direction:rtl;font-family:inherit;';
+  box.innerHTML = '<h3 style="margin:0 0 12px;font-size:1.1rem;">דוח שחזור</h3>' +
+    '<div style="font-size:0.85rem;line-height:1.8;">' + log.map(l => '<div>' + l + '</div>').join('') + '</div>' +
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="margin-top:16px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary,#6C63FF);color:white;font-size:1rem;cursor:pointer;">סגור</button>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
 async function recoverData() {
   if (!currentFirebaseUser) { showToast('לא מחובר — נא להתחבר קודם'); return; }
   const uid = currentFirebaseUser.uid;
-  try { await currentFirebaseUser.getIdToken(true); } catch (e) { showToast('שגיאת אימות — נסי להתנתק ולהתחבר מחדש'); return; }
+  const log = [];
+  try { await currentFirebaseUser.getIdToken(true); log.push('✅ אימות תקין'); } catch (e) { showToast('שגיאת אימות — נסי להתנתק ולהתחבר מחדש'); return; }
   showToast('מתחיל שחזור...');
   try {
     let recovered = false;
@@ -6543,39 +6556,47 @@ async function recoverData() {
 
     // Source 1: personal user doc
     let userSnap = null;
-    try { userSnap = await db.collection('users').doc(uid).get(); } catch (e) { console.warn('S1 err:', e); }
+    try { userSnap = await db.collection('users').doc(uid).get(); } catch (e) { log.push('❌ קריאת מסמך אישי: ' + (e.code || e.message)); }
     if (userSnap && userSnap.exists) {
+      log.push('✅ מסמך אישי נמצא');
       const userData = userSnap.data();
       if (userData.appData) {
         const cp = userData.appData;
-        if (cp.familyCode) appData.familyCode = cp.familyCode;
+        if (cp.familyCode) { appData.familyCode = cp.familyCode; log.push('✅ קוד משפחה מהמסמך: ' + cp.familyCode); }
         if (cp.mode) appData.mode = cp.mode;
         if (cp.user) appData.user = cp.user;
         CUSTODY_FIELDS.forEach(f => { if (cp[f] !== undefined) appData[f] = cp[f]; });
       }
       if (!appData.familyCode && userData.previousFamilyCode) {
         appData.familyCode = userData.previousFamilyCode;
+        log.push('✅ קוד משפחה קודם: ' + userData.previousFamilyCode);
       }
+      if (!appData.familyCode) log.push('⚠ אין קוד משפחה במסמך');
+    } else {
+      log.push('⚠ מסמך אישי לא נמצא');
     }
 
     // Source 1b: search member docs for familyCode
     if (!appData.familyCode) {
       try {
         const familiesSnap = await db.collection('families').get();
+        log.push('🔍 חיפוש ב-' + familiesSnap.size + ' משפחות...');
         for (const famDoc of familiesSnap.docs) {
           try {
             const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(uid).get();
             if (memSnap.exists) {
               appData.familyCode = famDoc.id;
               if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
+              log.push('✅ נמצא חבר במשפחה: ' + famDoc.id);
               break;
             }
           } catch (e) { continue; }
         }
-      } catch (e) { console.warn('S1b err:', e); }
+        if (!appData.familyCode) log.push('⚠ לא נמצא חבר באף משפחה');
+      } catch (e) { log.push('❌ חיפוש משפחות: ' + (e.code || e.message)); }
     }
 
-    // Re-register member doc + wait for consistency
+    // Re-register member doc + wait
     if (appData.familyCode) {
       try {
         await db.collection('families').doc(appData.familyCode).collection('members').doc(uid).set({
@@ -6583,8 +6604,9 @@ async function recoverData() {
           name: appData.user.name || appData.user.firstName || currentFirebaseUser.displayName || '',
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
+        log.push('✅ רישום חבר במשפחה');
         await new Promise(r => setTimeout(r, 1500));
-      } catch (e) { console.warn('Member reg err:', e); }
+      } catch (e) { log.push('❌ רישום חבר: ' + (e.code || e.message)); }
     }
 
     // Source 2: family shared data (with retry)
@@ -6594,15 +6616,21 @@ async function recoverData() {
           const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
           if (sharedSnap.exists) {
             const shared = sharedSnap.data();
-            if ((shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0)) {
+            const t = (shared.tasks || []).length, k = (shared.kids || []).length, e = (shared.events || []).length;
+            log.push('📦 נתונים משותפים: ' + t + ' משימות, ' + k + ' ילדים, ' + e + ' אירועים');
+            if (t > 0 || k > 0 || e > 0) {
               SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
               recovered = true;
               source = 'ענן';
+            } else {
+              log.push('⚠ המסמך קיים אבל ריק');
             }
+          } else {
+            log.push('⚠ מסמך נתונים משותפים לא קיים');
           }
           break;
         } catch (e) {
-          console.warn('S2 attempt ' + attempt + ':', e.code || e.message);
+          log.push('❌ ניסיון ' + (attempt+1) + ' קריאת נתונים: ' + (e.code || e.message));
           if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
         }
       }
@@ -6619,6 +6647,7 @@ async function recoverData() {
           appData.user = cloudData.user || appData.user;
           recovered = true;
           source = 'גיבוי אישי';
+          log.push('✅ שוחזר מגיבוי אישי');
         }
       }
     }
@@ -6633,16 +6662,17 @@ async function recoverData() {
             SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
             recovered = true;
             source = 'מקומי';
-          }
-        }
-      } catch (e) { console.warn('S4 err:', e); }
+            log.push('✅ שוחזר מאחסון מקומי');
+          } else { log.push('⚠ אחסון מקומי ריק'); }
+        } else { log.push('⚠ אין אחסון מקומי'); }
+      } catch (e) { log.push('❌ אחסון מקומי: ' + e.message); }
     }
 
     // Source 5: brute-force search all families
     if (!recovered) {
       try {
-        showToast('מחפש בכל המשפחות...');
         const familiesSnap = await db.collection('families').get();
+        log.push('🔍 חיפוש מלא ב-' + familiesSnap.size + ' משפחות...');
         for (const famDoc of familiesSnap.docs) {
           try {
             await db.collection('families').doc(famDoc.id).collection('members').doc(uid).set({
@@ -6653,18 +6683,21 @@ async function recoverData() {
             const sharedSnap = await db.collection('families').doc(famDoc.id).collection('sharedData').doc('main').get();
             if (sharedSnap.exists) {
               const shared = sharedSnap.data();
-              if ((shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0)) {
+              const t = (shared.tasks || []).length, k = (shared.kids || []).length;
+              if (t > 0 || k > 0) {
                 appData.familyCode = famDoc.id;
                 SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
                 recovered = true;
                 source = 'חיפוש אוטומטי';
+                log.push('✅ נמצא במשפחה ' + famDoc.id + ': ' + t + ' משימות, ' + k + ' ילדים');
                 break;
               }
             }
             await db.collection('families').doc(famDoc.id).collection('members').doc(uid).delete().catch(() => {});
-          } catch (e) { console.warn('S5 fam ' + famDoc.id + ':', e.code || e.message); continue; }
+          } catch (e) { log.push('❌ משפחה ' + famDoc.id + ': ' + (e.code || e.message)); continue; }
         }
-      } catch (e) { console.warn('S5 err:', e); }
+        if (!recovered) log.push('⚠ לא נמצאו נתונים באף משפחה');
+      } catch (e) { log.push('❌ חיפוש מלא: ' + (e.code || e.message)); }
     }
 
     if (recovered) {
@@ -6676,13 +6709,14 @@ async function recoverData() {
       saveData();
       listenToSharedData();
       updateApp();
-      showToast('שוחזר מ' + source + ': ' + (appData.tasks||[]).length + ' משימות, ' + (appData.kids||[]).length + ' ילדים ✅');
+      log.push('✅ שוחזר בהצלחה מ' + source);
     } else {
-      showToast('לא נמצאו נתונים לשחזור — נסי שחזור עם קוד משפחה');
+      log.push('❌ לא נמצאו נתונים לשחזור');
     }
+    showRecoveryLog(log);
   } catch (e) {
-    console.error('Recovery error:', e);
-    showToast('שגיאה: ' + (e.code || '') + ' ' + e.message);
+    log.push('💥 שגיאה כללית: ' + (e.code || '') + ' ' + e.message);
+    showRecoveryLog(log);
   }
 }
 
@@ -6746,7 +6780,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '66';
+const APP_VERSION = '67';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
