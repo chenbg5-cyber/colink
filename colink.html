@@ -3348,16 +3348,49 @@ function saveData() {
 }
 
 function restoreFromBackup() {
-  const backup = localStorage.getItem('colink_backup');
-  if (!backup) { showToast('אין גיבוי זמין'); return; }
-  const parsed = JSON.parse(backup);
-  const hasContent = (parsed.kids && parsed.kids.length > 0) || (parsed.tasks && parsed.tasks.length > 0) || (parsed.events && parsed.events.length > 0);
-  if (!hasContent) { showToast('הגיבוי ריק'); return; }
-  const time = localStorage.getItem('colink_backup_time');
-  Object.assign(appData, parsed);
-  migrateData();
-  updateApp();
-  showToast('שוחזר מגיבוי' + (time ? ' מ-' + new Date(time).toLocaleString('he-IL') : ''));
+  try {
+    const backup = localStorage.getItem('colink_backup');
+    const mainData = localStorage.getItem('colink_data');
+    const time = localStorage.getItem('colink_backup_time');
+    const log = [];
+    let source = null;
+
+    if (backup) {
+      try {
+        const parsed = JSON.parse(backup);
+        const k = (parsed.kids || []).length, t = (parsed.tasks || []).length, e = (parsed.events || []).length, a = (parsed.activities || []).length;
+        log.push('📦 גיבוי מקומי: ' + k + ' ילדים, ' + t + ' משימות, ' + e + ' אירועים, ' + a + ' חוגים');
+        if (time) log.push('🕐 זמן גיבוי: ' + new Date(time).toLocaleString('he-IL'));
+        if (k > 0 || t > 0 || e > 0 || a > 0) { source = parsed; log.push('✅ נמצאו נתונים בגיבוי'); }
+        else log.push('⚠ הגיבוי ריק מנתונים');
+      } catch (pe) { log.push('❌ שגיאה בקריאת גיבוי: ' + pe.message); }
+    } else {
+      log.push('⚠ אין גיבוי מקומי שמור');
+    }
+
+    if (!source && mainData) {
+      try {
+        const parsed = JSON.parse(mainData);
+        const k = (parsed.kids || []).length, t = (parsed.tasks || []).length, e = (parsed.events || []).length;
+        log.push('📦 נתונים נוכחיים: ' + k + ' ילדים, ' + t + ' משימות, ' + e + ' אירועים');
+        if (k > 0 || t > 0 || e > 0) { source = parsed; log.push('✅ שוחזר מנתונים נוכחיים'); }
+      } catch (pe) { log.push('❌ שגיאה בקריאת נתונים: ' + pe.message); }
+    }
+
+    if (source) {
+      Object.assign(appData, source);
+      migrateData();
+      updateApp();
+      log.push('✅ הנתונים שוחזרו בהצלחה!');
+    } else {
+      log.push('');
+      log.push('💡 נסי "שחזור מהענן" (הכפתור הכתום) — הוא מחפש יותר לעומק');
+    }
+
+    showRecoveryLog(log);
+  } catch (err) {
+    showRecoveryLog(['❌ שגיאה כללית: ' + err.message, '', '💡 נסי "שחזור מהענן" במקום']);
+  }
 }
 
 function showToast(msg) {
@@ -6935,7 +6968,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '74';
+const APP_VERSION = '75';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
