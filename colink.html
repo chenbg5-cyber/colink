@@ -2923,7 +2923,7 @@ async function onAuthSuccess() {
       const shared = sharedSnap.data();
       sharedHasData = (shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0);
       if (sharedHasData) {
-        SHARED_FIELDS.forEach(f => { if (shared[f] !== undefined) appData[f] = shared[f]; });
+        SHARED_FIELDS.forEach(f => { if (shared[f] != null) appData[f] = shared[f]; });
         if (appData.tasks) {
           let merged = false;
           appData.tasks = appData.tasks.map(t => {
@@ -2936,6 +2936,9 @@ async function onAuthSuccess() {
             if (loc.status === 'done' && t.status !== 'done' && loc.completedAt) {
               merged = true;
               return Object.assign({}, t, { status: 'done', completedBy: loc.completedBy, completedAt: loc.completedAt });
+            }
+            if (t.attachment && !t.attachment.data && loc.attachment && loc.attachment.data) {
+              t.attachment = loc.attachment;
             }
             return t;
           });
@@ -2950,7 +2953,7 @@ async function onAuthSuccess() {
     if (!sharedHasData) {
       const source = oldCloudData || localData;
       if (source && ((source.tasks && source.tasks.length > 0) || (source.kids && source.kids.length > 0))) {
-        SHARED_FIELDS.forEach(f => { if (source[f] !== undefined) appData[f] = source[f]; });
+        SHARED_FIELDS.forEach(f => { if (source[f] != null) appData[f] = source[f]; });
         saveData();
       }
     }
@@ -3070,6 +3073,14 @@ function saveToCloud() {
       return copy;
     });
   }
+  if (shared.tasks) {
+    shared.tasks = shared.tasks.map(t => {
+      if (!t.attachment) return t;
+      const copy = {...t};
+      copy.attachment = { name: t.attachment.name, type: t.attachment.type };
+      return copy;
+    });
+  }
   if (appData.user.role) {
     shared.custodySync = { setBy: appData.user.role };
     CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
@@ -3101,6 +3112,9 @@ function listenToSharedData() {
             const mergedTasks = shared.tasks.map(ct => {
               const loc = localTaskMap[ct.id];
               if (loc && loc.updatedAt && (!ct.updatedAt || loc.updatedAt > ct.updatedAt)) return loc;
+              if (ct.attachment && !ct.attachment.data && loc && loc.attachment && loc.attachment.data) {
+                ct.attachment = loc.attachment;
+              }
               return ct;
             });
             const cloudIds = new Set(shared.tasks.map(t => t.id));
@@ -4241,7 +4255,7 @@ function updateDashboard() {
 
   // Card 8: Upcoming events (current month)
   const dashEvents = document.getElementById('dashEvents');
-  const monthEvents = appData.events.filter(e => {
+  const monthEvents = (appData.events || []).filter(e => {
     const d = new Date(e.date);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && d >= new Date(now.toDateString());
   }).sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -5195,7 +5209,7 @@ async function deleteEvent(id) {
 
 function renderEvents() {
   const container = document.getElementById('eventsList');
-  let events = [...appData.events].sort((a,b) => new Date(a.date) - new Date(b.date));
+  let events = [...(appData.events || [])].sort((a,b) => new Date(a.date) - new Date(b.date));
   const now = new Date();
 
   if (currentEventFilter === 'upcoming') events = events.filter(e => new Date(e.date) >= new Date(now.toDateString()));
@@ -6871,7 +6885,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '71';
+const APP_VERSION = '72';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
