@@ -4810,6 +4810,7 @@ function calculateAge(dob) {
 
 // ============ TASKS ============
 function addTask() {
+  try {
   const title = document.getElementById('taskTitle').value.trim();
   const desc = document.getElementById('taskDesc').value.trim();
   const res = document.getElementById('taskRes').value;
@@ -4823,7 +4824,7 @@ function addTask() {
 
   if (!title) { showToast('נא להזין שם משימה'); return; }
   if (!res) { showToast('נא לבחור באחריות מי'); return; }
-  if (!forChild && appData.kids.length === 0) { forChild = 'כללי'; }
+  if (!forChild && (!appData.kids || appData.kids.length === 0)) { forChild = 'כללי'; }
   if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
   if (!date && !recurring) { showToast('נא לבחור תאריך או לסמן משימה חוזרת'); return; }
   if (!category) { showToast('נא לבחור קטגוריה'); return; }
@@ -4858,7 +4859,8 @@ function addTask() {
       task.updatedAt = new Date().toISOString();
     }
   } else {
-    const children = forChild === '__all__' ? appData.kids.map(k => k.name) : [forChild];
+    if (!appData.tasks) appData.tasks = [];
+    const children = forChild === '__all__' ? (appData.kids || []).map(k => k.name) : [forChild];
     children.forEach((child, i) => {
       appData.tasks.push({
         id: Date.now() + i,
@@ -4890,6 +4892,7 @@ function addTask() {
   document.getElementById('recurringMonthDayGroup').style.display = 'none';
   renderTasks();
   updateDashboard();
+  } catch (e) { showToast('שגיאה בהוספת משימה: ' + e.message); console.error('addTask error:', e); }
 }
 
 function changeTaskStatus(id, newStatus) {
@@ -6780,7 +6783,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '67';
+const APP_VERSION = '68';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
