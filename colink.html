@@ -4601,7 +4601,13 @@ function sendTaskNotification(taskTitle, assignedTo) {
   const subject = '📋 משימה חדשה שויכה ל' + roleLabel;
   const body = taskTitle;
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => reg.showNotification(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' }));
+      } else {
+        new Notification(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+      }
+    } catch (e) {}
   }
   showToast(subject + ': ' + body);
   const forRole = assignedTo === 'משותפת' ? 'both' : assignedTo;
@@ -6788,7 +6794,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '69';
+const APP_VERSION = '70';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
