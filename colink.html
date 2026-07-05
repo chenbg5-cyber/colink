@@ -2158,7 +2158,8 @@
       <div class="card" style="border:1px solid #f59e0b44;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
-          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, לחצ/י כאן לשחזור מגיבוי בענן.</p>
+          <button class="btn" style="background:#8b5cf6;color:white;padding:10px 16px;border-radius:10px;" onclick="restoreFromBackup()">⟳ שחזור מגיבוי מקומי</button>
+          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, נסי שחזור מגיבוי מקומי או מהענן.</p>
           <div style="display:flex;gap:8px;margin-top:4px;">
             <input type="text" id="manualFamilyCode" placeholder="הזנת קוד משפחה ידנית" style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
             <button class="btn" style="background:#10b981;color:white;padding:10px 14px;border-radius:10px;white-space:nowrap;" onclick="recoverWithCode()">שחזור עם קוד</button>
@@ -2821,9 +2822,17 @@ function signInWithGoogle() {
 }
 
 async function onAuthSuccess() {
+  loadingFromCloud = true;
   document.getElementById('authScreen').classList.add('hidden');
   const localSaved = localStorage.getItem('colink_data');
   const localData = localSaved ? JSON.parse(localSaved) : null;
+  if (localData) {
+    const hasContent = (localData.kids && localData.kids.length > 0) || (localData.tasks && localData.tasks.length > 0) || (localData.events && localData.events.length > 0) || (localData.activities && localData.activities.length > 0);
+    if (hasContent) {
+      localStorage.setItem('colink_backup', JSON.stringify(localData));
+      localStorage.setItem('colink_backup_time', new Date().toISOString());
+    }
+  }
 
   // Show app immediately from local data while cloud loads
   if (localData && localData.user && localData.user.name) {
@@ -2921,7 +2930,7 @@ async function onAuthSuccess() {
     let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
-      sharedHasData = (shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0);
+      sharedHasData = SHARED_FIELDS.some(f => Array.isArray(shared[f]) ? shared[f].length > 0 : (shared[f] != null && typeof shared[f] === 'object' && Object.keys(shared[f]).length > 0));
       if (sharedHasData) {
         SHARED_FIELDS.forEach(f => {
           if (shared[f] != null) {
@@ -2969,6 +2978,7 @@ async function onAuthSuccess() {
     SHARED_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
 
+  loadingFromCloud = false;
   localStorage.setItem('colink_data', JSON.stringify(appData));
   migrateData();
   if (appData.user.name) {
@@ -3050,10 +3060,12 @@ const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','sign
 const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays'];
 let sharedDataListener = null;
 let ignoringSnapshot = false;
+let loadingFromCloud = false;
 
 let lastSaveTime = 0;
 
 function saveToCloud() {
+  if (loadingFromCloud) return;
   if (!currentFirebaseUser) { console.warn('saveToCloud: no user'); return; }
   if (!appData.user) { console.warn('saveToCloud: no appData.user'); return; }
   const personalData = { mode: appData.mode, user: appData.user };
@@ -3062,7 +3074,12 @@ function saveToCloud() {
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
   if (!appData.familyCode) { console.warn('saveToCloud: no familyCode — shared data not synced'); return; }
   const shared = {};
-  SHARED_FIELDS.forEach(f => { if (appData[f] != null) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
+  SHARED_FIELDS.forEach(f => {
+    if (appData[f] != null) {
+      if (Array.isArray(appData[f]) && appData[f].length === 0) return;
+      shared[f] = JSON.parse(JSON.stringify(appData[f]));
+    }
+  });
   if (shared.signatures) {
     shared.signatures = shared.signatures.map(s => {
       const copy = {...s};
@@ -3321,8 +3338,26 @@ function saveData() {
   if (!appData.camps) appData.camps = [];
   if (!appData.user) appData.user = { name: '', email: '', phone: '', role: '', partnerEmail: '' };
   localStorage.setItem('colink_data', JSON.stringify(appData));
+  const hasContent = (appData.kids.length > 0) || (appData.tasks.length > 0) || (appData.events.length > 0) || (appData.activities && appData.activities.length > 0);
+  if (hasContent) {
+    localStorage.setItem('colink_backup', localStorage.getItem('colink_data'));
+    localStorage.setItem('colink_backup_time', new Date().toISOString());
+  }
   saveToCloud();
   cacheBirthdayData();
+}
+
+function restoreFromBackup() {
+  const backup = localStorage.getItem('colink_backup');
+  if (!backup) { showToast('אין גיבוי זמין'); return; }
+  const parsed = JSON.parse(backup);
+  const hasContent = (parsed.kids && parsed.kids.length > 0) || (parsed.tasks && parsed.tasks.length > 0) || (parsed.events && parsed.events.length > 0);
+  if (!hasContent) { showToast('הגיבוי ריק'); return; }
+  const time = localStorage.getItem('colink_backup_time');
+  Object.assign(appData, parsed);
+  migrateData();
+  updateApp();
+  showToast('שוחזר מגיבוי' + (time ? ' מ-' + new Date(time).toLocaleString('he-IL') : ''));
 }
 
 function showToast(msg) {
@@ -6900,7 +6935,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '73';
+const APP_VERSION = '74';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
