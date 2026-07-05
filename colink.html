@@ -2334,6 +2334,14 @@
       <label>באיזה יום בחודש?</label>
       <input type="number" id="recurringMonthDay" min="1" max="31" value="1" style="width:70px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;text-align:center;">
     </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label>קובץ מצורף</label>
+      <div id="taskAttachArea" style="border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.2s;" onclick="document.getElementById('taskFileInput').click()">
+        <div id="taskAttachEmpty" style="color:var(--text-light);font-size:0.85rem;">📎 לחצ/י לצירוף קובץ (עד 500KB)</div>
+        <div id="taskAttachPreview" style="display:none;"></div>
+      </div>
+      <input type="file" id="taskFileInput" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" onchange="handleTaskAttachment(this)">
+    </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addTask()">הוספה</button>
       <button class="btn btn-secondary" onclick="closeModal('taskModal')">ביטול</button>
@@ -4820,6 +4828,65 @@ function calculateAge(dob) {
 }
 
 // ============ TASKS ============
+let pendingTaskAttachment = null;
+
+function handleTaskAttachment(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) {
+    showToast('הקובץ גדול מדי — מקסימום 500KB');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    pendingTaskAttachment = { name: file.name, type: file.type, data: e.target.result };
+    showTaskAttachPreview(pendingTaskAttachment);
+  };
+  reader.readAsDataURL(file);
+}
+
+function showTaskAttachPreview(att) {
+  const empty = document.getElementById('taskAttachEmpty');
+  const preview = document.getElementById('taskAttachPreview');
+  empty.style.display = 'none';
+  preview.style.display = 'block';
+  const isImage = att.type && att.type.startsWith('image/');
+  preview.innerHTML = (isImage ? '<img src="' + att.data + '" style="max-width:100%;max-height:120px;border-radius:8px;margin-bottom:8px;">' : '') +
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">' +
+    '<span style="font-size:0.85rem;">📎 ' + att.name + '</span>' +
+    '<button type="button" onclick="event.stopPropagation();clearTaskAttachment()" style="background:#e74c3c;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;">הסר</button>' +
+    '</div>';
+}
+
+function clearTaskAttachment() {
+  pendingTaskAttachment = null;
+  document.getElementById('taskFileInput').value = '';
+  document.getElementById('taskAttachEmpty').style.display = 'block';
+  document.getElementById('taskAttachPreview').style.display = 'none';
+  document.getElementById('taskAttachPreview').innerHTML = '';
+}
+
+function viewTaskAttachment(id) {
+  const task = (appData.tasks || []).find(t => t.id === id);
+  if (!task || !task.attachment) return;
+  const att = task.attachment;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  const box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:90vw;max-height:85vh;overflow:auto;text-align:center;';
+  const isImage = att.type && att.type.startsWith('image/');
+  box.innerHTML = (isImage ? '<img src="' + att.data + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;">' : '<div style="font-size:3rem;margin-bottom:12px;">📄</div>') +
+    '<div style="font-size:0.9rem;margin-bottom:12px;color:#333;">' + att.name + '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:center;">' +
+    '<a href="' + att.data + '" download="' + att.name + '" style="background:var(--primary,#6C63FF);color:white;border:none;border-radius:10px;padding:10px 20px;text-decoration:none;font-size:0.9rem;">הורדה</a>' +
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
+    '</div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
 function addTask() {
   try {
   const title = document.getElementById('taskTitle').value.trim();
@@ -4868,17 +4935,21 @@ function addTask() {
       task.category = category; task.status = status;
       task.recurring = recurring; task.recurringFreq = recurring ? recurringDetail : '';
       task.updatedAt = new Date().toISOString();
+      if (pendingTaskAttachment) task.attachment = pendingTaskAttachment;
+      else if (pendingTaskAttachment === null && !document.getElementById('taskAttachPreview').innerHTML) delete task.attachment;
     }
   } else {
     if (!appData.tasks) appData.tasks = [];
     const children = forChild === '__all__' ? (appData.kids || []).map(k => k.name) : [forChild];
     children.forEach((child, i) => {
-      appData.tasks.push({
+      const newTask = {
         id: Date.now() + i,
         title, desc, responsibility: res, forChild: child, priority, date: recurring ? '' : date, category, status,
         recurring, recurringFreq: recurring ? recurringDetail : '',
         createdAt: new Date().toISOString()
-      });
+      };
+      if (pendingTaskAttachment) newTask.attachment = pendingTaskAttachment;
+      appData.tasks.push(newTask);
     });
     sendTaskNotification(title, res);
   }
@@ -4901,6 +4972,7 @@ function addTask() {
   document.getElementById('recurringDaysGroup').style.display = 'none';
   document.getElementById('recurringEveryGroup').style.display = 'none';
   document.getElementById('recurringMonthDayGroup').style.display = 'none';
+  clearTaskAttachment();
   renderTasks();
   updateDashboard();
   } catch (e) { showToast('שגיאה בהוספת משימה: ' + e.message); console.error('addTask error:', e); }
@@ -4963,6 +5035,11 @@ function editTask(id) {
   document.getElementById('taskDate').value = t.date || '';
   document.getElementById('taskCategory').value = t.category || '';
   document.getElementById('taskStatus').value = t.status || 'pending';
+  clearTaskAttachment();
+  if (t.attachment) {
+    pendingTaskAttachment = t.attachment;
+    showTaskAttachPreview(t.attachment);
+  }
   document.getElementById('taskRecurring').checked = !!t.recurring;
   toggleRecurring();
   if (t.recurring && t.recurringFreq) {
@@ -5032,7 +5109,7 @@ function renderTasks() {
             ${getCategoryIcon(t.category)} ${t.category || ''} · ${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${formatDate(t.date)}
             ${t.recurring ? ' · ' + t.recurringFreq : ''}
           </div>
-          <div class="list-item-meta">${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}</div>
+          <div class="list-item-meta">${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}${t.attachment ? ' · <span onclick="viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);">📎 ' + t.attachment.name + '</span>' : ''}</div>
         </div>
         <div class="list-item-actions">
           <select onchange="changeTaskStatus(${t.id}, this.value)" ${lockedByOther ? 'disabled' : ''} style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;${lockedByOther ? 'opacity:0.5;' : ''}">
@@ -6794,7 +6871,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '70';
+const APP_VERSION = '71';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
