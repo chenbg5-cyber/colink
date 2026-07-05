@@ -3088,8 +3088,8 @@ function listenToSharedData() {
       const localTaskMap = (appData.tasks || []).reduce((m, t) => { m[t.id] = t; return m; }, {});
       let changed = false;
       SHARED_FIELDS.forEach(f => {
-        if (shared[f] !== undefined) {
-          if (f === 'tasks') {
+        if (shared[f] != null) {
+          if (f === 'tasks' && Array.isArray(shared.tasks)) {
             const mergedTasks = shared.tasks.map(ct => {
               const loc = localTaskMap[ct.id];
               if (loc && loc.updatedAt && (!ct.updatedAt || loc.updatedAt > ct.updatedAt)) return loc;
@@ -3100,7 +3100,7 @@ function listenToSharedData() {
               if (!cloudIds.has(loc.id)) mergedTasks.push(loc);
             });
             appData.tasks = mergedTasks;
-          } else {
+          } else if (f !== 'tasks') {
             appData[f] = shared[f];
           }
           changed = true;
@@ -3190,6 +3190,11 @@ let currentTaskFilter = 'all';
 
 // ============ INIT ============
 function migrateData() {
+  if (!appData.tasks) appData.tasks = [];
+  if (!appData.kids) appData.kids = [];
+  if (!appData.events) appData.events = [];
+  if (!appData.expenses) appData.expenses = [];
+  if (!appData.user) appData.user = { name: '', email: '', phone: '', role: '', partnerEmail: '' };
   const role = appData.user.role || 'אמא';
   appData.tasks = appData.tasks.map(t => {
     if (!t.status) {
@@ -4150,15 +4155,15 @@ function updateDashboard() {
   `;
 
   // Card 3: Today Assignments count (for my role)
-  const todayTasks = appData.tasks.filter(t => t.date === todayStr && isMyTask(t) && t.status !== 'done');
+  const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && t.status !== 'done');
   document.getElementById('statTodayTasks').textContent = todayTasks.length;
 
   // Card 4: Total Assignments count (for my role, not done)
-  const totalTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done');
+  const totalTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done');
   document.getElementById('statTotalTasks').textContent = totalTasks.length;
 
   // Card 5: Friends Birthday count
-  const friendsBday = appData.tasks.filter(t => t.category === 'יום הולדת חבר/ה' && t.status !== 'done');
+  const friendsBday = (appData.tasks || []).filter(t => t.category === 'יום הולדת חבר/ה' && t.status !== 'done');
   document.getElementById('statFriendsBirthday').textContent = friendsBday.length;
   const fbSummary = document.getElementById('statFriendsBdaySummary');
   if (fbSummary) {
@@ -4174,7 +4179,7 @@ function updateDashboard() {
 
   // Card 6: Kids Birthday (30 days before)
   const kidsBdayEl = document.getElementById('statKidsBirthday');
-  const upcomingBdays = appData.kids.map(kid => {
+  const upcomingBdays = (appData.kids || []).map(kid => {
     if (!kid.dob) return null;
     const bday = new Date(kid.dob);
     const thisYearBday = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
@@ -4991,7 +4996,7 @@ function filterTasks(filter, btn) {
 
 function renderTasks() {
   const container = document.getElementById('tasksList');
-  let tasks = [...appData.tasks];
+  let tasks = [...(appData.tasks || [])];
 
   if (currentTaskFilter === 'pending') tasks = tasks.filter(t => t.status === 'pending');
   else if (currentTaskFilter === 'inprocess') tasks = tasks.filter(t => t.status === 'inprocess');
@@ -6783,7 +6788,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '68';
+const APP_VERSION = '69';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
