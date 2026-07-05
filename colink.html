@@ -2923,7 +2923,12 @@ async function onAuthSuccess() {
       const shared = sharedSnap.data();
       sharedHasData = (shared.tasks && shared.tasks.length > 0) || (shared.kids && shared.kids.length > 0) || (shared.events && shared.events.length > 0);
       if (sharedHasData) {
-        SHARED_FIELDS.forEach(f => { if (shared[f] != null) appData[f] = shared[f]; });
+        SHARED_FIELDS.forEach(f => {
+          if (shared[f] != null) {
+            if (Array.isArray(shared[f]) && shared[f].length === 0 && Array.isArray(appData[f]) && appData[f].length > 0) return;
+            appData[f] = shared[f];
+          }
+        });
         if (appData.tasks) {
           let merged = false;
           appData.tasks = appData.tasks.map(t => {
@@ -3057,7 +3062,7 @@ function saveToCloud() {
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
   if (!appData.familyCode) { console.warn('saveToCloud: no familyCode — shared data not synced'); return; }
   const shared = {};
-  SHARED_FIELDS.forEach(f => { if (appData[f] !== undefined) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
+  SHARED_FIELDS.forEach(f => { if (appData[f] != null) shared[f] = JSON.parse(JSON.stringify(appData[f])); });
   if (shared.signatures) {
     shared.signatures = shared.signatures.map(s => {
       const copy = {...s};
@@ -3123,7 +3128,8 @@ function listenToSharedData() {
             });
             appData.tasks = mergedTasks;
           } else if (f !== 'tasks') {
-            appData[f] = shared[f];
+            if (Array.isArray(shared[f]) && shared[f].length === 0 && Array.isArray(appData[f]) && appData[f].length > 0) { /* keep local */ }
+            else appData[f] = shared[f];
           }
           changed = true;
         }
@@ -3305,6 +3311,15 @@ function init() {
 }
 
 function saveData() {
+  if (!appData.kids) appData.kids = [];
+  if (!appData.tasks) appData.tasks = [];
+  if (!appData.events) appData.events = [];
+  if (!appData.expenses) appData.expenses = [];
+  if (!appData.custodyChanges) appData.custodyChanges = [];
+  if (!appData.signatures) appData.signatures = [];
+  if (!appData.activities) appData.activities = [];
+  if (!appData.camps) appData.camps = [];
+  if (!appData.user) appData.user = { name: '', email: '', phone: '', role: '', partnerEmail: '' };
   localStorage.setItem('colink_data', JSON.stringify(appData));
   saveToCloud();
   cacheBirthdayData();
@@ -6885,7 +6900,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '72';
+const APP_VERSION = '73';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
