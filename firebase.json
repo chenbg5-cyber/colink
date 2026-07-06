@@ -1,7 +1,7 @@
 {
   "hosting": {
     "site": "colink-app",
-    "public": ".",
+    "public": "CoLink",
     "ignore": [
       "firebase.json",
       "firestore.rules",
@@ -10,7 +10,8 @@
       ".claude/**",
       ".git/**",
       "*.ps1",
-      "tests.js"
+      "tests.js",
+      "CreditSumApp/**"
     ],
     "headers": [
       {

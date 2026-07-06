@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "credit-app",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "CreditSumApp", "-p", "3002", "-c-1", "--cors"],
+      "port": 3002
+    },
+    {
+      "name": "colink",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-ExecutionPolicy", "Bypass", "-File", "C:\\Users\\ChenBengigi-Achiel\\Desktop\\Claude code app\\serve.ps1"],
+      "port": 3001
+    }
+  ]
+}
