@@ -845,7 +845,7 @@
   function isChargeSMS(text) {
     const lower = text.toLowerCase();
     // Must contain at least one charge indicator
-    const chargeWords = ['עסקה', 'חיוב', 'חויב', 'אושרה', 'בוצעה', 'רכישה', 'נרשמה', 'בסך', 'ע"ס', 'על סך', 'שולם'];
+    const chargeWords = ['בכרטיסך', 'עסקה', 'חיוב', 'חויב', 'אושרה', 'בוצעה', 'רכישה', 'נרשמה', 'בסך', 'ע"ס', 'על סך', 'שולם'];
     const hasCharge = chargeWords.some(w => text.includes(w));
     if (!hasCharge) return false;
     // Reject if it's clearly NOT a charge
