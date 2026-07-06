@@ -649,10 +649,28 @@
     </div>
   </div>
 
-  <!-- SMS Input -->
+  <!-- How to add -->
   <div class="input-section">
-    <div class="sms-box" id="smsBox">
-      <label>📩 הדבק SMS מחברת האשראי</label>
+    <!-- Share button - primary method -->
+    <div class="sms-box" id="shareBox" style="text-align:center; padding:20px 16px;">
+      <div style="font-size:14px; font-weight:600; margin-bottom:12px;">📲 איך מוסיפים חיוב?</div>
+      <div style="font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.7;">
+        כשמגיע SMS מהאשראי:<br>
+        <b style="color:var(--text);">לחץ על ההודעה ← שתף ← בחר "מעקב אשראי"</b><br>
+        הסכום יתווסף אוטומטית!
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="togglePaste()" style="flex:1; padding:12px; background:rgba(255,255,255,0.08); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">📋 הדבק SMS</button>
+        <button onclick="toggleManual()" style="flex:1; padding:12px; background:rgba(255,255,255,0.08); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">✏️ הזן ידנית</button>
+      </div>
+    </div>
+
+    <!-- SMS paste area (hidden by default) -->
+    <div class="sms-box" id="smsBox" style="display:none; margin-top:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <label style="margin:0;">📩 הדבק SMS מחברת האשראי</label>
+        <button onclick="togglePaste()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
+      </div>
       <textarea class="sms-textarea" id="smsInput" placeholder="הדבק כאן את הודעת ה-SMS...
 לדוגמה: עסקה בכרטיס *1234 בסך 150.00 ש״ח אושרה ב-שופרסל"></textarea>
       <div class="detected-amount" id="detectedAmount">
@@ -661,15 +679,20 @@
       </div>
       <button class="add-btn" id="addBtn" onclick="addFromSMS()">➕ הוסף חיוב</button>
     </div>
-  </div>
 
-  <!-- Manual input toggle -->
-  <div class="manual-section">
-    <button class="manual-toggle" onclick="toggleManual()">או הזן סכום ידנית</button>
-  </div>
-  <div class="manual-input-row" id="manualRow">
-    <input type="number" class="manual-input" id="manualInput" placeholder="סכום בש״ח" inputmode="decimal">
-    <button class="manual-add-btn" onclick="addManual()">הוסף</button>
+    <!-- Manual input (hidden by default) -->
+    <div id="manualRow" style="display:none; margin-top:10px;">
+      <div class="sms-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <label style="margin:0;">✏️ הזנה ידנית</label>
+          <button onclick="toggleManual()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="number" class="manual-input" id="manualInput" placeholder="סכום בש״ח" inputmode="decimal" style="flex:1;">
+          <button class="manual-add-btn" onclick="addManual()">הוסף</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- History -->
@@ -1027,9 +1050,18 @@
     updateUI();
   }
 
-  // Manual input toggle
+  // Toggle paste / manual panels
+  function togglePaste() {
+    const box = document.getElementById('smsBox');
+    const manual = document.getElementById('manualRow');
+    manual.style.display = 'none';
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
   function toggleManual() {
-    document.getElementById('manualRow').classList.toggle('show');
+    const box = document.getElementById('smsBox');
+    const manual = document.getElementById('manualRow');
+    box.style.display = 'none';
+    manual.style.display = manual.style.display === 'none' ? 'block' : 'none';
   }
 
   // Settings
