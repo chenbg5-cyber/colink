@@ -841,6 +841,19 @@
     return data.entries.reduce((sum, e) => sum + e.amount, 0);
   }
 
+  // Filter: is this SMS a credit card charge (not marketing, OTP, refund, etc.)?
+  function isChargeSMS(text) {
+    const lower = text.toLowerCase();
+    // Must contain at least one charge indicator
+    const chargeWords = ['עסקה', 'חיוב', 'חויב', 'אושרה', 'בוצעה', 'רכישה', 'נרשמה', 'בסך', 'ע"ס', 'על סך', 'שולם'];
+    const hasCharge = chargeWords.some(w => text.includes(w));
+    if (!hasCharge) return false;
+    // Reject if it's clearly NOT a charge
+    const rejectWords = ['זיכוי', 'החזר', 'בוטלה', 'נדחתה', 'סיסמה', 'סיסמא', 'קוד אימות', 'קוד חד', 'otp', 'אימות', 'תשלום התקבל', 'יתרה', 'הנחה על'];
+    const isRejected = rejectWords.some(w => text.includes(w) || lower.includes(w));
+    return !isRejected;
+  }
+
   // SMS amount extraction - supports multiple Israeli credit card SMS formats
   function extractAmount(text) {
     const patterns = [
@@ -1164,16 +1177,20 @@
     const sharedText = params.get('shared_text');
     if (!sharedText) return;
 
+    if (!isChargeSMS(sharedText)) {
+      // Not a charge SMS - ignore silently (marketing, OTP, refund, etc.)
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
     const amt = extractAmount(sharedText);
     if (amt) {
       const store = extractStore(sharedText);
       addEntry(amt, store);
-      // Show confirmation toast
       showToast(`✅ נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
     } else {
-      // Put text in textarea for manual review
       smsInput.value = sharedText;
       smsInput.dispatchEvent(new Event('input'));
+      document.getElementById('smsBox').style.display = 'block';
     }
     // Clean URL
     history.replaceState(null, '', window.location.pathname);
