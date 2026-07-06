@@ -692,6 +692,39 @@
     </div>
   </div>
 
+  <!-- Tasker Guide modal -->
+  <div class="settings-modal" id="taskerGuide">
+    <div class="settings-content" style="max-height:85vh; overflow-y:auto; border-radius:20px 20px 0 0;">
+      <h3>📱 חיבור SMS אוטומטי עם Tasker</h3>
+      <div style="font-size:13px; color:var(--text-dim); line-height:1.8; text-align:right;">
+        <p style="margin-bottom:14px; color:var(--green); font-weight:700;">ברגע שתגדירי את זה - כל SMS מהאשראי יתווסף אוטומטית!</p>
+
+        <p style="font-weight:700; color:var(--text); margin-bottom:6px;">שלב 1: התקנת Tasker</p>
+        <p style="margin-bottom:14px;">הורידי את <b>Tasker</b> מ-Google Play (עולה כ-15 ש"ח, שווה כל שקל)</p>
+
+        <p style="font-weight:700; color:var(--text); margin-bottom:6px;">שלב 2: יצירת Profile חדש</p>
+        <p style="margin-bottom:4px;">1. פתחי Tasker → לחצי <b>+</b> → <b>Event</b></p>
+        <p style="margin-bottom:4px;">2. בחרי <b>Phone → Received Text</b></p>
+        <p style="margin-bottom:14px;">3. בשדה <b>Sender</b> הכניסי את מספרי חברות האשראי שלך (למשל: ויזה, מסטרכרד, ישראכרט). אפשר להוסיף כמה מספרים</p>
+
+        <p style="font-weight:700; color:var(--text); margin-bottom:6px;">שלב 3: יצירת Task</p>
+        <p style="margin-bottom:4px;">1. לחצי <b>New Task</b> → תני שם <b>"אשראי"</b></p>
+        <p style="margin-bottom:4px;">2. לחצי <b>+</b> → <b>Net → Browse URL</b></p>
+        <p style="margin-bottom:4px;">3. בשדה URL הדביקי:</p>
+        <div id="taskerUrl" style="background:rgba(255,255,255,0.08); padding:10px; border-radius:8px; margin:8px 0 14px; font-family:monospace; font-size:11px; direction:ltr; text-align:left; word-break:break-all; color:var(--yellow); cursor:pointer;" onclick="copyTaskerUrl()">
+          https://credit-sum-app.web.app/index.html?shared_text=%smsrb
+        </div>
+        <p style="margin-bottom:14px; font-size:11px; color:var(--text-dim);">💡 <b>%smsrb</b> זה משתנה של Tasker שמכיל את תוכן ה-SMS. לחצי על השורה להעתקה.</p>
+
+        <p style="font-weight:700; color:var(--text); margin-bottom:6px;">שלב 4: בדיקה</p>
+        <p style="margin-bottom:14px;">שלחי לעצמך SMS עם טקסט כזה:<br><span style="color:var(--yellow);">עסקה בכרטיס *1234 בסך 50.00 ש״ח אושרה</span><br>האפליקציה אמורה להוסיף ₪50 אוטומטית!</p>
+
+        <p style="font-weight:700; color:var(--green);">✅ זהו! מעכשיו כל SMS מהאשראי יתווסף אוטומטית.</p>
+      </div>
+      <button class="settings-close" onclick="closeTaskerGuide()" style="margin-top:16px;">סגור</button>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div class="settings-modal" id="settingsModal">
     <div class="settings-content">
@@ -703,6 +736,10 @@
       <div class="setting-row">
         <label>התראת פוש</label>
         <button id="pushToggle" onclick="requestPush()" style="padding:8px 16px; background:var(--green); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">הפעל</button>
+      </div>
+      <div class="setting-row">
+        <label>חיבור SMS אוטומטי</label>
+        <button onclick="closeSettings(); openTaskerGuide()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">📱 הגדר Tasker</button>
       </div>
       <button class="settings-save" onclick="saveSettings()">שמור</button>
       <button class="settings-close" onclick="closeSettings()">סגור</button>
@@ -1053,6 +1090,18 @@
       saveState();
       updateUI();
     }
+  }
+
+  // Tasker guide
+  function openTaskerGuide() {
+    document.getElementById('taskerGuide').classList.add('show');
+  }
+  function closeTaskerGuide() {
+    document.getElementById('taskerGuide').classList.remove('show');
+  }
+  function copyTaskerUrl() {
+    const url = 'https://credit-sum-app.web.app/index.html?shared_text=%smsrb';
+    navigator.clipboard.writeText(url).then(() => showToast('✅ הועתק!'));
   }
 
   // Enter key for manual input
