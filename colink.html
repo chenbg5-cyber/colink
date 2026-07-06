@@ -3010,9 +3010,7 @@ function listenToFamilyNotifications() {
           if (n.fromUid === currentFirebaseUser.uid) return;
           const age = Date.now() - (n.createdAt ? n.createdAt.toMillis() : 0);
           if (age > 60000) return;
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(n.title, { body: n.body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'family_' + change.doc.id });
-          }
+          safeNotify(n.title, { body: n.body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'family_' + change.doc.id });
           showToast(n.title);
         }
       });
@@ -3047,7 +3045,7 @@ async function initFCM() {
     messaging.onMessage(payload => {
       const { title, body } = payload.notification || {};
       if (title) {
-        new Notification(title, { body: body || '', icon: 'icons/icon-192.png' });
+        safeNotify(title, { body: body || '', icon: 'icons/icon-192.png' });
         showToast(title);
       }
     });
@@ -4689,13 +4687,24 @@ function checkCampReminders() {
   });
 }
 
+function safeNotify(title, opts) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, opts)).catch(() => {});
+    } else {
+      new Notification(title, opts);
+    }
+  } catch (e) {}
+}
+
 function sendBirthdayNotification(subject, body) {
   if ('Notification' in window) {
     if (Notification.permission === 'granted') {
-      new Notification(subject, { body: body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: subject, renotify: false });
+      safeNotify(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: subject, renotify: false });
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(p => {
-        if (p === 'granted') new Notification(subject, { body: body, icon: 'icons/icon-192.png', tag: subject, renotify: false });
+        if (p === 'granted') safeNotify(subject, { body, icon: 'icons/icon-192.png', tag: subject, renotify: false });
       });
     }
   }
@@ -4705,15 +4714,7 @@ function sendTaskNotification(taskTitle, assignedTo) {
   const roleLabel = assignedTo === 'dad' ? 'אבא' : assignedTo === 'mom' ? 'אמא' : 'שניהם';
   const subject = '📋 משימה חדשה שויכה ל' + roleLabel;
   const body = taskTitle;
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(reg => reg.showNotification(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' }));
-      } else {
-        new Notification(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
-      }
-    } catch (e) {}
-  }
+  safeNotify(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
   showToast(subject + ': ' + body);
   const forRole = assignedTo === 'משותפת' ? 'both' : assignedTo;
   sendFamilyNotification(subject, body, forRole);
@@ -6968,7 +6969,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '75';
+const APP_VERSION = '76';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
