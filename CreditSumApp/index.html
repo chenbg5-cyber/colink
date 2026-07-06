@@ -1007,6 +1007,15 @@
     }
     updateUI();
 
+    // Push notification for every charge
+    if (Notification.permission === 'granted' && window._swReg) {
+      window._swReg.showNotification('💳 חיוב נרשם', {
+        body: `₪${formatNum(amount)}${store ? ' • ' + store : ''} | סה"כ: ₪${formatNum(newTotal)}`,
+        icon: 'icons/icon-192.png',
+        tag: 'charge-' + Date.now(),
+      });
+    }
+
     // Pulse animation
     const el = document.getElementById('totalAmount');
     el.classList.add('pulse');
