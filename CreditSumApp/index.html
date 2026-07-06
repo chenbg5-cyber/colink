@@ -849,7 +849,7 @@
     const hasCharge = chargeWords.some(w => text.includes(w));
     if (!hasCharge) return false;
     // Reject if it's clearly NOT a charge
-    const rejectWords = ['זיכוי', 'החזר', 'בוטלה', 'נדחתה', 'סיסמה', 'סיסמא', 'קוד אימות', 'קוד חד', 'otp', 'אימות', 'תשלום התקבל', 'יתרה', 'הנחה על'];
+    const rejectWords = ['זיכוי', 'החזר', 'בוטלה', 'נדחתה', 'ניסיון חיוב', 'ניסיוו חיוב', 'סיסמה', 'סיסמא', 'קוד אימות', 'קוד חד', 'otp', 'אימות', 'תשלום התקבל', 'יתרה', 'הנחה על'];
     const isRejected = rejectWords.some(w => text.includes(w) || lower.includes(w));
     return !isRejected;
   }
