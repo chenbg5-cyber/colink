@@ -2338,7 +2338,7 @@
     <div class="form-group" style="margin-top:8px;">
       <label>קובץ מצורף</label>
       <div id="taskAttachArea" style="border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.2s;" onclick="document.getElementById('taskFileInput').click()">
-        <div id="taskAttachEmpty" style="color:var(--text-light);font-size:0.85rem;">📎 לחצ/י לצירוף קובץ (עד 500KB)</div>
+        <div id="taskAttachEmpty" style="color:var(--text-light);font-size:0.85rem;">📎 לחצ/י לצירוף קובץ (עד 5MB)</div>
         <div id="taskAttachPreview" style="display:none;"></div>
       </div>
       <input type="file" id="taskFileInput" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" onchange="handleTaskAttachment(this)">
@@ -4931,8 +4931,8 @@ let pendingTaskAttachment = null;
 function handleTaskAttachment(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 500 * 1024) {
-    showToast('הקובץ גדול מדי — מקסימום 500KB');
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('הקובץ גדול מדי — מקסימום 5MB');
     input.value = '';
     return;
   }
@@ -6969,7 +6969,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '76';
+const APP_VERSION = '77';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
