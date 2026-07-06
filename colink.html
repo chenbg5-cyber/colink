@@ -4325,7 +4325,7 @@ function updateDashboard() {
             ${isDone ? '✓' : ''}
           </div>
           <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
-            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''} ${stamp}</div>
+            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''} ${stamp}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
             <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
             ${desc}
           </div>
@@ -6969,7 +6969,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '77';
+const APP_VERSION = '78';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
