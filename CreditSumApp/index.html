@@ -1182,9 +1182,18 @@
 
   // Web Share Target: auto-process SMS shared to the app
   function handleSharedText() {
-    let sharedText = null;
+    const fullUrl = window.location.href;
     const raw = window.location.search;
+
+    // Debug log - save to localStorage so we can see what happened
+    const debugLog = JSON.parse(localStorage.getItem('debug_log') || '[]');
+    debugLog.push({ time: new Date().toLocaleTimeString(), url: fullUrl, search: raw });
+    if (debugLog.length > 20) debugLog.shift();
+    localStorage.setItem('debug_log', JSON.stringify(debugLog));
+
     if (!raw || !raw.includes('shared_text=')) return;
+
+    let sharedText = null;
     const match = raw.match(/shared_text=(.+)/);
     if (match) {
       try { sharedText = decodeURIComponent(match[1]); } catch(e) { sharedText = match[1]; }
@@ -1192,8 +1201,12 @@
     if (!sharedText) return;
     sharedText = sharedText.trim();
 
+    debugLog[debugLog.length - 1].parsed = sharedText;
+    debugLog[debugLog.length - 1].isCharge = isChargeSMS(sharedText);
+    debugLog[debugLog.length - 1].amount = extractAmount(sharedText);
+    localStorage.setItem('debug_log', JSON.stringify(debugLog));
+
     if (!isChargeSMS(sharedText)) {
-      // Not a charge SMS - ignore silently (marketing, OTP, refund, etc.)
       history.replaceState(null, '', window.location.pathname);
       return;
     }
@@ -1207,7 +1220,6 @@
       smsInput.dispatchEvent(new Event('input'));
       document.getElementById('smsBox').style.display = 'block';
     }
-    // Clean URL
     history.replaceState(null, '', window.location.pathname);
   }
 
