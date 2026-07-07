@@ -778,12 +778,8 @@
     <div class="settings-content">
       <h3>⚙️ הגדרות</h3>
       <div class="setting-row" style="flex-direction:column; align-items:stretch;">
-        <label style="margin-bottom:8px;">🔔 התראות בסכומים (ש"ח)</label>
-        <div id="milestonesList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input type="number" id="newMilestone" placeholder="סכום חדש" inputmode="numeric" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;">
-          <button onclick="addMilestone()" style="padding:8px 14px; background:var(--green); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">+ הוסף</button>
-        </div>
+        <label style="margin-bottom:8px;">🔔 התראות (עד 5)</label>
+        <div id="milestoneSlots"></div>
       </div>
       <div class="setting-row">
         <label>התראת פוש</label>
@@ -837,7 +833,7 @@
   }
 
   function defaultState() {
-    return { milestones: [1000, 3000, 5000, 7000, 10000, 12000, 15000], months: {}, pushEnabled: false, recurring: [] };
+    return { milestones: [1000, 5000, 7000, 10000, 15000], months: {}, pushEnabled: false, recurring: [] };
   }
 
   function loadState() {
@@ -850,6 +846,7 @@
           for (let i = step; i <= 15000; i += step) s.milestones.push(i);
         }
         if (!s.milestones) s.milestones = defaultState().milestones;
+        if (s.milestones.length > 5) s.milestones = s.milestones.slice(0, 5);
         return s;
       }
     } catch(e) {}
@@ -1211,40 +1208,44 @@
   function openSettings() {
     document.getElementById('settingsModal').classList.add('show');
     updatePushButton();
-    renderMilestonesList();
+    renderMilestoneSlots();
   }
 
   function closeSettings() {
     document.getElementById('settingsModal').classList.remove('show');
   }
 
-  function addMilestone() {
-    const input = document.getElementById('newMilestone');
-    const val = parseInt(input.value);
-    if (!val || val <= 0) return;
+  const MILESTONE_OPTIONS = [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,12000,15000,20000];
+
+  function renderMilestoneSlots() {
+    const container = document.getElementById('milestoneSlots');
+    const milestones = state.milestones || [];
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+      const val = milestones[i] || '';
+      html += `<div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+        <span style="color:var(--text-dim); font-size:13px; width:20px;">${i+1}.</span>
+        <select onchange="updateMilestoneSlot(${i}, this.value)" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;">
+          <option value="">— ריק —</option>
+          ${MILESTONE_OPTIONS.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>₪${formatNum(o)}</option>`).join('')}
+          ${val && !MILESTONE_OPTIONS.includes(val) ? `<option value="${val}" selected>₪${formatNum(val)}</option>` : ''}
+        </select>
+        <input type="number" placeholder="אחר" inputmode="numeric" style="width:80px; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:13px;" onchange="updateMilestoneSlot(${i}, this.value)">
+      </div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function updateMilestoneSlot(index, value) {
+    const val = parseInt(value);
     if (!state.milestones) state.milestones = [];
-    if (state.milestones.includes(val)) { input.value = ''; return; }
-    state.milestones.push(val);
-    state.milestones.sort((a, b) => a - b);
+    while (state.milestones.length < 5) state.milestones.push(0);
+    state.milestones[index] = val || 0;
+    state.milestones = state.milestones.filter(m => m > 0);
+    state.milestones = [...new Set(state.milestones)].sort((a, b) => a - b);
     saveState();
-    input.value = '';
-    renderMilestonesList();
+    renderMilestoneSlots();
     updateUI();
-  }
-
-  function removeMilestone(val) {
-    state.milestones = (state.milestones || []).filter(m => m !== val);
-    saveState();
-    renderMilestonesList();
-    updateUI();
-  }
-
-  function renderMilestonesList() {
-    const container = document.getElementById('milestonesList');
-    const milestones = (state.milestones || []).sort((a, b) => a - b);
-    container.innerHTML = milestones.map(m =>
-      `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--accent-glow); border:1px solid var(--accent); border-radius:16px; font-size:13px; color:var(--accent);">₪${formatNum(m)}<button onclick="removeMilestone(${m})" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; padding:0; line-height:1;">✕</button></span>`
-    ).join('');
   }
 
   function saveSettings() {
