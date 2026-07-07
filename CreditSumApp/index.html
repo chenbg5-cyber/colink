@@ -777,9 +777,13 @@
   <div class="settings-modal" id="settingsModal">
     <div class="settings-content">
       <h3>⚙️ הגדרות</h3>
-      <div class="setting-row">
-        <label>התראה כל (ש"ח)</label>
-        <input type="number" id="milestoneStep" value="1000" inputmode="numeric">
+      <div class="setting-row" style="flex-direction:column; align-items:stretch;">
+        <label style="margin-bottom:8px;">🔔 התראות בסכומים (ש"ח)</label>
+        <div id="milestonesList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="number" id="newMilestone" placeholder="סכום חדש" inputmode="numeric" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;">
+          <button onclick="addMilestone()" style="padding:8px 14px; background:var(--green); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">+ הוסף</button>
+        </div>
       </div>
       <div class="setting-row">
         <label>התראת פוש</label>
@@ -833,13 +837,21 @@
   }
 
   function defaultState() {
-    return { milestoneStep: 1000, months: {}, pushEnabled: false, recurring: [] };
+    return { milestones: [1000, 3000, 5000, 7000, 10000, 12000, 15000], months: {}, pushEnabled: false, recurring: [] };
   }
 
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (s && s.months) return s;
+      if (s && s.months) {
+        if (!s.milestones && s.milestoneStep) {
+          const step = s.milestoneStep;
+          s.milestones = [];
+          for (let i = step; i <= 15000; i += step) s.milestones.push(i);
+        }
+        if (!s.milestones) s.milestones = defaultState().milestones;
+        return s;
+      }
     } catch(e) {}
     return defaultState();
   }
@@ -940,20 +952,20 @@
   function updateUI() {
     const total = getTotal(viewMonth);
     const data = getMonthData(viewMonth);
-    const step = state.milestoneStep || 1000;
-    const nextMilestone = (Math.floor(total / step) + 1) * step;
-    const prevMilestone = Math.floor(total / step) * step;
-    const progress = step > 0 ? ((total - prevMilestone) / step) * 100 : 0;
+    const milestones = (state.milestones || [1000]).sort((a, b) => a - b);
+    const nextMilestone = milestones.find(m => m > total) || milestones[milestones.length - 1];
+    const prevMilestone = [...milestones].reverse().find(m => m <= total) || 0;
+    const range = nextMilestone - prevMilestone;
+    const progress = range > 0 ? ((total - prevMilestone) / range) * 100 : (total >= nextMilestone ? 100 : 0);
 
     document.getElementById('totalNum').textContent = formatNum(total);
     document.getElementById('monthLabel').textContent = getMonthLabel(viewMonth);
     document.getElementById('cycleDates').textContent = getCycleLabel(viewMonth);
 
-    document.getElementById('milestoneCurrentLabel').textContent = `₪${formatNum(total)} מתוך ₪${formatNum(nextMilestone)}`;
-    document.getElementById('milestoneNextLabel').textContent = `🎯 התראה הבאה: ₪${formatNum(nextMilestone)}`;
+    const passedAll = total >= milestones[milestones.length - 1];
+    document.getElementById('milestoneCurrentLabel').textContent = passedAll ? `₪${formatNum(total)} — עברת את כל ההתראות!` : `₪${formatNum(total)} מתוך ₪${formatNum(nextMilestone)}`;
+    document.getElementById('milestoneNextLabel').textContent = passedAll ? '🎯 כל ההתראות הופעלו' : `🎯 התראה הבאה: ₪${formatNum(nextMilestone)}`;
     document.getElementById('milestoneFill').style.width = Math.min(progress, 100) + '%';
-
-    document.getElementById('milestoneStep').value = step;
 
     // History
     const list = document.getElementById('historyList');
@@ -1090,12 +1102,12 @@
     data.entries.push({ amount, store, time: timestamp || Date.now() });
 
     const newTotal = getTotal(monthKey);
-    const step = state.milestoneStep || 1000;
-    const currentMilestone = Math.floor(newTotal / step) * step;
-
-    if (currentMilestone > data.lastMilestone && currentMilestone > 0) {
-      data.lastMilestone = currentMilestone;
-      triggerMilestoneAlert(currentMilestone, newTotal);
+    const milestones = state.milestones || [1000];
+    const reached = milestones.filter(m => newTotal >= m && m > (data.lastMilestone || 0));
+    if (reached.length > 0) {
+      const highest = Math.max(...reached);
+      data.lastMilestone = highest;
+      triggerMilestoneAlert(highest, newTotal);
     }
 
     saveState();
@@ -1125,8 +1137,9 @@
     if (index >= 0 && index < data.entries.length) {
       data.entries.splice(index, 1);
       const newTotal = getTotal(monthKey);
-      const step = state.milestoneStep || 1000;
-      data.lastMilestone = Math.floor(newTotal / step) * step;
+      const milestones = state.milestones || [1000];
+      const below = milestones.filter(m => newTotal >= m);
+      data.lastMilestone = below.length ? Math.max(...below) : 0;
       saveState();
       updateUI();
     }
@@ -1198,24 +1211,51 @@
   function openSettings() {
     document.getElementById('settingsModal').classList.add('show');
     updatePushButton();
+    renderMilestonesList();
   }
 
   function closeSettings() {
     document.getElementById('settingsModal').classList.remove('show');
   }
 
+  function addMilestone() {
+    const input = document.getElementById('newMilestone');
+    const val = parseInt(input.value);
+    if (!val || val <= 0) return;
+    if (!state.milestones) state.milestones = [];
+    if (state.milestones.includes(val)) { input.value = ''; return; }
+    state.milestones.push(val);
+    state.milestones.sort((a, b) => a - b);
+    saveState();
+    input.value = '';
+    renderMilestonesList();
+    updateUI();
+  }
+
+  function removeMilestone(val) {
+    state.milestones = (state.milestones || []).filter(m => m !== val);
+    saveState();
+    renderMilestonesList();
+    updateUI();
+  }
+
+  function renderMilestonesList() {
+    const container = document.getElementById('milestonesList');
+    const milestones = (state.milestones || []).sort((a, b) => a - b);
+    container.innerHTML = milestones.map(m =>
+      `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--accent-glow); border:1px solid var(--accent); border-radius:16px; font-size:13px; color:var(--accent);">₪${formatNum(m)}<button onclick="removeMilestone(${m})" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; padding:0; line-height:1;">✕</button></span>`
+    ).join('');
+  }
+
   function saveSettings() {
-    const step = parseInt(document.getElementById('milestoneStep').value);
-    if (step && step > 0) {
-      state.milestoneStep = step;
-      // Recalculate lastMilestone for current month
-      const cycleKey = getCurrentCycleKey();
-      const data = getMonthData(cycleKey);
-      const total = getTotal(cycleKey);
-      data.lastMilestone = Math.floor(total / step) * step;
-      saveState();
-      updateUI();
-    }
+    const cycleKey = getCurrentCycleKey();
+    const data = getMonthData(cycleKey);
+    const total = getTotal(cycleKey);
+    const milestones = state.milestones || [];
+    const below = milestones.filter(m => total >= m);
+    data.lastMilestone = below.length ? Math.max(...below) : 0;
+    saveState();
+    updateUI();
     closeSettings();
   }
 
