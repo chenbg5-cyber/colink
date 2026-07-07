@@ -778,8 +778,9 @@
     <div class="settings-content">
       <h3>⚙️ הגדרות</h3>
       <div class="setting-row" style="flex-direction:column; align-items:stretch;">
-        <label style="margin-bottom:8px;">🔔 התראות (עד 5)</label>
+        <label style="margin-bottom:8px;">🔔 התראות</label>
         <div id="milestoneSlots"></div>
+        <button id="addMilestoneBtn" onclick="addMilestoneSlot()" style="margin-top:6px; padding:8px; background:none; border:1px dashed var(--card-border); border-radius:8px; color:var(--text-dim); font-family:inherit; cursor:pointer; font-size:13px; width:100%;">+ הוסף התראה</button>
       </div>
       <div class="setting-row">
         <label>התראת פוש</label>
@@ -833,7 +834,7 @@
   }
 
   function defaultState() {
-    return { milestones: [1000, 5000, 7000, 10000, 15000], months: {}, pushEnabled: false, recurring: [] };
+    return { milestones: [1000], months: {}, pushEnabled: false, recurring: [] };
   }
 
   function loadState() {
@@ -1220,29 +1221,41 @@
   function renderMilestoneSlots() {
     const container = document.getElementById('milestoneSlots');
     const milestones = state.milestones || [];
-    let html = '';
-    for (let i = 0; i < 5; i++) {
-      const val = milestones[i] || '';
-      html += `<div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-        <span style="color:var(--text-dim); font-size:13px; width:20px;">${i+1}.</span>
+    container.innerHTML = milestones.map((val, i) =>
+      `<div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
         <select onchange="updateMilestoneSlot(${i}, this.value)" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;">
-          <option value="">— ריק —</option>
           ${MILESTONE_OPTIONS.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>₪${formatNum(o)}</option>`).join('')}
-          ${val && !MILESTONE_OPTIONS.includes(val) ? `<option value="${val}" selected>₪${formatNum(val)}</option>` : ''}
+          ${!MILESTONE_OPTIONS.includes(val) ? `<option value="${val}" selected>₪${formatNum(val)}</option>` : ''}
         </select>
         <input type="number" placeholder="אחר" inputmode="numeric" style="width:80px; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:13px;" onchange="updateMilestoneSlot(${i}, this.value)">
-      </div>`;
-    }
-    container.innerHTML = html;
+        <button onclick="removeMilestoneSlot(${i})" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:18px; padding:0 4px;">✕</button>
+      </div>`
+    ).join('');
+    document.getElementById('addMilestoneBtn').style.display = milestones.length >= 5 ? 'none' : 'block';
   }
 
   function updateMilestoneSlot(index, value) {
     const val = parseInt(value);
-    if (!state.milestones) state.milestones = [];
-    while (state.milestones.length < 5) state.milestones.push(0);
-    state.milestones[index] = val || 0;
-    state.milestones = state.milestones.filter(m => m > 0);
+    if (!val || val <= 0) return;
+    state.milestones[index] = val;
     state.milestones = [...new Set(state.milestones)].sort((a, b) => a - b);
+    saveState();
+    renderMilestoneSlots();
+    updateUI();
+  }
+
+  function addMilestoneSlot() {
+    if (!state.milestones) state.milestones = [];
+    if (state.milestones.length >= 5) return;
+    state.milestones.push(MILESTONE_OPTIONS[0]);
+    state.milestones = [...new Set(state.milestones)].sort((a, b) => a - b);
+    saveState();
+    renderMilestoneSlots();
+    updateUI();
+  }
+
+  function removeMilestoneSlot(index) {
+    state.milestones.splice(index, 1);
     saveState();
     renderMilestoneSlots();
     updateUI();
