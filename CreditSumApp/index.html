@@ -1182,9 +1182,15 @@
 
   // Web Share Target: auto-process SMS shared to the app
   function handleSharedText() {
-    const params = new URLSearchParams(window.location.search);
-    const sharedText = params.get('shared_text');
+    let sharedText = null;
+    const raw = window.location.search;
+    if (!raw || !raw.includes('shared_text=')) return;
+    const match = raw.match(/shared_text=(.+)/);
+    if (match) {
+      try { sharedText = decodeURIComponent(match[1]); } catch(e) { sharedText = match[1]; }
+    }
     if (!sharedText) return;
+    sharedText = sharedText.trim();
 
     if (!isChargeSMS(sharedText)) {
       // Not a charge SMS - ignore silently (marketing, OTP, refund, etc.)
@@ -1224,6 +1230,13 @@
   // Init
   updateUI();
   handleSharedText();
+
+  // Re-check URL params when page regains focus (Chrome tab reuse)
+  window.addEventListener('pageshow', () => handleSharedText());
+  window.addEventListener('focus', () => handleSharedText());
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) handleSharedText();
+  });
 </script>
 </body>
 </html>
