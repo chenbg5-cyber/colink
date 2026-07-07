@@ -697,10 +697,25 @@
           <label style="margin:0;">✏️ הזנה ידנית</label>
           <button onclick="toggleManual()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
         </div>
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
           <input type="number" class="manual-input" id="manualInput" placeholder="סכום בש״ח" inputmode="decimal" style="flex:1;">
-          <button class="manual-add-btn" onclick="addManual()">הוסף</button>
+          <input type="text" class="manual-input" id="manualStore" placeholder="שם חנות (אופציונלי)" style="flex:1.5;">
         </div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-bottom:10px; cursor:pointer;">
+          <input type="checkbox" id="recurringCheck" style="width:18px; height:18px; accent-color:var(--accent);">
+          🔄 חיוב קבוע (חודשי)
+        </label>
+        <button class="manual-add-btn" onclick="addManual()" style="width:100%;">הוסף</button>
+      </div>
+    </div>
+
+    <!-- Recurring charges section -->
+    <div id="recurringSection" style="display:none; margin-top:12px;">
+      <div class="sms-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <label style="margin:0;">🔄 חיובים קבועים</label>
+        </div>
+        <div id="recurringList"></div>
       </div>
     </div>
   </div>
@@ -818,7 +833,7 @@
   }
 
   function defaultState() {
-    return { milestoneStep: 1000, months: {}, pushEnabled: false };
+    return { milestoneStep: 1000, months: {}, pushEnabled: false, recurring: [] };
   }
 
   function loadState() {
@@ -986,10 +1001,60 @@
 
   function addManual() {
     const input = document.getElementById('manualInput');
+    const storeInput = document.getElementById('manualStore');
+    const recurringCheck = document.getElementById('recurringCheck');
     const amt = parseFloat(input.value);
     if (!amt || amt <= 0) return;
-    addEntry(amt, null);
+    const store = storeInput.value.trim() || null;
+
+    if (recurringCheck.checked) {
+      if (!state.recurring) state.recurring = [];
+      state.recurring.push({ amount: amt, store });
+      saveState();
+      showToast(`🔄 חיוב קבוע ₪${formatNum(amt)}${store ? ' • ' + store : ''} נוסף`);
+    }
+
+    addEntry(amt, store, recurringCheck.checked);
     input.value = '';
+    storeInput.value = '';
+    recurringCheck.checked = false;
+    updateRecurringUI();
+  }
+
+  function applyRecurringCharges() {
+    if (!state.recurring || !state.recurring.length) return;
+    const monthKey = getCurrentCycleKey();
+    const data = getMonthData(monthKey);
+    const appliedKey = 'recurring_applied_' + monthKey;
+    if (data[appliedKey]) return;
+    state.recurring.forEach(r => {
+      data.entries.push({ amount: r.amount, store: r.store ? '🔄 ' + r.store : '🔄 חיוב קבוע', time: Date.now(), recurring: true });
+    });
+    data[appliedKey] = true;
+    saveState();
+    updateUI();
+  }
+
+  function deleteRecurring(index) {
+    state.recurring.splice(index, 1);
+    saveState();
+    updateRecurringUI();
+  }
+
+  function updateRecurringUI() {
+    const section = document.getElementById('recurringSection');
+    const list = document.getElementById('recurringList');
+    if (!state.recurring || !state.recurring.length) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = state.recurring.map((r, i) =>
+      `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--card-border);">
+        <span style="font-size:14px;">${r.store || 'חיוב קבוע'} • ₪${formatNum(r.amount)}</span>
+        <button onclick="deleteRecurring(${i})" style="background:none; border:none; color:var(--accent); font-size:16px; cursor:pointer;">🗑️</button>
+      </div>`
+    ).join('');
   }
 
   function addEntry(amount, store) {
@@ -1253,7 +1318,9 @@
   }
 
   // Init
+  applyRecurringCharges();
   updateUI();
+  updateRecurringUI();
   handleSharedText();
 
   // Re-check URL params when page regains focus (Chrome tab reuse)
