@@ -879,17 +879,16 @@
   // Extract store/merchant name from SMS
   function extractStore(text) {
     const patterns = [
-      /ש"ח\s+ב-?\s*([א-תA-Za-z0-9\s\-\.\/]+)/,
-      /שח\s+ב-?\s*([א-תA-Za-z0-9\s\-\.\/]+)/,
-      /עסקה\s+ב-?\s*([א-תA-Za-z0-9\s\-\.\/]+?)\s+(?:בסך|של|ע"ס|על סך|סכום)/,
-      /חיוב\s+ב-?\s*([א-תA-Za-z0-9\s\-\.\/]+?)\s+(?:בסך|של|ע"ס|על סך|סכום)/,
-      /ב-?\s*([א-תA-Za-z0-9\s\-\.\/]+?)\s+(?:בסך|סכום|ע"ס|על סך)/,
+      /ש"ח\s+ב-?\s*(.+)/,
+      /שח\s+ב-?\s*(.+)/,
+      /עסקה\s+ב-?\s*(.+?)\s+(?:בסך|של|ע"ס|על סך|סכום)/,
+      /חיוב\s+ב-?\s*(.+?)\s+(?:בסך|של|ע"ס|על סך|סכום)/,
     ];
     const skipWords = ['כרטיסך', 'כרטיס', 'עסקה', 'חיוב', 'סך', 'סכום'];
     for (const p of patterns) {
       const m = text.match(p);
       if (m) {
-        let name = m[1].trim().replace(/\s+/g, ' ');
+        let name = m[1].trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '');
         if (name.length > 1 && !skipWords.some(w => name === w)) return name.substring(0, 30);
       }
     }
