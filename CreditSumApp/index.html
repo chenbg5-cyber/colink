@@ -910,6 +910,32 @@
     return null;
   }
 
+  function extractTime(text) {
+    const patterns = [
+      /בתאריך\s*(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})\s+(?:בשעה\s*)?(\d{1,2}):(\d{2})/,
+      /בתאריך\s*(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})/,
+      /(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})\s+(\d{1,2}):(\d{2})/,
+      /(\d{1,2})[\/\.\-](\d{1,2})\s+(?:בשעה\s*)?(\d{1,2}):(\d{2})/,
+    ];
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m) {
+        const day = parseInt(m[1]);
+        const month = parseInt(m[2]) - 1;
+        if (m.length >= 6) {
+          let year = parseInt(m[3]); if (year < 100) year += 2000;
+          return new Date(year, month, day, parseInt(m[4]), parseInt(m[5])).getTime();
+        } else if (m.length === 5) {
+          return new Date(new Date().getFullYear(), month, day, parseInt(m[3]), parseInt(m[4])).getTime();
+        } else if (m.length === 4) {
+          let year = parseInt(m[3]); if (year < 100) year += 2000;
+          return new Date(year, month, day).getTime();
+        }
+      }
+    }
+    return null;
+  }
+
   // UI Updates
   function updateUI() {
     const total = getTotal(viewMonth);
@@ -991,7 +1017,8 @@
   function addFromSMS() {
     if (!detectedAmt) return;
     const store = extractStore(smsInput.value);
-    addEntry(detectedAmt, store);
+    const smsTime = extractTime(smsInput.value);
+    addEntry(detectedAmt, store, smsTime);
     smsInput.value = '';
     detectedAmt = null;
     document.getElementById('detectedAmount').classList.remove('show');
@@ -1057,10 +1084,10 @@
     ).join('');
   }
 
-  function addEntry(amount, store) {
+  function addEntry(amount, store, timestamp) {
     const monthKey = getCurrentCycleKey();
     const data = getMonthData(monthKey);
-    data.entries.push({ amount, store, time: Date.now() });
+    data.entries.push({ amount, store, time: timestamp || Date.now() });
 
     const newTotal = getTotal(monthKey);
     const step = state.milestoneStep || 1000;
@@ -1284,7 +1311,8 @@
     const amt = extractAmount(sharedText);
     if (amt) {
       const store = extractStore(sharedText);
-      addEntry(amt, store);
+      const smsTime = extractTime(sharedText);
+      addEntry(amt, store, smsTime);
       showToast(`✅ נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
     } else {
       smsInput.value = sharedText;
