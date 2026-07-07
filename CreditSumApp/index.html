@@ -776,6 +776,10 @@
       </div>
       <button class="settings-save" onclick="saveSettings()">שמור</button>
       <button class="settings-close" onclick="closeSettings()">סגור</button>
+      <div style="margin-top:16px; border-top:1px solid var(--card-border); padding-top:12px;">
+        <button onclick="showDebugLog()" style="padding:8px 16px; background:var(--card); color:var(--text-dim); border:1px solid var(--card-border); border-radius:8px; font-family:inherit; cursor:pointer; font-size:12px;">🔍 לוג דיבאג</button>
+        <pre id="debugOutput" style="display:none; margin-top:8px; font-size:11px; background:#1a1a2e; padding:10px; border-radius:8px; max-height:200px; overflow:auto; direction:ltr; text-align:left; white-space:pre-wrap; word-break:break-all;"></pre>
+      </div>
     </div>
   </div>
 
@@ -1221,6 +1225,13 @@
       document.getElementById('smsBox').style.display = 'block';
     }
     history.replaceState(null, '', window.location.pathname);
+  }
+
+  function showDebugLog() {
+    const el = document.getElementById('debugOutput');
+    const log = JSON.parse(localStorage.getItem('debug_log') || '[]');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    el.textContent = log.length ? JSON.stringify(log, null, 2) : 'No debug entries yet';
   }
 
   function showToast(msg) {
