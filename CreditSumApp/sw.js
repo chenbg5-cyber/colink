@@ -1,4 +1,4 @@
-const SW_VERSION = 4;
+const SW_VERSION = 5;
 let pendingText = null;
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -10,18 +10,22 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-function extractSharedText(urlStr) {
+function extractText(urlStr) {
   const qIdx = urlStr.indexOf('?');
   if (qIdx === -1) return null;
   const query = urlStr.substring(qIdx + 1);
-  const match = query.match(/shared_text=(.+)/);
-  if (!match) return null;
-  try { return decodeURIComponent(match[1]); } catch(e) { return match[1]; }
+  for (const key of ['shared_text', 't']) {
+    const match = query.match(new RegExp(key + '=(.+)'));
+    if (match) {
+      try { return decodeURIComponent(match[1]); } catch(e) { return match[1]; }
+    }
+  }
+  return null;
 }
 
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
-    const text = extractSharedText(event.request.url);
+    const text = extractText(event.request.url);
     if (text) {
       pendingText = text;
       self.clients.matchAll({ type: 'window' }).then(clients => {
