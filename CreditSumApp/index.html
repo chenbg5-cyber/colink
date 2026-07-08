@@ -798,6 +798,7 @@
       <button class="settings-close" onclick="closeSettings()">סגור</button>
       <div style="margin-top:16px; border-top:1px solid var(--card-border); padding-top:12px;">
         <button onclick="showDebugLog()" style="padding:8px 16px; background:var(--card); color:var(--text-dim); border:1px solid var(--card-border); border-radius:8px; font-family:inherit; cursor:pointer; font-size:12px;">לוג דיבאג</button>
+        <button onclick="clearDebugLog()" style="padding:8px 12px; background:none; color:var(--text-dim); border:1px solid var(--card-border); border-radius:8px; font-family:inherit; cursor:pointer; font-size:12px; margin-right:6px;">נקה</button>
         <pre id="debugOutput" style="display:none; margin-top:8px; font-size:11px; background:#1a1a2e; padding:10px; border-radius:8px; max-height:200px; overflow:auto; direction:ltr; text-align:left; white-space:pre-wrap; word-break:break-all;"></pre>
       </div>
     </div>
@@ -1343,15 +1344,17 @@
   }
 
   // Web Share Target: auto-process SMS shared to the app
+  function debugPush(entry) {
+    const log = JSON.parse(localStorage.getItem('debug_log') || '[]');
+    entry.time = new Date().toLocaleString('he-IL');
+    log.push(entry);
+    if (log.length > 30) log.shift();
+    localStorage.setItem('debug_log', JSON.stringify(log));
+  }
+
   function handleSharedText() {
     const fullUrl = window.location.href;
     const raw = window.location.search;
-
-    // Debug log - save to localStorage so we can see what happened
-    const debugLog = JSON.parse(localStorage.getItem('debug_log') || '[]');
-    debugLog.push({ time: new Date().toLocaleTimeString(), url: fullUrl, search: raw });
-    if (debugLog.length > 20) debugLog.shift();
-    localStorage.setItem('debug_log', JSON.stringify(debugLog));
 
     if (!raw || !raw.includes('shared_text=')) return;
 
@@ -1363,12 +1366,11 @@
     if (!sharedText) return;
     sharedText = sharedText.trim();
 
-    debugLog[debugLog.length - 1].parsed = sharedText;
-    debugLog[debugLog.length - 1].isCharge = isChargeSMS(sharedText);
-    debugLog[debugLog.length - 1].amount = extractAmount(sharedText);
-    localStorage.setItem('debug_log', JSON.stringify(debugLog));
+    const logEntry = { url: fullUrl, text: sharedText, isCharge: isChargeSMS(sharedText), amount: extractAmount(sharedText) };
 
     if (!isChargeSMS(sharedText)) {
+      logEntry.result = 'filtered';
+      debugPush(logEntry);
       history.replaceState(null, '', window.location.pathname);
       return;
     }
@@ -1377,11 +1379,16 @@
       const store = extractStore(sharedText);
       const smsTime = extractTime(sharedText);
       addEntry(amt, store, smsTime);
+      logEntry.result = 'added';
+      logEntry.store = store;
+      debugPush(logEntry);
       showToast(`נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
     } else {
       smsInput.value = sharedText;
       smsInput.dispatchEvent(new Event('input'));
       document.getElementById('smsBox').style.display = 'block';
+      logEntry.result = 'manual';
+      debugPush(logEntry);
     }
     history.replaceState(null, '', window.location.pathname);
   }
@@ -1390,7 +1397,19 @@
     const el = document.getElementById('debugOutput');
     const log = JSON.parse(localStorage.getItem('debug_log') || '[]');
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    el.textContent = log.length ? JSON.stringify(log, null, 2) : 'No debug entries yet';
+    if (!log.length) {
+      el.textContent = 'אין רשומות דיבאג. הלוג מתעד רק כשמגיע shared_text בURL.';
+      return;
+    }
+    el.textContent = log.map(e =>
+      `[${e.time}] ${e.result || '?'} | ₪${e.amount || '-'} | ${e.store || ''}\n  ${e.text || e.search || ''}`
+    ).join('\n\n');
+  }
+
+  function clearDebugLog() {
+    localStorage.removeItem('debug_log');
+    const el = document.getElementById('debugOutput');
+    el.textContent = 'הלוג נוקה.';
   }
 
   function showToast(msg) {
