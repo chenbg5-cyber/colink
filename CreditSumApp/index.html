@@ -764,7 +764,7 @@
         <p style="margin-bottom:4px;">2. לחצי <b>+</b> → <b>Net → Browse URL</b></p>
         <p style="margin-bottom:4px;">3. בשדה URL הדביקי:</p>
         <div id="taskerUrl" style="background:rgba(255,255,255,0.08); padding:10px; border-radius:8px; margin:8px 0 14px; font-family:monospace; font-size:11px; direction:ltr; text-align:left; word-break:break-all; color:var(--yellow); cursor:pointer;" onclick="copyTaskerUrl()">
-          https://credit-sum-app.web.app/?shared_text=%smsrb
+          https://credit-sum-app.web.app/#shared_text=%smsrb
         </div>
         <p style="margin-bottom:14px; font-size:11px; color:var(--text-dim);"><b>%smsrb</b> זה משתנה של Tasker שמכיל את תוכן ה-SMS. לחצי על השורה להעתקה.</p>
 
@@ -1327,7 +1327,7 @@
     document.getElementById('taskerGuide').classList.remove('show');
   }
   function copyTaskerUrl() {
-    const url = 'https://credit-sum-app.web.app/?shared_text=%smsrb';
+    const url = 'https://credit-sum-app.web.app/#shared_text=%smsrb';
     navigator.clipboard.writeText(url).then(() => showToast('הועתק!'));
   }
 
@@ -1352,21 +1352,25 @@
     localStorage.setItem('debug_log', JSON.stringify(log));
   }
 
-  function handleSharedText() {
-    const fullUrl = window.location.href;
-    const raw = window.location.search;
-
-    if (!raw || !raw.includes('shared_text=')) return;
-
-    let sharedText = null;
-    const match = raw.match(/shared_text=(.+)/);
-    if (match) {
-      try { sharedText = decodeURIComponent(match[1]); } catch(e) { sharedText = match[1]; }
+  function extractSharedText() {
+    const search = window.location.search;
+    const hash = window.location.hash;
+    if (search && search.includes('shared_text=')) {
+      const m = search.match(/shared_text=(.+)/);
+      if (m) { try { return decodeURIComponent(m[1]).trim(); } catch(e) { return m[1].trim(); } }
     }
-    if (!sharedText) return;
-    sharedText = sharedText.trim();
+    if (hash && hash.includes('shared_text=')) {
+      const m = hash.match(/shared_text=(.+)/);
+      if (m) { try { return decodeURIComponent(m[1]).trim(); } catch(e) { return m[1].trim(); } }
+    }
+    return null;
+  }
 
-    const logEntry = { url: fullUrl, text: sharedText, isCharge: isChargeSMS(sharedText), amount: extractAmount(sharedText) };
+  function handleSharedText() {
+    const sharedText = extractSharedText();
+    if (!sharedText) return;
+
+    const logEntry = { url: window.location.href, text: sharedText, isCharge: isChargeSMS(sharedText), amount: extractAmount(sharedText) };
 
     if (!isChargeSMS(sharedText)) {
       logEntry.result = 'filtered';
