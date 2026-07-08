@@ -764,7 +764,7 @@
         <p style="margin-bottom:4px;">2. לחצי <b>+</b> → <b>Net → Browse URL</b></p>
         <p style="margin-bottom:4px;">3. בשדה URL הדביקי:</p>
         <div id="taskerUrl" style="background:rgba(255,255,255,0.08); padding:10px; border-radius:8px; margin:8px 0 14px; font-family:monospace; font-size:11px; direction:ltr; text-align:left; word-break:break-all; color:var(--yellow); cursor:pointer;" onclick="copyTaskerUrl()">
-          https://credit-sum-app.web.app/index.html?shared_text=%smsrb
+          https://credit-sum-app.web.app/?shared_text=%smsrb
         </div>
         <p style="margin-bottom:14px; font-size:11px; color:var(--text-dim);"><b>%smsrb</b> זה משתנה של Tasker שמכיל את תוכן ה-SMS. לחצי על השורה להעתקה.</p>
 
@@ -1327,7 +1327,7 @@
     document.getElementById('taskerGuide').classList.remove('show');
   }
   function copyTaskerUrl() {
-    const url = 'https://credit-sum-app.web.app/index.html?shared_text=%smsrb';
+    const url = 'https://credit-sum-app.web.app/?shared_text=%smsrb';
     navigator.clipboard.writeText(url).then(() => showToast('הועתק!'));
   }
 
