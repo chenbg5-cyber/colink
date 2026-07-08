@@ -1,12 +1,12 @@
-const SW_VERSION = 5;
-let pendingText = null;
+const SW_VERSION = 6;
 
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== 'pending-charges').map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -27,27 +27,41 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     const text = extractText(event.request.url);
     if (text) {
-      pendingText = text;
-      self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(c => c.postMessage({ type: 'shared_text', text: pendingText }));
-      });
+      event.waitUntil(
+        caches.open('pending-charges').then(cache =>
+          cache.put('/pending/' + Date.now(), new Response(text))
+        ).then(() =>
+          self.clients.matchAll({ type: 'window' }).then(clients => {
+            clients.forEach(c => c.postMessage({ type: 'shared_text', text }));
+          })
+        )
+      );
     }
   }
 });
 
 self.addEventListener('message', (event) => {
   if (event.data === 'get_pending') {
-    if (pendingText) {
-      event.source.postMessage({ type: 'shared_text', text: pendingText });
-      pendingText = null;
-    }
+    event.waitUntil(
+      caches.open('pending-charges').then(cache =>
+        cache.keys().then(keys => {
+          if (!keys.length) return;
+          return Promise.all(keys.map(req =>
+            cache.match(req).then(resp => resp.text()).then(text => {
+              event.source.postMessage({ type: 'shared_text', text });
+              return cache.delete(req);
+            })
+          ));
+        })
+      )
+    );
   }
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clients) => {
+    self.clients.matchAll({ type: 'window' }).then(clients => {
       for (const client of clients) {
         if ('focus' in client) return client.focus();
       }

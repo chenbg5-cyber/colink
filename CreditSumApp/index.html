@@ -1338,11 +1338,10 @@
 
   // Service Worker for push + shared text
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       window._swReg = reg;
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage('get_pending');
-      }
+      reg.update();
+      setTimeout(() => checkPendingCharges(), 1000);
     }).catch(() => {});
 
     navigator.serviceWorker.addEventListener('message', (event) => {
@@ -1350,12 +1349,35 @@
         processSharedText(event.data.text);
       }
     });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      setTimeout(() => checkPendingCharges(), 500);
+    });
+  }
+
+  function checkPendingCharges() {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('get_pending');
+    }
+    if ('caches' in window) {
+      caches.open('pending-charges').then(cache =>
+        cache.keys().then(keys => {
+          keys.forEach(req => {
+            cache.match(req).then(resp => resp.text()).then(text => {
+              processSharedText(text);
+              cache.delete(req);
+            });
+          });
+        })
+      ).catch(() => {});
+    }
   }
 
   function processSharedText(text) {
     if (!text) return;
     text = text.trim();
-    const logEntry = { url: 'sw-message', text, isCharge: isChargeSMS(text), amount: extractAmount(text) };
+    if (!text || text.length < 5) return;
+    const logEntry = { src: 'auto', text, isCharge: isChargeSMS(text), amount: extractAmount(text) };
     if (!isChargeSMS(text)) {
       logEntry.result = 'filtered';
       debugPush(logEntry);
@@ -1502,12 +1524,13 @@
     });
   }
 
-  // Re-check URL params when page regains focus
-  window.addEventListener('pageshow', () => handleSharedText());
-  window.addEventListener('focus', () => handleSharedText());
-  window.addEventListener('hashchange', () => handleSharedText());
+  // Re-check URL params and pending charges when page regains focus
+  function checkAll() { handleSharedText(); checkPendingCharges(); }
+  window.addEventListener('pageshow', checkAll);
+  window.addEventListener('focus', checkAll);
+  window.addEventListener('hashchange', handleSharedText);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) handleSharedText();
+    if (!document.hidden) checkAll();
   });
 </script>
 </body>
