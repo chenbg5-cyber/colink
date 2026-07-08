@@ -1438,9 +1438,27 @@
   updateRecurringUI();
   handleSharedText();
 
-  // Re-check URL params when page regains focus (Chrome tab reuse)
+  // Handle PWA launch with URL from external app (MacroDroid etc.)
+  if ('launchQueue' in window) {
+    launchQueue.setConsumer((launchParams) => {
+      if (launchParams.targetURL) {
+        const url = new URL(launchParams.targetURL);
+        const hash = url.hash;
+        const search = url.search;
+        if (hash && hash.includes('shared_text=')) {
+          window.location.hash = hash;
+        } else if (search && search.includes('shared_text=')) {
+          window.location.search = search;
+        }
+        handleSharedText();
+      }
+    });
+  }
+
+  // Re-check URL params when page regains focus
   window.addEventListener('pageshow', () => handleSharedText());
   window.addEventListener('focus', () => handleSharedText());
+  window.addEventListener('hashchange', () => handleSharedText());
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) handleSharedText();
   });

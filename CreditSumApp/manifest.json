@@ -2,14 +2,17 @@
   "name": "מעקב אשראי - התראות הוצאות",
   "short_name": "מעקב אשראי",
   "description": "מעקב הוצאות אשראי בזמן אמת עם התראות פוש",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f0f1a",
-  "theme_color": "#1a1a2e",
+  "background_color": "#1a1d2e",
+  "theme_color": "#1a1d2e",
   "lang": "he",
   "dir": "rtl",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "./icons/icon-192.png",
@@ -23,7 +26,7 @@
     }
   ],
   "share_target": {
-    "action": "./index.html",
+    "action": "./",
     "method": "GET",
     "params": {
       "text": "shared_text"
