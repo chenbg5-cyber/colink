@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>מעקב אשראי</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="#1a1d2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" href="icons/icon-192.png">
@@ -14,16 +14,16 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #1e2030;
-      --card: #272a3d;
-      --card-border: #363a52;
-      --accent: #e07090;
-      --accent-glow: rgba(224, 112, 144, 0.2);
-      --green: #5ec4a0;
-      --green-glow: rgba(94, 196, 160, 0.15);
-      --text: #e8e8f0;
-      --text-dim: #9498b5;
-      --yellow: #f0c060;
+      --bg: #1a1d2e;
+      --card: #232738;
+      --card-border: #2e3348;
+      --accent: #c4687e;
+      --accent-glow: rgba(196, 104, 126, 0.15);
+      --green: #5baa90;
+      --green-glow: rgba(91, 170, 144, 0.1);
+      --text: #dcdce6;
+      --text-dim: #7c82a0;
+      --yellow: #d4aa50;
     }
 
     body {
@@ -36,47 +36,49 @@
     }
 
     .header {
-      background: linear-gradient(135deg, #272a3d 0%, #2a2f45 100%);
-      padding: 20px 20px 30px;
+      background: linear-gradient(135deg, #232738 0%, #272b40 100%);
+      padding: 22px 20px 28px;
       text-align: center;
       position: relative;
       border-bottom: 1px solid var(--card-border);
     }
 
     .header h1 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       margin-bottom: 4px;
+      letter-spacing: 0.3px;
     }
 
     .header .subtitle {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-dim);
+      letter-spacing: 0.2px;
     }
 
     .settings-btn {
       position: absolute;
-      top: 20px;
+      top: 22px;
       left: 20px;
       background: none;
       border: none;
       color: var(--text-dim);
-      font-size: 22px;
+      font-size: 18px;
       cursor: pointer;
-      padding: 4px;
+      padding: 6px;
     }
 
     .reset-btn {
       position: absolute;
-      top: 20px;
+      top: 22px;
       right: 20px;
       background: none;
       border: none;
       color: var(--text-dim);
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 8px;
+      padding: 5px 10px;
+      border-radius: 6px;
       border: 1px solid var(--card-border);
     }
 
@@ -93,22 +95,22 @@
     }
 
     .total-amount {
-      font-size: 52px;
+      font-size: 48px;
       font-weight: 800;
       color: var(--accent);
-      text-shadow: 0 0 30px var(--accent-glow);
+      text-shadow: 0 0 24px var(--accent-glow);
       direction: ltr;
       unicode-bidi: bidi-override;
       transition: all 0.3s ease;
     }
 
     .total-amount.pulse {
-      transform: scale(1.08);
-      text-shadow: 0 0 50px var(--accent-glow);
+      transform: scale(1.06);
+      text-shadow: 0 0 40px var(--accent-glow);
     }
 
     .currency {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 600;
       margin-right: 4px;
     }
@@ -430,14 +432,14 @@
     }
 
     .milestone-popup-content {
-      background: linear-gradient(135deg, #272a3d, #2a2f45);
-      border: 2px solid var(--yellow);
-      border-radius: 20px;
-      padding: 40px 30px;
+      background: linear-gradient(135deg, #232738, #272b40);
+      border: 1px solid var(--yellow);
+      border-radius: 16px;
+      padding: 36px 28px;
       text-align: center;
       max-width: 300px;
       width: 90%;
-      box-shadow: 0 0 40px rgba(240, 192, 96, 0.2);
+      box-shadow: 0 0 30px rgba(212, 170, 80, 0.12);
       animation: popIn 0.4s ease;
     }
 
@@ -447,8 +449,10 @@
     }
 
     .milestone-popup .alert-icon {
-      font-size: 50px;
-      margin-bottom: 16px;
+      font-size: 32px;
+      margin-bottom: 14px;
+      color: var(--yellow);
+      font-weight: 700;
     }
 
     .milestone-popup .alert-title {
@@ -614,9 +618,9 @@
 
   <!-- Header -->
   <div class="header">
-    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    <button class="settings-btn" onclick="openSettings()">&#9881;</button>
     <button class="reset-btn" onclick="confirmReset()">איפוס חודש</button>
-    <h1>💳 מעקב אשראי</h1>
+    <h1>מעקב אשראי</h1>
     <div class="subtitle">מעקב הוצאות בזמן אמת מ-SMS</div>
   </div>
 
@@ -641,7 +645,7 @@
     <div class="milestone-bar-container">
       <div class="milestone-info">
         <span class="current" id="milestoneCurrentLabel">₪0 מתוך ₪1,000</span>
-        <span class="next" id="milestoneNextLabel">🎯 התראה הבאה: ₪1,000</span>
+        <span class="next" id="milestoneNextLabel">התראה הבאה: ₪1,000</span>
       </div>
       <div class="milestone-bar">
         <div class="milestone-bar-fill" id="milestoneFill" style="width: 0%"></div>
@@ -653,21 +657,21 @@
   <div class="input-section">
     <!-- Share button - primary method -->
     <div class="sms-box" id="shareBox" style="text-align:center; padding:20px 16px;">
-      <div style="font-size:14px; font-weight:600; margin-bottom:12px;">📲 איך מוסיפים חיוב?</div>
+      <div style="font-size:14px; font-weight:600; margin-bottom:12px;">איך מוסיפים חיוב?</div>
       <div style="font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.7;">
         כשמגיע SMS מהאשראי:<br>
         <b style="color:var(--text);">לחץ על ההודעה ← שתף ← בחר "מעקב אשראי"</b><br>
         הסכום יתווסף אוטומטית!
       </div>
       <div style="display:flex; gap:8px;">
-        <button onclick="togglePaste()" style="flex:1; padding:12px; background:rgba(255,255,255,0.08); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">📋 הדבק SMS</button>
-        <button onclick="toggleManual()" style="flex:1; padding:12px; background:rgba(255,255,255,0.08); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">✏️ הזן ידנית</button>
+        <button onclick="togglePaste()" style="flex:1; padding:14px; background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הדבק SMS</button>
+        <button onclick="toggleManual()" style="flex:1; padding:14px; background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הזן ידנית</button>
       </div>
     </div>
 
     <!-- Tasker promo banner -->
-    <div onclick="openTaskerGuide()" style="margin-top:10px; background:linear-gradient(135deg, rgba(224,112,144,0.1), rgba(240,192,96,0.08)); border:1px solid rgba(240,192,96,0.25); border-radius:12px; padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:10px;">
-      <span style="font-size:24px;">🤖</span>
+    <div onclick="openTaskerGuide()" style="margin-top:10px; background:linear-gradient(135deg, rgba(196,104,126,0.08), rgba(212,170,80,0.06)); border:1px solid rgba(212,170,80,0.18); border-radius:12px; padding:14px 16px; cursor:pointer; display:flex; align-items:center; gap:10px;">
+      <div style="width:36px; height:36px; border-radius:8px; background:rgba(212,170,80,0.12); display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--yellow); font-weight:700; flex-shrink:0;">A</div>
       <div style="flex:1;">
         <div style="font-size:13px; font-weight:700; color:var(--yellow);">רוצה שזה יהיה אוטומטי לגמרי?</div>
         <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">הגדר Tasker וכל SMS מהאשראי יתווסף לבד בלי לגעת</div>
@@ -678,23 +682,23 @@
     <!-- SMS paste area (hidden by default) -->
     <div class="sms-box" id="smsBox" style="display:none; margin-top:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <label style="margin:0;">📩 הדבק SMS מחברת האשראי</label>
+        <label style="margin:0;">הדבק SMS מחברת האשראי</label>
         <button onclick="togglePaste()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
       </div>
       <textarea class="sms-textarea" id="smsInput" placeholder="הדבק כאן את הודעת ה-SMS...
 לדוגמה: עסקה בכרטיס *1234 בסך 150.00 ש״ח אושרה ב-שופרסל"></textarea>
       <div class="detected-amount" id="detectedAmount">
-        <span>✅ זוהה סכום:</span>
+        <span>זוהה סכום:</span>
         <span id="detectedNum"></span>
       </div>
-      <button class="add-btn" id="addBtn" onclick="addFromSMS()">➕ הוסף חיוב</button>
+      <button class="add-btn" id="addBtn" onclick="addFromSMS()">הוסף חיוב</button>
     </div>
 
     <!-- Manual input (hidden by default) -->
     <div id="manualRow" style="display:none; margin-top:10px;">
       <div class="sms-box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <label style="margin:0;">✏️ הזנה ידנית</label>
+          <label style="margin:0;">הזנה ידנית</label>
           <button onclick="toggleManual()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
         </div>
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
@@ -703,7 +707,7 @@
         </div>
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-bottom:10px; cursor:pointer;">
           <input type="checkbox" id="recurringCheck" style="width:18px; height:18px; accent-color:var(--accent);">
-          🔄 חיוב קבוע (חודשי)
+          חיוב קבוע (חודשי)
         </label>
         <button class="manual-add-btn" onclick="addManual()" style="width:100%;">הוסף</button>
       </div>
@@ -713,7 +717,7 @@
     <div id="recurringSection" style="display:none; margin-top:12px;">
       <div class="sms-box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <label style="margin:0;">🔄 חיובים קבועים</label>
+          <label style="margin:0;">חיובים קבועים</label>
         </div>
         <div id="recurringList"></div>
       </div>
@@ -723,7 +727,7 @@
   <!-- History -->
   <div class="history-section">
     <div class="history-header">
-      <h2>📋 היסטוריית חיובים</h2>
+      <h2>היסטוריית חיובים</h2>
       <span class="history-count" id="historyCount">0 חיובים</span>
     </div>
     <div id="historyList"></div>
@@ -732,7 +736,7 @@
   <!-- Milestone popup -->
   <div class="milestone-popup" id="milestonePopup">
     <div class="milestone-popup-content">
-      <div class="alert-icon">🚨</div>
+      <div class="alert-icon">!</div>
       <div class="alert-title">התראת הוצאות!</div>
       <div class="alert-amount" id="popupAmount">₪1,000</div>
       <div class="alert-msg" id="popupMsg">הגעת לסכום מצטבר של 1,000 ש"ח החודש</div>
@@ -743,7 +747,7 @@
   <!-- Tasker Guide modal -->
   <div class="settings-modal" id="taskerGuide">
     <div class="settings-content" style="max-height:85vh; overflow-y:auto; border-radius:20px 20px 0 0;">
-      <h3>📱 חיבור SMS אוטומטי עם Tasker</h3>
+      <h3>חיבור SMS אוטומטי עם Tasker</h3>
       <div style="font-size:13px; color:var(--text-dim); line-height:1.8; text-align:right;">
         <p style="margin-bottom:14px; color:var(--green); font-weight:700;">ברגע שתגדירי את זה - כל SMS מהאשראי יתווסף אוטומטית!</p>
 
@@ -762,12 +766,12 @@
         <div id="taskerUrl" style="background:rgba(255,255,255,0.08); padding:10px; border-radius:8px; margin:8px 0 14px; font-family:monospace; font-size:11px; direction:ltr; text-align:left; word-break:break-all; color:var(--yellow); cursor:pointer;" onclick="copyTaskerUrl()">
           https://credit-sum-app.web.app/index.html?shared_text=%smsrb
         </div>
-        <p style="margin-bottom:14px; font-size:11px; color:var(--text-dim);">💡 <b>%smsrb</b> זה משתנה של Tasker שמכיל את תוכן ה-SMS. לחצי על השורה להעתקה.</p>
+        <p style="margin-bottom:14px; font-size:11px; color:var(--text-dim);"><b>%smsrb</b> זה משתנה של Tasker שמכיל את תוכן ה-SMS. לחצי על השורה להעתקה.</p>
 
         <p style="font-weight:700; color:var(--text); margin-bottom:6px;">שלב 4: בדיקה</p>
         <p style="margin-bottom:14px;">שלחי לעצמך SMS עם טקסט כזה:<br><span style="color:var(--yellow);">עסקה בכרטיס *1234 בסך 50.00 ש״ח אושרה</span><br>האפליקציה אמורה להוסיף ₪50 אוטומטית!</p>
 
-        <p style="font-weight:700; color:var(--green);">✅ זהו! מעכשיו כל SMS מהאשראי יתווסף אוטומטית.</p>
+        <p style="font-weight:700; color:var(--green);">זהו! מעכשיו כל SMS מהאשראי יתווסף אוטומטית.</p>
       </div>
       <button class="settings-close" onclick="closeTaskerGuide()" style="margin-top:16px;">סגור</button>
     </div>
@@ -776,9 +780,9 @@
   <!-- Settings modal -->
   <div class="settings-modal" id="settingsModal">
     <div class="settings-content">
-      <h3>⚙️ הגדרות</h3>
+      <h3>הגדרות</h3>
       <div class="setting-row" style="flex-direction:column; align-items:stretch;">
-        <label style="margin-bottom:8px;">🔔 התראות</label>
+        <label style="margin-bottom:8px;">התראות</label>
         <div id="milestoneSlots"></div>
         <button id="addMilestoneBtn" onclick="addMilestoneSlot()" style="margin-top:6px; padding:8px; background:none; border:1px dashed var(--card-border); border-radius:8px; color:var(--text-dim); font-family:inherit; cursor:pointer; font-size:13px; width:100%;">+ הוסף התראה</button>
       </div>
@@ -788,12 +792,12 @@
       </div>
       <div class="setting-row">
         <label>חיבור SMS אוטומטי</label>
-        <button onclick="closeSettings(); openTaskerGuide()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">📱 הגדר Tasker</button>
+        <button onclick="closeSettings(); openTaskerGuide()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">הגדר Tasker</button>
       </div>
       <button class="settings-save" onclick="saveSettings()">שמור</button>
       <button class="settings-close" onclick="closeSettings()">סגור</button>
       <div style="margin-top:16px; border-top:1px solid var(--card-border); padding-top:12px;">
-        <button onclick="showDebugLog()" style="padding:8px 16px; background:var(--card); color:var(--text-dim); border:1px solid var(--card-border); border-radius:8px; font-family:inherit; cursor:pointer; font-size:12px;">🔍 לוג דיבאג</button>
+        <button onclick="showDebugLog()" style="padding:8px 16px; background:var(--card); color:var(--text-dim); border:1px solid var(--card-border); border-radius:8px; font-family:inherit; cursor:pointer; font-size:12px;">לוג דיבאג</button>
         <pre id="debugOutput" style="display:none; margin-top:8px; font-size:11px; background:#1a1a2e; padding:10px; border-radius:8px; max-height:200px; overflow:auto; direction:ltr; text-align:left; white-space:pre-wrap; word-break:break-all;"></pre>
       </div>
     </div>
@@ -962,7 +966,7 @@
 
     const passedAll = total >= milestones[milestones.length - 1];
     document.getElementById('milestoneCurrentLabel').textContent = passedAll ? `₪${formatNum(total)} — עברת את כל ההתראות!` : `₪${formatNum(total)} מתוך ₪${formatNum(nextMilestone)}`;
-    document.getElementById('milestoneNextLabel').textContent = passedAll ? '🎯 כל ההתראות הופעלו' : `🎯 התראה הבאה: ₪${formatNum(nextMilestone)}`;
+    document.getElementById('milestoneNextLabel').textContent = passedAll ? 'כל ההתראות הופעלו' : `התראה הבאה: ₪${formatNum(nextMilestone)}`;
     document.getElementById('milestoneFill').style.width = Math.min(progress, 100) + '%';
 
     // History
@@ -971,7 +975,7 @@
     document.getElementById('historyCount').textContent = `${entries.length} חיובים`;
 
     if (entries.length === 0) {
-      list.innerHTML = '<div class="empty-state"><div class="icon">💳</div>עדיין אין חיובים החודש<br>הדבק SMS מהאשראי להתחיל</div>';
+      list.innerHTML = '<div class="empty-state">עדיין אין חיובים החודש<br>הדבק SMS מהאשראי להתחיל</div>';
       return;
     }
 
@@ -1048,7 +1052,7 @@
       if (!state.recurring) state.recurring = [];
       state.recurring.push({ amount: amt, store });
       saveState();
-      showToast(`🔄 חיוב קבוע ₪${formatNum(amt)}${store ? ' • ' + store : ''} נוסף`);
+      showToast(`חיוב קבוע ₪${formatNum(amt)}${store ? ' • ' + store : ''} נוסף`);
     }
 
     addEntry(amt, store, recurringCheck.checked);
@@ -1065,7 +1069,7 @@
     const appliedKey = 'recurring_applied_' + monthKey;
     if (data[appliedKey]) return;
     state.recurring.forEach(r => {
-      data.entries.push({ amount: r.amount, store: r.store ? '🔄 ' + r.store : '🔄 חיוב קבוע', time: Date.now(), recurring: true });
+      data.entries.push({ amount: r.amount, store: r.store ? r.store + ' (קבוע)' : 'חיוב קבוע', time: Date.now(), recurring: true });
     });
     data[appliedKey] = true;
     saveState();
@@ -1089,7 +1093,7 @@
     list.innerHTML = state.recurring.map((r, i) =>
       `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--card-border);">
         <span style="font-size:14px;">${r.store || 'חיוב קבוע'} • ₪${formatNum(r.amount)}</span>
-        <button onclick="deleteRecurring(${i})" style="background:none; border:none; color:var(--accent); font-size:16px; cursor:pointer;">🗑️</button>
+        <button onclick="deleteRecurring(${i})" style="background:none; border:none; color:var(--accent); font-size:14px; cursor:pointer;">✕</button>
       </div>`
     ).join('');
   }
@@ -1117,7 +1121,7 @@
 
     // Push notification for every charge
     if (Notification.permission === 'granted' && window._swReg) {
-      window._swReg.showNotification('💳 חיוב נרשם', {
+      window._swReg.showNotification('חיוב נרשם', {
         body: `₪${formatNum(amount)}${store ? ' • ' + store : ''} | סה"כ: ₪${formatNum(newTotal)}`,
         icon: 'icons/icon-192.png',
         tag: 'charge-' + Date.now(),
@@ -1157,7 +1161,7 @@
       try {
         const reg = window._swReg;
         if (reg) {
-          reg.showNotification('🚨 התראת הוצאות!', {
+          reg.showNotification('התראת הוצאות!', {
             body: `הגעת ל-₪${formatNum(milestone)} הוצאות החודש!`,
             icon: 'icons/icon-192.png',
             badge: 'icons/icon-192.png',
@@ -1165,7 +1169,7 @@
             tag: 'milestone-' + milestone,
           });
         } else {
-          new Notification('🚨 התראת הוצאות!', {
+          new Notification('התראת הוצאות!', {
             body: `הגעת ל-₪${formatNum(milestone)} הוצאות החודש!`,
             icon: 'icons/icon-192.png',
           });
@@ -1289,10 +1293,10 @@
   function updatePushButton() {
     const btn = document.getElementById('pushToggle');
     if (Notification.permission === 'granted') {
-      btn.textContent = '✅ פעיל';
+      btn.textContent = 'פעיל';
       btn.style.background = 'var(--green)';
     } else if (Notification.permission === 'denied') {
-      btn.textContent = '❌ חסום';
+      btn.textContent = 'חסום';
       btn.style.background = '#555';
     } else {
       btn.textContent = 'הפעל';
@@ -1317,7 +1321,7 @@
   }
   function copyTaskerUrl() {
     const url = 'https://credit-sum-app.web.app/index.html?shared_text=%smsrb';
-    navigator.clipboard.writeText(url).then(() => showToast('✅ הועתק!'));
+    navigator.clipboard.writeText(url).then(() => showToast('הועתק!'));
   }
 
   // Enter key for manual input
@@ -1367,7 +1371,7 @@
       const store = extractStore(sharedText);
       const smsTime = extractTime(sharedText);
       addEntry(amt, store, smsTime);
-      showToast(`✅ נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
+      showToast(`נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
     } else {
       smsInput.value = sharedText;
       smsInput.dispatchEvent(new Event('input'));
