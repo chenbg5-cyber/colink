@@ -82,6 +82,94 @@
       border: 1px solid var(--card-border);
     }
 
+    .dashboard-btn {
+      position: absolute;
+      top: 22px;
+      left: 56px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+    }
+
+    .dashboard-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 999;
+      display: none;
+    }
+    .dashboard-overlay.show { display: block; }
+
+    .dashboard-drawer {
+      position: fixed;
+      top: 0;
+      right: -85%;
+      width: 85%;
+      max-width: 380px;
+      height: 100%;
+      background: var(--bg);
+      z-index: 1000;
+      transition: right 0.3s ease;
+      overflow-y: auto;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+    }
+    .dashboard-drawer.show { right: 0; }
+
+    .dash-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dash-header h3 { font-size: 18px; font-weight: 700; }
+
+    .dash-category {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .dash-cat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .dash-cat-name {
+      font-size: 14px;
+      font-weight: 600;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dash-cat-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      direction: ltr;
+    }
+    .dash-cat-bar {
+      height: 6px;
+      background: #2a2a4a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .dash-cat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--yellow));
+    }
+    .dash-cat-count {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
     /* Total display */
     .total-section {
       text-align: center;
@@ -619,9 +707,21 @@
   <!-- Header -->
   <div class="header">
     <button class="settings-btn" onclick="openSettings()">&#9881;</button>
+    <button class="dashboard-btn" onclick="openDashboard()">דשבורד</button>
     <button class="reset-btn" onclick="confirmReset()">איפוס חודש</button>
     <h1>מעקב אשראי</h1>
     <div class="subtitle">מעקב הוצאות בזמן אמת מ-SMS</div>
+  </div>
+
+  <!-- Dashboard drawer -->
+  <div class="dashboard-overlay" id="dashOverlay" onclick="closeDashboard()"></div>
+  <div class="dashboard-drawer" id="dashDrawer">
+    <div class="dash-header">
+      <h3>דשבורד</h3>
+      <button onclick="closeDashboard()" style="background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    <div id="dashMonth" style="padding:12px 20px; font-size:13px; color:var(--text-dim); border-bottom:1px solid var(--card-border);"></div>
+    <div id="dashContent"></div>
   </div>
 
   <!-- Month selector -->
@@ -1450,6 +1550,53 @@
   }
 
   // Tasker guide
+  function openDashboard() {
+    document.getElementById('dashOverlay').classList.add('show');
+    document.getElementById('dashDrawer').classList.add('show');
+    renderDashboard();
+  }
+
+  function closeDashboard() {
+    document.getElementById('dashOverlay').classList.remove('show');
+    document.getElementById('dashDrawer').classList.remove('show');
+  }
+
+  function renderDashboard() {
+    const data = getMonthData(viewMonth);
+    const total = getTotal(viewMonth);
+    document.getElementById('dashMonth').textContent = getMonthLabel(viewMonth) + ' • סה"כ ₪' + formatNum(total);
+
+    const groups = {};
+    data.entries.forEach(e => {
+      const name = e.store || 'ללא פירוט';
+      if (!groups[name]) groups[name] = { sum: 0, count: 0 };
+      groups[name].sum += e.amount;
+      groups[name].count++;
+    });
+
+    const sorted = Object.entries(groups).sort((a, b) => b[1].sum - a[1].sum);
+    const content = document.getElementById('dashContent');
+
+    if (sorted.length === 0) {
+      content.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--text-dim);">אין נתונים לתקופה זו</div>';
+      return;
+    }
+
+    const maxSum = sorted[0][1].sum;
+    content.innerHTML = sorted.map(([name, { sum, count }]) => {
+      const pct = total > 0 ? ((sum / total) * 100).toFixed(1) : 0;
+      const barW = maxSum > 0 ? (sum / maxSum) * 100 : 0;
+      return `<div class="dash-category">
+        <div class="dash-cat-header">
+          <span class="dash-cat-name">${name}</span>
+          <span class="dash-cat-total">₪${formatNum(sum)}</span>
+        </div>
+        <div class="dash-cat-bar"><div class="dash-cat-bar-fill" style="width:${barW}%"></div></div>
+        <div class="dash-cat-count">${count} חיובים • ${pct}%</div>
+      </div>`;
+    }).join('');
+  }
+
   function openTaskerGuide() {
     document.getElementById('taskerGuide').classList.add('show');
   }
