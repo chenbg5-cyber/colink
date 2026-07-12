@@ -794,6 +794,11 @@
         <label>חיבור SMS אוטומטי</label>
         <button onclick="closeSettings(); openTaskerGuide()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">הגדר Tasker</button>
       </div>
+      <div class="setting-row" style="flex-direction:column; align-items:stretch;">
+        <label style="margin-bottom:8px;">קוד שחזור (שמרי אותו!)</label>
+        <div id="recoveryCodeDisplay" style="background:rgba(212,170,80,0.1); border:1px solid var(--yellow); border-radius:10px; padding:14px; text-align:center; font-size:28px; font-weight:800; letter-spacing:8px; color:var(--yellow); direction:ltr;"></div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:6px; text-align:center;">אם נמחקו הנתונים, הכניסי קוד זה לשחזור</div>
+      </div>
       <button class="settings-save" onclick="saveSettings()">שמור</button>
       <button class="settings-close" onclick="closeSettings()">סגור</button>
       <div style="margin-top:16px; border-top:1px solid var(--card-border); padding-top:12px;">
@@ -824,11 +829,29 @@
     return id;
   }
 
+  function getRecoveryCode() {
+    let code = localStorage.getItem('recovery_code');
+    if (!code) {
+      code = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem('recovery_code', code);
+    }
+    return code;
+  }
+
   function cloudSave(data) {
     const id = getDeviceId();
+    const code = getRecoveryCode();
     fetch(`${FB_DB}/users/${id}/state.json`, {
       method: 'PUT',
       body: JSON.stringify(data)
+    }).catch(() => {});
+    fetch(`${FB_DB}/users/${id}/recovery_code.json`, {
+      method: 'PUT',
+      body: JSON.stringify(code)
+    }).catch(() => {});
+    fetch(`${FB_DB}/codes/${code}.json`, {
+      method: 'PUT',
+      body: JSON.stringify(id)
     }).catch(() => {});
   }
 
@@ -842,6 +865,21 @@
     return fetch(`${FB_DB}/users/${id}/state.json`)
       .then(r => r.json())
       .then(d => (d && d.months) ? d : null)
+      .catch(() => null);
+  }
+
+  function restoreByCode(code) {
+    return fetch(`${FB_DB}/codes/${code}.json`)
+      .then(r => r.json())
+      .then(deviceId => {
+        if (!deviceId) return null;
+        localStorage.setItem('device_id', deviceId);
+        document.cookie = 'device_id=' + deviceId + '; max-age=315360000; path=/; SameSite=Lax';
+        localStorage.setItem('recovery_code', code);
+        return fetch(`${FB_DB}/users/${deviceId}/state.json`)
+          .then(r => r.json())
+          .then(d => (d && d.months) ? d : null);
+      })
       .catch(() => null);
   }
 
@@ -863,7 +901,6 @@
         }
       });
     }
-    // Request persistent storage
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist();
     }
@@ -1034,7 +1071,7 @@
     document.getElementById('historyCount').textContent = `${entries.length} חיובים`;
 
     if (entries.length === 0) {
-      list.innerHTML = '<div class="empty-state">עדיין אין חיובים החודש<br>הדבק SMS מהאשראי להתחיל</div>';
+      list.innerHTML = '<div class="empty-state">עדיין אין חיובים החודש<br>הדבק SMS מהאשראי להתחיל<br><button onclick="promptRestore()" style="margin-top:14px; padding:10px 24px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">שחזור מגיבוי</button></div>';
       return;
     }
 
@@ -1273,6 +1310,24 @@
     document.getElementById('settingsModal').classList.add('show');
     updatePushButton();
     renderMilestoneSlots();
+    document.getElementById('recoveryCodeDisplay').textContent = getRecoveryCode();
+  }
+
+  function promptRestore() {
+    const code = prompt('הכניסי את קוד השחזור (6 ספרות):');
+    if (!code || code.length < 4) return;
+    restoreByCode(code.trim()).then(cloudState => {
+      if (cloudState && cloudState.months && Object.keys(cloudState.months).length > 0) {
+        state = cloudState;
+        if (!state.milestones) state.milestones = [1000];
+        saveState();
+        updateUI();
+        updateRecurringUI();
+        showToast('הנתונים שוחזרו בהצלחה!');
+      } else {
+        alert('לא נמצאו נתונים עם קוד זה');
+      }
+    });
   }
 
   function closeSettings() {
