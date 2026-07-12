@@ -696,11 +696,12 @@
 
     <!-- Recurring charges section -->
     <div id="recurringSection" style="display:none; margin-top:12px;">
-      <div class="sms-box">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <label style="margin:0;">חיובים קבועים</label>
-        </div>
-        <div id="recurringList"></div>
+      <div class="sms-box" style="padding:0;">
+        <button onclick="toggleRecurring()" style="width:100%; display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:none; border:none; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">
+          <span>חיובים קבועים</span>
+          <span id="recurringArrow" style="font-size:12px; color:var(--text-dim); transition:transform 0.2s;">▼</span>
+        </button>
+        <div id="recurringList" style="display:none; padding:0 16px 14px;"></div>
       </div>
     </div>
   </div>
@@ -1158,6 +1159,14 @@
     state.recurring.splice(index, 1);
     saveState();
     updateRecurringUI();
+  }
+
+  function toggleRecurring() {
+    const list = document.getElementById('recurringList');
+    const arrow = document.getElementById('recurringArrow');
+    const open = list.style.display === 'none';
+    list.style.display = open ? 'block' : 'none';
+    arrow.style.transform = open ? 'rotate(180deg)' : '';
   }
 
   function updateRecurringUI() {
