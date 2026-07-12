@@ -1376,7 +1376,7 @@
 
   function processSharedText(text) {
     if (!text) return;
-    text = text.trim();
+    text = text.replace(/\+/g, ' ').trim();
     if (!text || text.length < 5) return;
     const logEntry = { src: 'auto', text, isCharge: isChargeSMS(text), amount: extractAmount(text) };
     if (!isChargeSMS(text)) {
@@ -1411,25 +1411,20 @@
     localStorage.setItem('debug_log', JSON.stringify(log));
   }
 
+  function decodeUrlText(raw) {
+    const plusFixed = raw.replace(/\+/g, ' ');
+    try { return decodeURIComponent(plusFixed).trim(); } catch(e) { return plusFixed.trim(); }
+  }
+
   function extractSharedText() {
-    const fullUrl = window.location.href;
     const search = window.location.search;
     const hash = window.location.hash;
-    // Check query params
-    if (search) {
+    for (const source of [search, hash]) {
+      if (!source) continue;
       for (const key of ['shared_text', 't']) {
-        if (search.includes(key + '=')) {
-          const m = search.match(new RegExp(key + '=(.+)'));
-          if (m) { try { return decodeURIComponent(m[1]).trim(); } catch(e) { return m[1].trim(); } }
-        }
-      }
-    }
-    // Check hash
-    if (hash) {
-      for (const key of ['shared_text', 't']) {
-        if (hash.includes(key + '=')) {
-          const m = hash.match(new RegExp(key + '=(.+)'));
-          if (m) { try { return decodeURIComponent(m[1]).trim(); } catch(e) { return m[1].trim(); } }
+        if (source.includes(key + '=')) {
+          const m = source.match(new RegExp(key + '=(.+)'));
+          if (m) return decodeUrlText(m[1]);
         }
       }
     }

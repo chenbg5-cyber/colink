@@ -17,7 +17,8 @@ function extractText(urlStr) {
   for (const key of ['shared_text', 't']) {
     const match = query.match(new RegExp(key + '=(.+)'));
     if (match) {
-      try { return decodeURIComponent(match[1]); } catch(e) { return match[1]; }
+      const raw = match[1].replace(/\+/g, ' ');
+      try { return decodeURIComponent(raw); } catch(e) { return raw; }
     }
   }
   return null;
