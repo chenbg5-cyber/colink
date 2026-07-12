@@ -1231,7 +1231,6 @@
         <select onchange="updateMilestoneSlot(${i}, this.value)" style="flex:1; min-width:0; padding:8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;">
           ${MILESTONE_OPTIONS.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>₪${formatNum(o)}</option>`).join('')}
           ${!MILESTONE_OPTIONS.includes(val) ? `<option value="${val}" selected>₪${formatNum(val)}</option>` : ''}
-          <option value="custom">אחר...</option>
         </select>
         <button onclick="removeMilestoneSlot(${i})" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:18px; padding:0 6px; flex-shrink:0;">✕</button>
       </div>`
@@ -1240,11 +1239,6 @@
   }
 
   function updateMilestoneSlot(index, value) {
-    if (value === 'custom') {
-      const custom = prompt('הכנס סכום התראה:');
-      if (!custom) { renderMilestoneSlots(); return; }
-      value = custom;
-    }
     const val = parseInt(value);
     if (!val || val <= 0) return;
     state.milestones[index] = val;
