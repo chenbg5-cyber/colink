@@ -1334,21 +1334,30 @@
     if (!item) return;
     const row = document.createElement('div');
     row.id = 'edit-row-' + index;
-    row.style.cssText = 'display:flex; gap:8px; padding:10px 16px; background:var(--card); border:1px solid var(--accent); border-radius:0 0 12px 12px; margin-top:-9px; margin-bottom:8px;';
-    row.innerHTML = `<input type="text" id="edit-input-${index}" value="${entry.store || ''}" maxlength="20" placeholder="פירוט" style="flex:1; padding:8px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:rtl;">
+    row.style.cssText = 'display:flex; gap:8px; padding:10px 16px; background:var(--card); border:1px solid var(--accent); border-radius:0 0 12px 12px; margin-top:-9px; margin-bottom:8px; flex-wrap:wrap;';
+    row.innerHTML = `<input type="number" id="edit-amount-${index}" value="${entry.amount}" inputmode="decimal" placeholder="סכום" style="width:80px; padding:8px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:ltr; text-align:center;">
+      <input type="text" id="edit-input-${index}" value="${entry.store || ''}" maxlength="20" placeholder="פירוט" style="flex:1; min-width:0; padding:8px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:rtl;">
       <button onclick="saveEdit('${monthKey}', ${index})" style="padding:8px 16px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">שמור</button>`;
     item.after(row);
     document.getElementById('edit-input-' + index).focus();
     document.getElementById('edit-input-' + index).addEventListener('keydown', (e) => {
       if (e.key === 'Enter') saveEdit(monthKey, index);
     });
+    document.getElementById('edit-amount-' + index).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveEdit(monthKey, index);
+    });
   }
 
   function saveEdit(monthKey, index) {
     const input = document.getElementById('edit-input-' + index);
+    const amountInput = document.getElementById('edit-amount-' + index);
     if (!input) return;
     const data = getMonthData(monthKey);
     data.entries[index].store = input.value.trim().substring(0, 20) || null;
+    if (amountInput) {
+      const newAmt = parseFloat(amountInput.value);
+      if (newAmt > 0) data.entries[index].amount = newAmt;
+    }
     saveState();
     updateUI();
   }
