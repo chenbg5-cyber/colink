@@ -1362,6 +1362,7 @@
     if ('caches' in window) {
       caches.open('pending-charges').then(cache =>
         cache.keys().then(keys => {
+          if (keys.length) debugPush({ src: 'cache-check', found: keys.length });
           keys.forEach(req => {
             cache.match(req).then(resp => resp.text()).then(text => {
               processSharedText(text);
@@ -1436,6 +1437,10 @@
   }
 
   function handleSharedText() {
+    const url = window.location.href;
+    if (url.includes('shared_text') || url.includes('t=')) {
+      debugPush({ src: 'page-url', url, search: window.location.search, hash: window.location.hash });
+    }
     const sharedText = extractSharedText();
     if (!sharedText) return;
 
@@ -1475,7 +1480,7 @@
       return;
     }
     el.textContent = log.map(e =>
-      `[${e.time}] ${e.result || '?'} | ₪${e.amount || '-'} | ${e.store || ''}\n  ${e.text || e.search || ''}`
+      `[${e.time}] ${e.src || '?'} | ${e.result || '-'} | ₪${e.amount || '-'}\n  url: ${e.url || '-'}\n  text: ${e.text || '-'}\n  search: ${e.search || '-'}\n  hash: ${e.hash || '-'}`
     ).join('\n\n');
   }
 
@@ -1501,7 +1506,9 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // Init
+  // Init - log every page load for debugging
+  debugPush({ src: 'page-load', url: window.location.href, search: window.location.search, hash: window.location.hash, sw: navigator.serviceWorker ? (navigator.serviceWorker.controller ? 'active' : 'no-controller') : 'unsupported' });
+
   applyRecurringCharges();
   updateUI();
   updateRecurringUI();
@@ -1510,6 +1517,7 @@
   // Handle PWA launch with URL from external app (MacroDroid etc.)
   if ('launchQueue' in window) {
     launchQueue.setConsumer((launchParams) => {
+      debugPush({ src: 'launchQueue', targetURL: launchParams.targetURL || 'none' });
       if (launchParams.targetURL) {
         const url = new URL(launchParams.targetURL);
         const hash = url.hash;
