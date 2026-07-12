@@ -1368,10 +1368,15 @@
     }
   }
 
+  const _processed = new Set();
   function processSharedText(text) {
     if (!text) return;
     text = text.replace(/\+/g, ' ').trim();
     if (!text || text.length < 5) return;
+    const key = text.substring(0, 60);
+    if (_processed.has(key)) return;
+    _processed.add(key);
+    setTimeout(() => _processed.delete(key), 30000);
     const logEntry = { src: 'auto', text, isCharge: isChargeSMS(text), amount: extractAmount(text) };
     if (!isChargeSMS(text)) {
       logEntry.result = 'filtered';
@@ -1426,12 +1431,12 @@
   }
 
   function handleSharedText() {
-    const url = window.location.href;
-    if (url.includes('shared_text') || url.includes('t=')) {
-      debugPush({ src: 'page-url', url, search: window.location.search, hash: window.location.hash });
-    }
     const sharedText = extractSharedText();
     if (!sharedText) return;
+    const key = sharedText.substring(0, 60);
+    if (_processed.has(key)) { history.replaceState(null, '', window.location.pathname); return; }
+    _processed.add(key);
+    setTimeout(() => _processed.delete(key), 30000);
 
     const logEntry = { url: window.location.href, text: sharedText, isCharge: isChargeSMS(sharedText), amount: extractAmount(sharedText) };
 
