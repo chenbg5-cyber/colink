@@ -82,20 +82,6 @@
       border: 1px solid var(--card-border);
     }
 
-    .dashboard-btn {
-      position: absolute;
-      top: 22px;
-      left: 56px;
-      background: none;
-      border: none;
-      color: var(--text-dim);
-      font-size: 14px;
-      cursor: pointer;
-      padding: 5px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--card-border);
-    }
-
     .dashboard-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -169,6 +155,25 @@
       color: var(--text-dim);
       margin-top: 4px;
     }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 16px 20px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: right;
+    }
+    .sidebar-item:active { background: rgba(255,255,255,0.05); }
+    .sidebar-icon { font-size: 18px; color: var(--text-dim); width: 24px; text-align: center; }
 
     /* Total display */
     .total-section {
@@ -706,11 +711,33 @@
 
   <!-- Header -->
   <div class="header">
-    <button class="settings-btn" onclick="openSettings()">&#9881;</button>
-    <button class="dashboard-btn" onclick="openDashboard()">דשבורד</button>
+    <button class="settings-btn" onclick="openSidebar()">&#9776;</button>
     <button class="reset-btn" onclick="confirmReset()">איפוס חודש</button>
     <h1>מעקב אשראי</h1>
     <div class="subtitle">מעקב הוצאות בזמן אמת מ-SMS</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="dashboard-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <div class="dashboard-drawer" id="sidebarDrawer">
+    <div class="dash-header">
+      <h3>תפריט</h3>
+      <button onclick="closeSidebar()" style="background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    <div id="sidebarContent">
+      <button onclick="closeSidebar(); openDashboard()" class="sidebar-item">
+        <span class="sidebar-icon">&#9632;</span>
+        <span>דשבורד</span>
+      </button>
+      <button onclick="closeSidebar(); openSettings()" class="sidebar-item">
+        <span class="sidebar-icon">&#9881;</span>
+        <span>התראות</span>
+      </button>
+      <button onclick="closeSidebar(); openProfile()" class="sidebar-item">
+        <span class="sidebar-icon">&#9786;</span>
+        <span>פרופיל</span>
+      </button>
+    </div>
   </div>
 
   <!-- Dashboard drawer -->
@@ -722,6 +749,27 @@
     </div>
     <div id="dashMonth" style="padding:12px 20px; font-size:13px; color:var(--text-dim); border-bottom:1px solid var(--card-border);"></div>
     <div id="dashContent"></div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="settings-modal" id="profileModal">
+    <div class="settings-content">
+      <h3>פרופיל</h3>
+      <div class="setting-row" style="flex-direction:column; align-items:stretch;">
+        <label style="margin-bottom:8px;">קוד שחזור</label>
+        <div id="profileRecoveryCode" style="background:rgba(212,170,80,0.1); border:1px solid var(--yellow); border-radius:10px; padding:14px; text-align:center; font-size:28px; font-weight:800; letter-spacing:8px; color:var(--yellow); direction:ltr;"></div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:6px; text-align:center;">שמרי את הקוד — ישמש לשחזור נתונים</div>
+      </div>
+      <div class="setting-row">
+        <label>איפוס קוד שחזור</label>
+        <button onclick="resetRecoveryCode()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">איפוס</button>
+      </div>
+      <div class="setting-row">
+        <label>שחזור מגיבוי</label>
+        <button onclick="closeProfile(); promptRestore()" style="padding:8px 16px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">שחזר</button>
+      </div>
+      <button class="settings-close" onclick="closeProfile()">סגור</button>
+    </div>
   </div>
 
   <!-- Month selector -->
@@ -875,11 +923,6 @@
       <div class="setting-row">
         <label>חיבור SMS אוטומטי</label>
         <button onclick="closeSettings(); openTaskerGuide()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">הגדר Tasker</button>
-      </div>
-      <div class="setting-row" style="flex-direction:column; align-items:stretch;">
-        <label style="margin-bottom:8px;">קוד שחזור (שמרי אותו!)</label>
-        <div id="recoveryCodeDisplay" style="background:rgba(212,170,80,0.1); border:1px solid var(--yellow); border-radius:10px; padding:14px; text-align:center; font-size:28px; font-weight:800; letter-spacing:8px; color:var(--yellow); direction:ltr;"></div>
-        <div style="font-size:11px; color:var(--text-dim); margin-top:6px; text-align:center;">אם נמחקו הנתונים, הכניסי קוד זה לשחזור</div>
       </div>
       <button class="settings-save" onclick="saveSettings()">שמור</button>
       <button class="settings-close" onclick="closeSettings()">סגור</button>
@@ -1442,7 +1485,6 @@
     document.getElementById('settingsModal').classList.add('show');
     updatePushButton();
     renderMilestoneSlots();
-    document.getElementById('recoveryCodeDisplay').textContent = getRecoveryCode();
   }
 
   function promptRestore() {
@@ -1559,6 +1601,34 @@
   }
 
   // Tasker guide
+  function openSidebar() {
+    document.getElementById('sidebarOverlay').classList.add('show');
+    document.getElementById('sidebarDrawer').classList.add('show');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebarOverlay').classList.remove('show');
+    document.getElementById('sidebarDrawer').classList.remove('show');
+  }
+
+  function openProfile() {
+    document.getElementById('profileModal').classList.add('show');
+    document.getElementById('profileRecoveryCode').textContent = getRecoveryCode();
+  }
+
+  function closeProfile() {
+    document.getElementById('profileModal').classList.remove('show');
+  }
+
+  function resetRecoveryCode() {
+    if (!confirm('לאפס את קוד השחזור? הקוד הישן לא יעבוד יותר.')) return;
+    const newCode = String(Math.floor(100000 + Math.random() * 900000));
+    localStorage.setItem('recovery_code', newCode);
+    cloudSave(state);
+    document.getElementById('profileRecoveryCode').textContent = newCode;
+    showToast('קוד שחזור חדש נוצר!');
+  }
+
   function openDashboard() {
     document.getElementById('dashOverlay').classList.add('show');
     document.getElementById('dashDrawer').classList.add('show');
