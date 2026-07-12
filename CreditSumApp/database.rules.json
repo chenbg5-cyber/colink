@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "users": {
+      "$deviceId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

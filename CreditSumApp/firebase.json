@@ -1,11 +1,20 @@
 {
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/node_modules/**"
+    ],
     "cleanUrls": false,
     "trailingSlash": false,
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
+  },
+  "database": {
+    "rules": "database.rules.json"
   }
 }

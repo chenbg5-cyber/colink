@@ -808,9 +808,66 @@
   const STORAGE_KEY = 'credit-tracker';
   const BILLING_DAY = 10;
   const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const FB_DB = 'https://credit-sum-app-default-rtdb.firebaseio.com';
+
+  function getDeviceId() {
+    let id = localStorage.getItem('device_id');
+    if (!id) {
+      const cookieMatch = document.cookie.match(/device_id=([^;]+)/);
+      if (cookieMatch) id = cookieMatch[1];
+    }
+    if (!id) {
+      id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    }
+    localStorage.setItem('device_id', id);
+    document.cookie = 'device_id=' + id + '; max-age=315360000; path=/; SameSite=Lax';
+    return id;
+  }
+
+  function cloudSave(data) {
+    const id = getDeviceId();
+    fetch(`${FB_DB}/users/${id}/state.json`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }).catch(() => {});
+  }
+
+  function cloudLoad() {
+    let id = localStorage.getItem('device_id');
+    if (!id) {
+      const cookieMatch = document.cookie.match(/device_id=([^;]+)/);
+      if (cookieMatch) id = cookieMatch[1];
+    }
+    if (!id) return Promise.resolve(null);
+    return fetch(`${FB_DB}/users/${id}/state.json`)
+      .then(r => r.json())
+      .then(d => (d && d.months) ? d : null)
+      .catch(() => null);
+  }
 
   let state = loadState();
   let viewMonth = getCurrentCycleKey();
+
+  // On startup: if localStorage was wiped, try restoring from cloud
+  (function restoreFromCloud() {
+    const hasLocal = localStorage.getItem(STORAGE_KEY);
+    if (!hasLocal) {
+      cloudLoad().then(cloudState => {
+        if (cloudState && cloudState.months && Object.keys(cloudState.months).length > 0) {
+          state = cloudState;
+          if (!state.milestones) state.milestones = [1000];
+          saveState();
+          updateUI();
+          updateRecurringUI();
+          showToast('הנתונים שוחזרו מגיבוי ענן!');
+        }
+      });
+    }
+    // Request persistent storage
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+  })();
 
   // Billing cycle: 10th to 9th of next month
   function getCurrentCycleKey() {
@@ -861,6 +918,7 @@
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    cloudSave(state);
   }
 
   function getMonthData(key) {
