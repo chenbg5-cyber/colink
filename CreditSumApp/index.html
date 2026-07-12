@@ -701,8 +701,9 @@
           <label style="margin:0;">הזנה ידנית</label>
           <button onclick="toggleManual()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
         </div>
-        <div style="margin-bottom:8px;">
-          <input type="number" class="manual-input" id="manualInput" placeholder="סכום בש״ח" inputmode="decimal" style="width:100%;">
+        <div style="display:flex; gap:10px; margin-bottom:8px;">
+          <input type="number" class="manual-input" id="manualInput" placeholder="סכום" inputmode="decimal" style="flex:1;">
+          <input type="text" class="manual-input" id="manualStore" placeholder="פירוט" maxlength="20" style="flex:1;">
         </div>
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-bottom:10px; cursor:pointer;">
           <input type="checkbox" id="recurringCheck" style="width:18px; height:18px; accent-color:var(--accent);">
@@ -1042,10 +1043,11 @@
 
   function addManual() {
     const input = document.getElementById('manualInput');
+    const storeInput = document.getElementById('manualStore');
     const recurringCheck = document.getElementById('recurringCheck');
     const amt = parseFloat(input.value);
     if (!amt || amt <= 0) return;
-    const store = null;
+    const store = storeInput.value.trim() || null;
 
     if (recurringCheck.checked) {
       if (!state.recurring) state.recurring = [];
@@ -1056,6 +1058,7 @@
 
     addEntry(amt, store, recurringCheck.checked);
     input.value = '';
+    storeInput.value = '';
     recurringCheck.checked = false;
     updateRecurringUI();
   }
