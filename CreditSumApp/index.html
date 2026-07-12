@@ -655,18 +655,9 @@
 
   <!-- How to add -->
   <div class="input-section">
-    <!-- Share button - primary method -->
-    <div class="sms-box" id="shareBox" style="text-align:center; padding:20px 16px;">
-      <div style="font-size:14px; font-weight:600; margin-bottom:12px;">איך מוסיפים חיוב?</div>
-      <div style="font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.7;">
-        כשמגיע SMS מהאשראי:<br>
-        <b style="color:var(--text);">לחץ על ההודעה ← שתף ← בחר "מעקב אשראי"</b><br>
-        הסכום יתווסף אוטומטית!
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button onclick="togglePaste()" style="flex:1; padding:14px; background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הדבק SMS</button>
-        <button onclick="toggleManual()" style="flex:1; padding:14px; background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הזן ידנית</button>
-      </div>
+    <div style="display:flex; gap:8px;">
+      <button onclick="togglePaste()" style="flex:1; padding:14px; background:var(--card); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הדבק SMS</button>
+      <button onclick="toggleManual()" style="flex:1; padding:14px; background:var(--card); color:var(--text); border:1px solid var(--card-border); border-radius:10px; font-size:13px; cursor:pointer; font-family:inherit;">הזן ידנית</button>
     </div>
 
     <!-- SMS paste area (hidden by default) -->
@@ -1073,12 +1064,13 @@
       const time = new Date(e.time).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
       const store = e.store ? `<span style="font-size:12px; color:var(--text-dim)"> • ${e.store}</span>` : '';
       return `<div class="history-item">
-        <div class="info">
+        <div class="info" style="flex:1; min-width:0;">
           <div class="amount">₪${formatNum(e.amount)}${store}</div>
           <div class="time">${time}</div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
+        <div style="display:flex; align-items:center; gap:6px;">
           <div class="running-total">₪${formatNum(rt)}</div>
+          <button class="delete-btn" onclick="editEntry('${viewMonth}', ${realIndex})" style="font-size:14px;">✎</button>
           <button class="delete-btn" onclick="deleteEntry('${viewMonth}', ${realIndex})">✕</button>
         </div>
       </div>`;
@@ -1218,6 +1210,17 @@
     const el = document.getElementById('totalAmount');
     el.classList.add('pulse');
     setTimeout(() => el.classList.remove('pulse'), 400);
+  }
+
+  function editEntry(monthKey, index) {
+    const data = getMonthData(monthKey);
+    if (index < 0 || index >= data.entries.length) return;
+    const entry = data.entries[index];
+    const newStore = prompt('פירוט:', entry.store || '');
+    if (newStore === null) return;
+    entry.store = newStore.trim().substring(0, 20) || null;
+    saveState();
+    updateUI();
   }
 
   function deleteEntry(monthKey, index) {
