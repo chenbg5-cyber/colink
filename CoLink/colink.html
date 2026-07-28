@@ -2812,6 +2812,10 @@ function signInWithGoogle() {
       onAuthSuccess();
     })
     .catch(err => {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        auth.signInWithRedirect(googleProvider);
+        return;
+      }
       console.error('Google sign-in error:', err);
       if (err.code !== 'auth/popup-closed-by-user') {
         showToast('שגיאה בהתחברות: ' + (err.code || err.message));
@@ -6969,7 +6973,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '78';
+const APP_VERSION = '79';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
