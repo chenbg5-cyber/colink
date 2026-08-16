@@ -1049,67 +1049,152 @@ body {
   background-clip: text;
 }
 
-.user-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  background: var(--input-bg);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
+.greeting-bar .greeting-project {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--text-dim);
+  margin-top: 2px;
 }
 
-.user-bar .user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-bar img {
-  width: 22px;
-  height: 22px;
+.profile-btn {
+  position: absolute;
+  right: 0;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-}
-
-.user-bar button {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 12px;
+  border: 2px solid var(--border);
   cursor: pointer;
-  font-family: inherit;
-  padding: 4px 8px;
-}
-
-.user-bar button:hover {
-  color: var(--text);
-}
-
-.cloud-actions {
+  overflow: hidden;
+  padding: 0;
+  background: var(--input-bg);
   display: flex;
-  gap: 6px;
   align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
 }
 
-.cloud-btn {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
+.profile-btn:active {
+  border-color: var(--accent);
+}
+
+.profile-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-btn svg {
+  width: 20px;
+  height: 20px;
   color: var(--text-dim);
-  font-size: 11px;
-  cursor: pointer;
-  font-family: inherit;
+}
+
+.profile-menu-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 250;
+  opacity: 0;
+  visibility: hidden;
   transition: all 0.2s;
 }
 
-.cloud-btn:active {
-  background: var(--accent-glow);
-  color: var(--accent);
+.profile-menu-overlay.open {
+  opacity: 1;
+  visibility: visible;
 }
 
-.sync-indicator {
+.profile-menu {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 0;
+  min-width: 200px;
+  z-index: 260;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transform: scale(0.9) translateY(-8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  transform-origin: top right;
+}
+
+.profile-menu.open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.profile-menu-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-menu-header img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.profile-menu-header .pm-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-menu-header .pm-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-menu-header .pm-email {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  text-align: right;
+  transition: background 0.15s;
+}
+
+.profile-menu-item:active {
+  background: var(--accent-glow);
+}
+
+.profile-menu-item svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.profile-menu-item.danger {
+  color: var(--danger);
+}
+
+.profile-menu-item.danger svg {
+  color: var(--danger);
+}
+
+.pm-sync {
+  padding: 4px 16px 8px;
   font-size: 11px;
   color: var(--success);
 }
@@ -1147,28 +1232,44 @@ body {
 <!-- App (hidden until login) -->
 <div id="appMain" style="display:none">
 
-<div class="user-bar" id="userBar">
-  <div class="user-info">
-    <img id="userPhoto" src="" alt="">
-    <span id="userName"></span>
-  </div>
-  <div class="cloud-actions">
-    <button class="cloud-btn" onclick="backupFromCloud()">שחזור מענן</button>
-    <span class="sync-indicator" id="syncStatus"></span>
-    <button class="user-bar button" onclick="signOut()">יציאה</button>
-  </div>
-</div>
-
-<div class="greeting-bar" id="greetingBar"></div>
-
 <header class="app-header">
   <div class="header-row">
     <button class="sidebar-toggle" onclick="toggleSidebar()" title="דשבורד">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     </button>
     <h1>דיווח שעות</h1>
+    <button class="profile-btn" onclick="toggleProfileMenu()" id="profileBtn">
+      <img id="userPhoto" src="" alt="" style="display:none">
+      <svg id="profileIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+    </button>
   </div>
 </header>
+
+<div class="greeting-bar" id="greetingBar"></div>
+
+<div class="profile-menu-overlay" id="profileMenuOverlay" onclick="closeProfileMenu()"></div>
+<div class="profile-menu" id="profileMenu">
+  <div class="profile-menu-header">
+    <img id="userPhotoMenu" src="" alt="">
+    <div class="pm-info">
+      <span class="pm-name" id="userName"></span>
+      <span class="pm-email" id="userEmail"></span>
+    </div>
+  </div>
+  <div class="pm-sync" id="syncStatus"></div>
+  <button class="profile-menu-item" onclick="backupFromCloud(); closeProfileMenu();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M20 17.607c1.4-.689 2-1.857 2-3.107 0-2.4-1.8-4-4.2-4-.6-2.8-3-5-6.3-5C8 5.5 5.2 8 4.5 11 2.5 11.5 1 13.3 1 15.5 1 17.9 2.8 20 5.5 20H18"/></svg>
+    שחזור מענן
+  </button>
+  <button class="profile-menu-item" onclick="editProfile(); closeProfileMenu();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    עריכת פרופיל
+  </button>
+  <button class="profile-menu-item danger" onclick="signOut(); closeProfileMenu();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    יציאה
+  </button>
+</div>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
@@ -1341,7 +1442,34 @@ function updateGreeting() {
   const el = document.getElementById('greetingBar');
   if (!el || !userProfile) return;
   const name = userProfile.name || '';
-  el.innerHTML = `${getGreeting()}, <span class="greeting-name">${name}</span>`;
+  const project = userProfile.project || '';
+  let html = `${getGreeting()}, <span class="greeting-name">${name}</span>`;
+  if (project) html += `<span class="greeting-project">${project}</span>`;
+  el.innerHTML = html;
+}
+
+function toggleProfileMenu() {
+  const menu = document.getElementById('profileMenu');
+  const overlay = document.getElementById('profileMenuOverlay');
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) { closeProfileMenu(); } else {
+    menu.classList.add('open');
+    overlay.classList.add('open');
+  }
+}
+
+function closeProfileMenu() {
+  document.getElementById('profileMenu').classList.remove('open');
+  document.getElementById('profileMenuOverlay').classList.remove('open');
+}
+
+function editProfile() {
+  document.getElementById('onboardingScreen').style.display = 'flex';
+  document.getElementById('appMain').style.display = 'none';
+  if (userProfile) {
+    document.getElementById('onboardName').value = userProfile.name || '';
+    document.getElementById('onboardProject').value = userProfile.project || '';
+  }
 }
 
 function loadProfileLocal() {
@@ -1410,7 +1538,19 @@ async function handleUser(user) {
     }
 
     document.getElementById('userName').textContent = userProfile ? userProfile.name : (user.displayName || user.email);
-    document.getElementById('userPhoto').src = user.photoURL || '';
+    document.getElementById('userEmail').textContent = user.email || '';
+    const photo = user.photoURL || '';
+    const photoEl = document.getElementById('userPhoto');
+    const photoMenu = document.getElementById('userPhotoMenu');
+    const profileIcon = document.getElementById('profileIcon');
+    if (photo) {
+      photoEl.src = photo; photoEl.style.display = 'block';
+      photoMenu.src = photo;
+      if (profileIcon) profileIcon.style.display = 'none';
+    } else {
+      photoEl.style.display = 'none';
+      if (profileIcon) profileIcon.style.display = 'block';
+    }
 
     setSyncStatus('טוען נתונים...');
     let cloudLoaded = false;
