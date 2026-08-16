@@ -231,9 +231,63 @@ body {
   color: var(--success);
 }
 
+.tag-hybrid {
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--accent-light);
+}
+
 .tag-travel {
   background: rgba(255, 217, 61, 0.15);
   color: var(--warning);
+}
+
+.tag-off {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--danger);
+}
+
+.off-selector {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.off-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.off-btn.active {
+  border-color: var(--danger);
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--danger);
+}
+
+.off-btn.clear {
+  flex: 0.6;
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.off-btn.clear:hover {
+  border-color: var(--text-dim);
+}
+
+.day-card.day-off .day-content .time-row,
+.day-card.day-off .day-content .loc-selector,
+.day-card.day-off .day-content .save-entry-btn,
+.day-card.day-off .day-content .edit-day-btn,
+.day-card.day-off .day-content .entries-in-day {
+  display: none;
 }
 
 .expand-icon {
@@ -334,6 +388,58 @@ body {
 .edit-day-btn:active {
   background: var(--card-hover);
   color: var(--text);
+}
+
+.loc-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.loc-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.loc-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.loc-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.entry-loc {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.entry-loc.home {
+  background: rgba(78, 205, 196, 0.15);
+  color: var(--success);
+}
+
+.entry-loc.office {
+  background: rgba(108, 99, 255, 0.1);
+  color: var(--accent-light);
+}
+
+.travel-pill {
+  margin-top: 10px;
 }
 
 .entries-in-day {
@@ -629,9 +735,20 @@ function dateKey(y, m, d) {
 }
 
 function getDayData(key) {
-  if (!data[key]) data[key] = { entries: [], travel: false, home: false };
+  if (!data[key]) data[key] = { entries: [], travel: false, home: false, off: '' };
   if (!data[key].entries) data[key].entries = [];
   return data[key];
+}
+
+function setDayOff(key, type) {
+  const dayData = getDayData(key);
+  dayData.off = dayData.off === type ? '' : type;
+  if (dayData.off) {
+    dayData.entries = [];
+  }
+  saveData();
+  openDay = key;
+  renderReport();
 }
 
 function calcHours(start, end) {
@@ -689,6 +806,16 @@ function toggleDay(key) {
   }
 }
 
+let pendingLoc = {};
+
+function pickLoc(key, loc) {
+  pendingLoc[key] = loc;
+  const oBtn = document.getElementById('loc-office-' + key);
+  const hBtn = document.getElementById('loc-home-' + key);
+  if (oBtn) oBtn.classList.toggle('active', loc === 'office');
+  if (hBtn) hBtn.classList.toggle('active', loc === 'home');
+}
+
 function editDay(key) {
   editingDay = key;
   openDay = key;
@@ -708,7 +835,8 @@ function addEntry(key) {
   if (!start || !end) { showToast('יש למלא שעת התחלה וסיום'); return; }
   if (start >= end) { showToast('שעת הסיום חייבת להיות אחרי ההתחלה'); return; }
   const dayData = getDayData(key);
-  dayData.entries.push({ start, end, id: Date.now() });
+  const loc = pendingLoc[key] || 'office';
+  dayData.entries.push({ start, end, id: Date.now(), loc });
   dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
   saveData();
   editingDay = null;
@@ -752,22 +880,32 @@ function renderReport() {
     const dt = new Date(y, m, d);
     const dow = dt.getDay();
     const key = dateKey(y, m, d);
-    const dayData = data[key] || { entries: [], travel: false, home: false };
+    const dayData = data[key] || { entries: [], travel: false, home: false, off: '' };
     const entries = dayData.entries || [];
     const totalH = entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
     const isToday = key === todayKey;
     const isWeekend = dow === 5 || dow === 6;
     const hasData = entries.length > 0;
     const isOpen = openDay === key;
+    const isDayOff = !!dayData.off;
 
     let cls = 'day-card';
     if (isToday) cls += ' today';
     if (isWeekend) cls += ' weekend';
     if (hasData) cls += ' has-data';
     if (isOpen) cls += ' open';
+    if (isDayOff) cls += ' day-off has-data';
 
     let tags = '';
-    if (dayData.home) tags += '<span class="tag tag-home">בית</span>';
+    if (isDayOff) {
+      const offLabel = dayData.off === 'vacation' ? 'חופש' : 'מחלה';
+      tags += `<span class="tag tag-off">${offLabel}</span>`;
+    } else {
+      const hasHome = entries.some(e => e.loc === 'home');
+      const hasOffice = entries.some(e => !e.loc || e.loc === 'office');
+      if (hasHome && hasOffice) tags += '<span class="tag tag-hybrid">משולב</span>';
+      else if (hasHome) tags += '<span class="tag tag-home">בית</span>';
+    }
     if (dayData.travel) tags += '<span class="tag tag-travel">נסיעה</span>';
 
     html += `<div class="${cls}" id="day-${key}">
@@ -780,15 +918,18 @@ function renderReport() {
         </div>
         <div class="day-header-left">
           <div class="day-tags">${tags}</div>
-          ${hasData
-            ? `<div class="day-total">${fmtH(totalH)} <small>שעות</small></div>`
-            : `<div class="day-total empty">--</div>`}
+          ${isDayOff
+            ? `<div class="day-total empty">${dayData.off === 'vacation' ? 'חופש' : 'מחלה'}</div>`
+            : hasData
+              ? `<div class="day-total">${fmtH(totalH)} <small>שעות</small></div>`
+              : `<div class="day-total empty">--</div>`}
         </div>
       </div>
       <div class="day-content">
         ${entries.length > 0 ? `<div class="entries-in-day">
           ${entries.map(e => {
             const h = calcHours(e.start, e.end);
+            const locTag = e.loc === 'home' ? '<span class="entry-loc home">בית</span>' : '<span class="entry-loc office">משרד</span>';
             return `<div class="entry-row">
               ${editingDay === key ? `<button class="entry-del" onclick="deleteEntry('${key}',${e.id})">&#10005;</button>` : ''}
               <div class="entry-times">
@@ -796,6 +937,7 @@ function renderReport() {
                 <span class="arrow">&#8592;</span>
                 <span>${e.end}</span>
               </div>
+              ${locTag}
               <div class="entry-hours">${fmtH(h)}</div>
             </div>`;
           }).join('')}
@@ -811,6 +953,11 @@ function renderReport() {
               <input type="time" id="end-${key}">
             </div>
           </div>
+          <div class="loc-selector">
+            <span class="loc-label">מיקום:</span>
+            <button class="loc-btn active" id="loc-office-${key}" onclick="pickLoc('${key}','office')">משרד</button>
+            <button class="loc-btn" id="loc-home-${key}" onclick="pickLoc('${key}','home')">בית</button>
+          </div>
           <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
         ` : `
           <button class="edit-day-btn" onclick="editDay('${key}')">
@@ -818,22 +965,18 @@ function renderReport() {
             עריכה
           </button>
         `}
-        <div class="toggles-row">
-          <label class="toggle-pill">
-            <span class="pill-text">מהבית</span>
-            <div class="toggle-mini">
-              <input type="checkbox" id="home-${key}" ${dayData.home ? 'checked' : ''} onchange="saveToggle('${key}','home')">
-              <span class="slider"></span>
-            </div>
-          </label>
-          <label class="toggle-pill">
-            <span class="pill-text">נסיעות</span>
-            <div class="toggle-mini">
-              <input type="checkbox" id="travel-${key}" ${dayData.travel ? 'checked' : ''} onchange="saveToggle('${key}','travel')">
-              <span class="slider"></span>
-            </div>
-          </label>
+        <div class="off-selector">
+          <button class="off-btn ${dayData.off === 'vacation' ? 'active' : ''}" onclick="setDayOff('${key}','vacation')">חופש</button>
+          <button class="off-btn ${dayData.off === 'sick' ? 'active' : ''}" onclick="setDayOff('${key}','sick')">מחלה</button>
+          ${dayData.off ? `<button class="off-btn clear" onclick="setDayOff('${key}','${dayData.off}')">ביטול</button>` : ''}
         </div>
+        <label class="toggle-pill travel-pill">
+          <span class="pill-text">נסיעות</span>
+          <div class="toggle-mini">
+            <input type="checkbox" id="travel-${key}" ${dayData.travel ? 'checked' : ''} onchange="saveToggle('${key}','travel')">
+            <span class="slider"></span>
+          </div>
+        </label>
       </div>
     </div>`;
   }
@@ -847,17 +990,25 @@ function renderDashboard() {
   document.getElementById('dashMonthDisplay').textContent = MONTHS_HE[m] + ' ' + y;
 
   const daysInMonth = new Date(y, m+1, 0).getDate();
-  let totalHours = 0, workDays = 0, homeDays = 0, travelDays = 0;
+  let totalHours = 0, workDays = 0, homeDays = 0, officeDays = 0, hybridDays = 0;
+  let travelDays = 0, vacationDays = 0, sickDays = 0;
   let maxDay = 0, maxDayLabel = '';
 
   for (let d = 1; d <= daysInMonth; d++) {
     const key = dateKey(y, m, d);
     const dayData = data[key];
-    if (!dayData || !dayData.entries || dayData.entries.length === 0) continue;
+    if (!dayData) continue;
+    if (dayData.off === 'vacation') { vacationDays++; continue; }
+    if (dayData.off === 'sick') { sickDays++; continue; }
+    if (!dayData.entries || dayData.entries.length === 0) continue;
     const dayTotal = dayData.entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
     totalHours += dayTotal;
     workDays++;
-    if (dayData.home) homeDays++;
+    const hasHome = dayData.entries.some(e => e.loc === 'home');
+    const hasOffice = dayData.entries.some(e => !e.loc || e.loc === 'office');
+    if (hasHome && hasOffice) hybridDays++;
+    else if (hasHome) homeDays++;
+    else officeDays++;
     if (dayData.travel) travelDays++;
     if (dayTotal > maxDay) {
       maxDay = dayTotal;
@@ -867,10 +1018,9 @@ function renderDashboard() {
   }
 
   const avgHours = workDays > 0 ? totalHours / workDays : 0;
-  const officeDays = workDays - homeDays;
   const workingDaysInMonth = countWorkingDays(y, m);
-  const reportProgress = Math.min(100, Math.round((workDays / workingDaysInMonth) * 100));
-  const homePercent = workDays > 0 ? Math.round((homeDays / workDays) * 100) : 0;
+  const allReportedDays = workDays + vacationDays + sickDays;
+  const reportProgress = Math.min(100, Math.round((allReportedDays / workingDaysInMonth) * 100));
 
   document.getElementById('dashContent').innerHTML = `
     <div class="dash-section">
@@ -896,7 +1046,7 @@ function renderDashboard() {
       <div class="progress-bar-wrap">
         <div class="progress-label">
           <span>ימים מדווחים</span>
-          <span>${workDays} / ${workingDaysInMonth}</span>
+          <span>${allReportedDays} / ${workingDaysInMonth}</span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" style="width:${reportProgress}%"></div>
@@ -904,27 +1054,36 @@ function renderDashboard() {
       </div>
     </div>
 
+    ${(vacationDays > 0 || sickDays > 0) ? `<div class="dash-section">
+      <div class="dash-title">היעדרויות</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val">${vacationDays}</div>
+          <div class="stat-lbl">ימי חופש</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${sickDays}</div>
+          <div class="stat-lbl">ימי מחלה</div>
+        </div>
+      </div>
+    </div>` : ''}
+
     <div class="dash-section">
       <div class="dash-title">פילוח מיקום</div>
       <div class="stat-grid">
         <div class="stat-box">
-          <div class="stat-val">${homeDays}</div>
-          <div class="stat-lbl">ימים מהבית</div>
+          <div class="stat-val">${officeDays}</div>
+          <div class="stat-lbl">משרד</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">${officeDays}</div>
-          <div class="stat-lbl">ימים מהמשרד</div>
+          <div class="stat-val">${homeDays}</div>
+          <div class="stat-lbl">בית</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${hybridDays}</div>
+          <div class="stat-lbl">משולב</div>
         </div>
       </div>
-      ${workDays > 0 ? `<div class="progress-bar-wrap" style="margin-top:10px">
-        <div class="progress-label">
-          <span>בית / משרד</span>
-          <span>${homePercent}% מהבית</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill green" style="width:${homePercent}%"></div>
-        </div>
-      </div>` : ''}
     </div>
 
     <div class="dash-section">
