@@ -1101,6 +1101,7 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 const provider = new firebase.auth.GoogleAuthProvider();
 
 const STORAGE_KEY_BASE = 'timeReportData';
