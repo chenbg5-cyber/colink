@@ -2482,20 +2482,27 @@ function renderReport() {
 function renderMonthStats(m, y) {
   const daysInMonth = new Date(y, m+1, 0).getDate();
   const pd = getProjectData();
-  let workDays = 0, vacationDays = 0, sickDays = 0;
+  let workDays = 0, vacationDays = 0, sickDays = 0, totalHours = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const k = dateKey(y, m, d);
     const dd = pd[k];
     if (!dd) continue;
     if (dd.off === 'vacation') { vacationDays++; continue; }
     if (dd.off === 'sick') { sickDays++; continue; }
-    if (dd.entries && dd.entries.length > 0) workDays++;
+    if (dd.entries && dd.entries.length > 0) {
+      workDays++;
+      totalHours += dd.entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
+    }
   }
   const workingDaysInMonth = countWorkingDays(y, m);
   const reported = workDays + vacationDays + sickDays;
   const el = document.getElementById('monthStats');
   if (!el) return;
   el.innerHTML = `
+    <div class="month-stat">
+      <div class="month-stat-val">${fmtHLabel(totalHours)}</div>
+      <div class="month-stat-lbl">שעות</div>
+    </div>
     <div class="month-stat">
       <div class="month-stat-val">${workDays}</div>
       <div class="month-stat-lbl">ימי עבודה</div>
