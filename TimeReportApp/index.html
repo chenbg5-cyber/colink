@@ -272,12 +272,10 @@ body {
   border: 1px solid var(--border);
 }
 
-.toggle-row label {
+.toggle-row .toggle-text {
   font-size: 14px;
   color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -701,20 +699,20 @@ body {
       </div>
 
       <div class="toggles-grid">
-        <div class="toggle-row">
-          <label><span class="svg-icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 001 1h3v-6h6v6h3a1 1 0 001-1V10"/></svg></span> מהבית</label>
+        <label class="toggle-row">
+          <span class="toggle-text">מהבית</span>
           <div class="toggle-switch">
             <input type="checkbox" id="homeToggle" onchange="saveToggles()">
             <span class="toggle-slider"></span>
           </div>
-        </div>
-        <div class="toggle-row">
-          <label><span class="svg-icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="22" height="10" rx="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M5 6l2-3h4l2 3"/></svg></span> נסיעות</label>
+        </label>
+        <label class="toggle-row">
+          <span class="toggle-text">נסיעות</span>
           <div class="toggle-switch">
             <input type="checkbox" id="travelToggle" onchange="saveToggles()">
             <span class="toggle-slider"></span>
           </div>
-        </div>
+        </label>
       </div>
 
       <button class="add-btn" onclick="addEntry()">+ הוסף רשומה</button>
