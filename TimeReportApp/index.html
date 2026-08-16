@@ -1713,9 +1713,11 @@ function saveToCloud() {
       });
       if (resp.ok) {
         setSyncStatus('נשמר בענן');
+        showToast('נשמר בענן בהצלחה');
       } else {
+        const errText = await resp.text();
         setSyncStatus('שגיאה בשמירה');
-        showToast('שגיאת שמירה: ' + resp.status);
+        showToast('שגיאת שמירה: ' + resp.status + ' - ' + errText.substring(0, 100));
       }
     } catch(e) {
       setSyncStatus('שגיאה בשמירה');
