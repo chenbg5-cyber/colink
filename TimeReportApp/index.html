@@ -1344,16 +1344,23 @@ function updateGreeting() {
   el.innerHTML = `${getGreeting()}, <span class="greeting-name">${name}</span>`;
 }
 
-async function loadProfile() {
+function loadProfileLocal() {
+  if (!currentUser) return null;
+  const local = localStorage.getItem('profile_' + currentUser.uid);
+  if (local) { try { return JSON.parse(local); } catch(e) {} }
+  return null;
+}
+
+async function loadProfileCloud() {
   if (!currentUser) return null;
   try {
     const doc = await db.collection('users').doc(currentUser.uid).get();
     if (doc.exists && doc.data().profile) {
-      return doc.data().profile;
+      const p = doc.data().profile;
+      localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(p));
+      return p;
     }
   } catch(e) {}
-  const local = localStorage.getItem('profile_' + currentUser.uid);
-  if (local) { try { return JSON.parse(local); } catch(e) {} }
   return null;
 }
 
@@ -1369,6 +1376,7 @@ async function saveOnboarding() {
   document.getElementById('onboardingScreen').style.display = 'none';
   document.getElementById('appMain').style.display = 'block';
   updateGreeting();
+  renderReport();
   showToast('שלום ' + name + '!');
 }
 
@@ -1377,10 +1385,24 @@ async function handleUser(user) {
   if (user) {
     document.getElementById('loginScreen').style.display = 'none';
 
-    userProfile = await loadProfile();
+    userProfile = loadProfileLocal();
+
     if (!userProfile) {
-      document.getElementById('onboardingScreen').style.display = 'flex';
       document.getElementById('appMain').style.display = 'none';
+      document.getElementById('onboardingScreen').style.display = 'flex';
+      const nameInput = document.getElementById('onboardName');
+      if (nameInput && !nameInput.value && user.displayName) {
+        nameInput.value = user.displayName.split(' ')[0];
+      }
+      loadProfileCloud().then(p => {
+        if (p) {
+          userProfile = p;
+          document.getElementById('onboardingScreen').style.display = 'none';
+          document.getElementById('appMain').style.display = 'block';
+          updateGreeting();
+          renderReport();
+        }
+      });
     } else {
       document.getElementById('onboardingScreen').style.display = 'none';
       document.getElementById('appMain').style.display = 'block';
