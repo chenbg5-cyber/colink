@@ -1936,13 +1936,6 @@ function signOut() {
 
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
-let redirectChecked = false;
-auth.getRedirectResult().then(() => {
-  redirectChecked = true;
-}).catch(() => {
-  redirectChecked = true;
-});
-
 function getGreeting() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return 'בוקר טוב';
@@ -2113,27 +2106,17 @@ async function handleUser(user) {
     stopRealtimeSync();
     data = {};
     userProfile = null;
-    if (redirectChecked) {
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('appMain').style.display = 'none';
-      document.getElementById('onboardingScreen').style.display = 'none';
-    } else {
-      auth.getRedirectResult().then(result => {
-        if (!result || !result.user) {
-          document.getElementById('loginScreen').style.display = 'flex';
-          document.getElementById('appMain').style.display = 'none';
-          document.getElementById('onboardingScreen').style.display = 'none';
-        }
-      }).catch(() => {
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('appMain').style.display = 'none';
-        document.getElementById('onboardingScreen').style.display = 'none';
-      });
-    }
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appMain').style.display = 'none';
+    document.getElementById('onboardingScreen').style.display = 'none';
   }
 }
 
-auth.onAuthStateChanged(handleUser);
+auth.getRedirectResult().then(() => {
+  auth.onAuthStateChanged(handleUser);
+}).catch(() => {
+  auth.onAuthStateChanged(handleUser);
+});
 
 function dateKey(y, m, d) {
   return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
