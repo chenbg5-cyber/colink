@@ -3,6 +3,7 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "firestore.rules",
       "**/node_modules/**"
     ],
     "cleanUrls": false,
@@ -19,5 +20,8 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
