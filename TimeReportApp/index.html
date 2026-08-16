@@ -440,6 +440,15 @@ body {
   margin-top: 10px;
 }
 
+.live-total {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--success);
+  min-height: 22px;
+  margin: 4px 0;
+}
+
 .off-selector {
   display: flex;
   gap: 6px;
@@ -2138,6 +2147,25 @@ function startAddEntry(key) {
   renderModal();
 }
 
+function updateLiveTotal(key) {
+  const startEl = document.getElementById('start-' + key);
+  const endEl = document.getElementById('end-' + key);
+  const liveEl = document.getElementById('liveTotal-' + key);
+  if (!liveEl || !startEl || !endEl) return;
+  const start = startEl.value;
+  const end = endEl.value;
+  if (!start || !end) { liveEl.textContent = ''; return; }
+  const newH = calcHours(start, end);
+  if (newH <= 0) { liveEl.textContent = ''; return; }
+  const pd = getProjectData();
+  const dayData = pd[key] || { entries: [] };
+  const existingH = (dayData.entries || []).reduce((s, e) => s + calcHours(e.start, e.end), 0);
+  const totalH = existingH + newH;
+  liveEl.textContent = existingH > 0
+    ? `${fmtHLabel(newH)} (סה"כ ליום: ${fmtHLabel(totalH)})`
+    : fmtHLabel(newH);
+}
+
 function addEntry(key) {
   const startEl = document.getElementById('start-' + key);
   const endEl = document.getElementById('end-' + key);
@@ -2406,9 +2434,10 @@ function renderModal() {
     if (entries.length === 0 || addingEntry === modalKey) {
       html += `
         <div class="time-row">
-          <div class="time-input-wrap"><span>התחלה</span><input type="time" id="start-${modalKey}"></div>
-          <div class="time-input-wrap"><span>סיום</span><input type="time" id="end-${modalKey}"></div>
+          <div class="time-input-wrap"><span>התחלה</span><input type="time" id="start-${modalKey}" oninput="updateLiveTotal('${modalKey}')"></div>
+          <div class="time-input-wrap"><span>סיום</span><input type="time" id="end-${modalKey}" oninput="updateLiveTotal('${modalKey}')"></div>
         </div>
+        <div class="live-total" id="liveTotal-${modalKey}"></div>
         <div class="loc-selector">
           <span class="loc-label">מיקום:</span>
           <button class="loc-btn" id="loc-office-${modalKey}" onclick="pickLoc('${modalKey}','office')">משרד</button>
