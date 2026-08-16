@@ -948,7 +948,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-const STORAGE_KEY = 'timeReportData';
+const STORAGE_KEY_BASE = 'timeReportData';
 const DAYS_HE = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
@@ -959,15 +959,19 @@ let editingDay = null;
 let editingEntry = null;
 let addingEntry = null;
 let currentUser = null;
-let data = loadData();
+let data = {};
 
-function loadData() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+function userStorageKey() {
+  return currentUser ? STORAGE_KEY_BASE + '_' + currentUser.uid : STORAGE_KEY_BASE;
+}
+
+function loadLocalData() {
+  try { return JSON.parse(localStorage.getItem(userStorageKey())) || {}; }
   catch { return {}; }
 }
 
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(userStorageKey(), JSON.stringify(data));
   saveToCloud();
 }
 
@@ -976,8 +980,7 @@ function saveToCloud() {
   if (!currentUser) return;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
-    const uid = currentUser.uid;
-    db.collection('users').doc(uid).set({ timeData: JSON.stringify(data) })
+    db.collection('users').doc(currentUser.uid).set({ timeData: JSON.stringify(data) })
       .then(() => { setSyncStatus('נשמר בענן'); })
       .catch(() => { setSyncStatus('שגיאה בשמירה'); });
   }, 1500);
@@ -992,13 +995,12 @@ function setSyncStatus(msg) {
 }
 
 async function loadFromCloud() {
-  if (!currentUser) return;
+  if (!currentUser) return false;
   try {
     const doc = await db.collection('users').doc(currentUser.uid).get();
     if (doc.exists && doc.data().timeData) {
-      const cloudData = JSON.parse(doc.data().timeData);
-      data = cloudData;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      data = JSON.parse(doc.data().timeData);
+      localStorage.setItem(userStorageKey(), JSON.stringify(data));
       renderReport();
       return true;
     }
@@ -1036,14 +1038,25 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById('appMain').style.display = 'block';
     document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('userPhoto').src = user.photoURL || '';
-    const localKeys = Object.keys(data).length;
-    if (localKeys === 0) {
-      await loadFromCloud();
-    } else {
-      saveToCloud();
+
+    const cloudLoaded = await loadFromCloud();
+    if (!cloudLoaded) {
+      const oldData = localStorage.getItem(STORAGE_KEY_BASE);
+      const userData = localStorage.getItem(userStorageKey());
+      if (userData) {
+        data = JSON.parse(userData);
+      } else if (oldData) {
+        data = JSON.parse(oldData);
+        localStorage.setItem(userStorageKey(), oldData);
+        localStorage.removeItem(STORAGE_KEY_BASE);
+        saveToCloud();
+      } else {
+        data = {};
+      }
     }
     renderReport();
   } else {
+    data = {};
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appMain').style.display = 'none';
   }
