@@ -2084,11 +2084,7 @@ async function handleUser(user) {
     if (cloudLoaded) {
       setSyncStatus('');
     } else {
-      let serverLoaded = await loadFromCloud();
-      if (!serverLoaded) {
-        await new Promise(r => setTimeout(r, 2000));
-        serverLoaded = await loadFromCloud();
-      }
+      const serverLoaded = await loadFromCloud();
       if (serverLoaded) {
         setSyncStatus('נטען מהענן');
         setTimeout(() => setSyncStatus(''), 2000);
