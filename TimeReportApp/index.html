@@ -1172,6 +1172,16 @@ async function backupFromCloud() {
     await new Promise(r => setTimeout(r, 2000));
     loaded = await loadFromCloud();
   }
+  if (!loaded) {
+    try {
+      const doc = await db.collection('users').doc(currentUser.uid).get({ source: 'cache' });
+      if (doc.exists && doc.data().timeData) {
+        data = JSON.parse(doc.data().timeData);
+        localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        loaded = true;
+      }
+    } catch(e) {}
+  }
   if (loaded) {
     renderReport();
     showToast('הנתונים שוחזרו מהענן');
@@ -1193,47 +1203,66 @@ function signOut() {
   auth.signOut();
 }
 
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+  auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appMain').style.display = 'block';
+      document.getElementById('userName').textContent = user.displayName || user.email;
+      document.getElementById('userPhoto').src = user.photoURL || '';
 
-auth.onAuthStateChanged(async (user) => {
-  currentUser = user;
-  if (user) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appMain').style.display = 'block';
-    document.getElementById('userName').textContent = user.displayName || user.email;
-    document.getElementById('userPhoto').src = user.photoURL || '';
+      setSyncStatus('טוען נתונים...');
+      let cloudLoaded = false;
+      try {
+        const doc = await db.collection('users').doc(user.uid).get({ source: 'cache' });
+        if (doc.exists && doc.data().timeData) {
+          data = JSON.parse(doc.data().timeData);
+          localStorage.setItem(userStorageKey(), JSON.stringify(data));
+          cloudLoaded = true;
+        }
+      } catch(e) {}
 
-    setSyncStatus('טוען נתונים...');
-    let cloudLoaded = await loadFromCloud();
-    if (!cloudLoaded) {
-      await new Promise(r => setTimeout(r, 1500));
-      cloudLoaded = await loadFromCloud();
-    }
-    if (!cloudLoaded) {
-      const oldData = localStorage.getItem(STORAGE_KEY_BASE);
-      const userData = localStorage.getItem(userStorageKey());
-      if (userData) {
-        data = JSON.parse(userData);
-        setSyncStatus('');
-      } else if (oldData) {
-        data = JSON.parse(oldData);
-        localStorage.setItem(userStorageKey(), oldData);
-        localStorage.removeItem(STORAGE_KEY_BASE);
-        saveToCloud();
+      if (!cloudLoaded) {
+        cloudLoaded = await loadFromCloud();
+      }
+      if (!cloudLoaded) {
+        await new Promise(r => setTimeout(r, 1500));
+        cloudLoaded = await loadFromCloud();
+      }
+      if (!cloudLoaded) {
+        const oldData = localStorage.getItem(STORAGE_KEY_BASE);
+        const userData = localStorage.getItem(userStorageKey());
+        if (userData) {
+          data = JSON.parse(userData);
+          setSyncStatus('');
+        } else if (oldData) {
+          data = JSON.parse(oldData);
+          localStorage.setItem(userStorageKey(), oldData);
+          localStorage.removeItem(STORAGE_KEY_BASE);
+          saveToCloud();
+        } else {
+          data = {};
+          setSyncStatus('');
+        }
       } else {
-        data = {};
-        setSyncStatus('');
+        setSyncStatus('נטען מהענן');
+        setTimeout(() => setSyncStatus(''), 2000);
+      }
+
+      renderReport();
+
+      if (cloudLoaded) {
+        loadFromCloud().then(fresh => {
+          if (fresh) renderReport();
+        });
       }
     } else {
-      setSyncStatus('נטען מהענן');
-      setTimeout(() => setSyncStatus(''), 2000);
+      data = {};
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('appMain').style.display = 'none';
     }
-    renderReport();
-  } else {
-    data = {};
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('appMain').style.display = 'none';
-  }
+  });
 });
 
 function dateKey(y, m, d) {
