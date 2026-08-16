@@ -1721,7 +1721,7 @@ async function loadFromCloud() {
   if (!currentUser) return false;
   try {
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
-    const query = db.collection('users').doc(currentUser.uid).get();
+    const query = db.collection('users').doc(currentUser.uid).get({ source: 'server' });
     const doc = await Promise.race([query, timeout]);
     if (doc.exists) {
       const d = doc.data();
