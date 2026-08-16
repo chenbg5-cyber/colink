@@ -917,8 +917,8 @@ body {
 
 .month-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
   margin-top: 16px;
 }
 
@@ -931,7 +931,7 @@ body {
 }
 
 .month-stat-val {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--accent-light);
 }
@@ -1713,7 +1713,6 @@ function saveToCloud() {
       });
       if (resp.ok) {
         setSyncStatus('נשמר בענן');
-        showToast('נשמר בענן בהצלחה');
       } else {
         const errText = await resp.text();
         setSyncStatus('שגיאה בשמירה');
@@ -1734,25 +1733,6 @@ function setSyncStatus(msg) {
   }
 }
 
-async function loadFromCloud() {
-  if (!currentUser) return false;
-  try {
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
-    const query = db.collection('users').doc(currentUser.uid).get({ source: 'server' });
-    const doc = await Promise.race([query, timeout]);
-    if (doc.exists) {
-      const d = doc.data();
-      if (d.timeData) {
-        data = JSON.parse(d.timeData);
-        localStorage.setItem(userStorageKey(), JSON.stringify(data));
-        return true;
-      }
-    }
-  } catch(e) {
-    showToast('שגיאת ענן: ' + e.message);
-  }
-  return false;
-}
 
 function renderProjectTabs() {
   const projects = getProjects();
@@ -2500,7 +2480,7 @@ function renderMonthStats(m, y) {
   if (!el) return;
   el.innerHTML = `
     <div class="month-stat">
-      <div class="month-stat-val">${fmtHLabel(totalHours)}</div>
+      <div class="month-stat-val">${fmtH(totalHours)}</div>
       <div class="month-stat-lbl">שעות</div>
     </div>
     <div class="month-stat">
