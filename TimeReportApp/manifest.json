@@ -4,8 +4,8 @@
   "description": "אפליקציה לדיווח ומעקב שעות עבודה",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#6c63ff",
-  "theme_color": "#6c63ff",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
   "dir": "rtl",
   "lang": "he",
   "icons": [
