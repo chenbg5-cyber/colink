@@ -1198,6 +1198,52 @@ body {
   font-size: 11px;
   color: var(--success);
 }
+
+.reminder-banner {
+  display: none;
+  margin: 0 16px 8px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+  animation: reminderPulse 2s ease-in-out infinite;
+}
+
+@keyframes reminderPulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 4px 24px rgba(245, 158, 11, 0.5); }
+}
+
+.reminder-banner .reminder-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.reminder-banner .reminder-text {
+  line-height: 1.5;
+}
+
+.reminder-banner .reminder-close {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>
 </head>
 <body>
@@ -1246,6 +1292,12 @@ body {
 </header>
 
 <div class="greeting-bar" id="greetingBar"></div>
+
+<div class="reminder-banner" id="reminderBanner">
+  <button class="reminder-close" onclick="dismissReminder()">&times;</button>
+  <div class="reminder-icon">&#9200;</div>
+  <div class="reminder-text" id="reminderText"></div>
+</div>
 
 <div class="profile-menu-overlay" id="profileMenuOverlay" onclick="closeProfileMenu()"></div>
 <div class="profile-menu" id="profileMenu">
@@ -1383,6 +1435,46 @@ async function loadFromCloud() {
     console.log('Cloud load error:', e);
   }
   return false;
+}
+
+function checkMonthEndReminder() {
+  const now = new Date();
+  const today = now.getDate();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = lastDay - today;
+
+  const dismissKey = 'reminder_dismissed_' + now.getFullYear() + '_' + now.getMonth();
+  if (localStorage.getItem(dismissKey)) return;
+
+  if (daysLeft <= 1) {
+    const banner = document.getElementById('reminderBanner');
+    const text = document.getElementById('reminderText');
+    if (!banner || !text) return;
+
+    const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    const month = monthNames[now.getMonth()];
+
+    if (daysLeft === 0) {
+      text.textContent = `היום הוא היום האחרון של ${month}! נא לוודא שדיווח השעות ב-SuccessFactors מעודכן`;
+    } else {
+      text.textContent = `מחר הוא היום האחרון של ${month} - נא לדווח שעות ב-SuccessFactors`;
+    }
+    banner.style.display = 'block';
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('דיווח שעות', { body: text.textContent, icon: 'icon-192.png' });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') new Notification('דיווח שעות', { body: text.textContent, icon: 'icon-192.png' });
+      });
+    }
+  }
+}
+
+function dismissReminder() {
+  const now = new Date();
+  localStorage.setItem('reminder_dismissed_' + now.getFullYear() + '_' + now.getMonth(), '1');
+  document.getElementById('reminderBanner').style.display = 'none';
 }
 
 function startRealtimeSync() {
@@ -1619,6 +1711,7 @@ async function handleUser(user) {
     }
 
     startRealtimeSync();
+    checkMonthEndReminder();
   } else {
     stopRealtimeSync();
     data = {};
