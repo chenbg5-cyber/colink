@@ -1333,6 +1333,7 @@ let currentUser = null;
 let data = {};
 let modalKey = null;
 let userProfile = null;
+let realtimeUnsubscribe = null;
 
 function userStorageKey() {
   return currentUser ? STORAGE_KEY_BASE + '_' + currentUser.uid : STORAGE_KEY_BASE;
@@ -1349,11 +1350,13 @@ function saveData() {
 }
 
 let saveTimeout = null;
+let skipNextSnapshot = false;
 function saveToCloud() {
   if (!currentUser) return;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
-    db.collection('users').doc(currentUser.uid).set({ timeData: JSON.stringify(data) })
+    skipNextSnapshot = true;
+    db.collection('users').doc(currentUser.uid).set({ timeData: JSON.stringify(data) }, { merge: true })
       .then(() => { setSyncStatus('נשמר בענן'); })
       .catch(() => { setSyncStatus('שגיאה בשמירה'); });
   }, 1500);
@@ -1380,6 +1383,32 @@ async function loadFromCloud() {
     console.log('Cloud load error:', e);
   }
   return false;
+}
+
+function startRealtimeSync() {
+  if (realtimeUnsubscribe) realtimeUnsubscribe();
+  if (!currentUser) return;
+  realtimeUnsubscribe = db.collection('users').doc(currentUser.uid)
+    .onSnapshot(doc => {
+      if (skipNextSnapshot) { skipNextSnapshot = false; return; }
+      if (doc.exists && doc.data().timeData) {
+        const newData = JSON.parse(doc.data().timeData);
+        data = newData;
+        localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        renderReport();
+        if (modalKey) renderModal();
+      }
+      if (doc.exists && doc.data().profile) {
+        userProfile = doc.data().profile;
+        localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(userProfile));
+        updateGreeting();
+        document.getElementById('userName').textContent = userProfile.name;
+      }
+    }, err => { console.log('Realtime sync error:', err); });
+}
+
+function stopRealtimeSync() {
+  if (realtimeUnsubscribe) { realtimeUnsubscribe(); realtimeUnsubscribe = null; }
 }
 
 async function backupFromCloud() {
@@ -1573,9 +1602,6 @@ async function handleUser(user) {
     if (cloudLoaded) {
       setSyncStatus('');
       renderReport();
-      loadFromCloud().then(fresh => {
-        if (fresh) { renderReport(); setSyncStatus('מעודכן מהענן'); setTimeout(() => setSyncStatus(''), 2000); }
-      });
     } else {
       let serverLoaded = await loadFromCloud();
       if (!serverLoaded) {
@@ -1591,7 +1617,10 @@ async function handleUser(user) {
       }
       renderReport();
     }
+
+    startRealtimeSync();
   } else {
+    stopRealtimeSync();
     data = {};
     userProfile = null;
     document.getElementById('loginScreen').style.display = 'flex';
