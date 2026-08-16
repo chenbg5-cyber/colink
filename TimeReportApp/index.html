@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<title>דיווח שעות</title>
+<link rel="manifest" href="manifest.json">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0f0f1a;
+  --card: #1a1a2e;
+  --card-hover: #222240;
+  --accent: #6c63ff;
+  --accent-light: #8b83ff;
+  --accent-glow: rgba(108, 99, 255, 0.15);
+  --text: #e8e8f0;
+  --text-dim: #8888a0;
+  --success: #4ecdc4;
+  --danger: #ff6b6b;
+  --warning: #ffd93d;
+  --border: #2a2a45;
+  --input-bg: #12122a;
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 20px 16px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+
+.app-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(135deg, var(--accent-light), var(--success));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-header .subtitle {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 12px rgba(108, 99, 255, 0.4);
+}
+
+.container {
+  padding: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+  padding-bottom: 100px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title .icon {
+  font-size: 20px;
+}
+
+/* Date Navigation */
+.date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+}
+
+.date-nav button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.date-nav button:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(0.92);
+}
+
+.date-nav .date-display {
+  text-align: center;
+  min-width: 140px;
+}
+
+.date-nav .date-day {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.date-nav .date-full {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Time Entry Form */
+.entry-form {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.time-inputs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.time-field {
+  flex: 1;
+}
+
+.time-field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.time-field input[type="time"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 18px;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.time-field input[type="time"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.toggles-grid {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.toggle-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--input-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+
+.toggle-row label {
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  transition: 0.3s;
+}
+
+.toggle-slider:before {
+  content: '';
+  position: absolute;
+  height: 22px;
+  width: 22px;
+  right: 3px;
+  bottom: 2px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(-22px);
+  background: white;
+}
+
+.add-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+}
+
+.add-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Entries List */
+.entries-list {
+  margin-top: 16px;
+}
+
+.entry-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.entry-card .times {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-card .times .arrow {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.entry-card .hours {
+  background: var(--accent-glow);
+  color: var(--accent-light);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.entry-card .delete-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--danger);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition: all 0.2s;
+}
+
+.entry-card .delete-btn:active {
+  background: rgba(255, 107, 107, 0.25);
+  transform: scale(0.9);
+}
+
+/* Day Summary */
+.day-summary {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 16px;
+  padding: 18px;
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.day-summary .total-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.day-summary .total-hours {
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-light), var(--success));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.day-summary .total-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.badges-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.travel-badge, .home-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.travel-badge {
+  background: rgba(255, 217, 61, 0.15);
+  color: var(--warning);
+}
+
+.home-badge {
+  background: rgba(78, 205, 196, 0.15);
+  color: var(--success);
+}
+
+/* Monthly View */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+}
+
+.month-nav button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.month-nav button:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(0.92);
+}
+
+.month-nav .month-display {
+  text-align: center;
+  min-width: 140px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.month-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.month-stats .stat-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-light);
+}
+
+.stat-card .stat-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.stat-card.highlight {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--card), rgba(108, 99, 255, 0.08));
+}
+
+.month-days-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-day-row {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.month-day-row:active {
+  background: var(--card-hover);
+  transform: scale(0.99);
+}
+
+.month-day-row .day-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.month-day-row .day-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.month-day-row .day-date {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.month-day-row .day-hours {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.month-day-row .day-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-day-row .travel-icon {
+  font-size: 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--card);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  z-index: 1000;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* No entries today */
+.no-entries {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.version {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-dim);
+  font-size: 11px;
+  opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>דיווח שעות</h1>
+  <p class="subtitle" id="headerSub">מעקב ודיווח אוטומטי</p>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('daily')">יומי</button>
+    <button class="tab-btn" onclick="switchTab('monthly')">חודשי</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Daily View -->
+  <div id="dailyView">
+    <div class="date-nav">
+      <button onclick="changeDate(1)">&#8250;</button>
+      <div class="date-display">
+        <div class="date-day" id="dateDay"></div>
+        <div class="date-full" id="dateFull"></div>
+      </div>
+      <button onclick="changeDate(-1)">&#8249;</button>
+    </div>
+
+    <div class="entry-form">
+      <div class="section-title"><span class="icon">&#128340;</span> הוספת שעות</div>
+      <div class="time-inputs">
+        <div class="time-field">
+          <label>שעת התחלה</label>
+          <input type="time" id="startTime">
+        </div>
+        <div class="time-field">
+          <label>שעת סיום</label>
+          <input type="time" id="endTime">
+        </div>
+      </div>
+
+      <div class="toggles-grid">
+        <div class="toggle-row">
+          <label>&#127968; מהבית</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="homeToggle" onchange="saveToggles()">
+            <span class="toggle-slider"></span>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <label>&#128663; נסיעות</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="travelToggle" onchange="saveToggles()">
+            <span class="toggle-slider"></span>
+          </div>
+        </div>
+      </div>
+
+      <button class="add-btn" onclick="addEntry()">&#10133; הוסף רשומה</button>
+    </div>
+
+    <div id="entriesList" class="entries-list"></div>
+    <div id="daySummary"></div>
+  </div>
+
+  <!-- Monthly View -->
+  <div id="monthlyView" style="display:none;">
+    <div class="month-nav">
+      <button onclick="changeMonth(1)">&#8250;</button>
+      <div class="month-display" id="monthDisplay"></div>
+      <button onclick="changeMonth(-1)">&#8249;</button>
+    </div>
+    <div id="monthStats" class="month-stats"></div>
+    <div class="section-title"><span class="icon">&#128197;</span> פירוט ימים</div>
+    <div id="monthDaysList" class="month-days-list"></div>
+  </div>
+
+  <div class="version">דיווח שעות v1.0</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'timeReportData';
+const DAYS_HE = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+let currentDate = new Date();
+let currentMonth = new Date();
+let data = loadData();
+
+function loadData() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch { return {}; }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDayData(key) {
+  if (!data[key]) data[key] = { entries: [], travel: false };
+  return data[key];
+}
+
+function formatDate(d) {
+  return { day: 'יום ' + DAYS_HE[d.getDay()], full: d.getDate() + ' ' + MONTHS_HE[d.getMonth()] + ' ' + d.getFullYear() };
+}
+
+function calcHours(start, end) {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let diff = (eh * 60 + em) - (sh * 60 + sm);
+  if (diff < 0) diff += 24 * 60;
+  return diff / 60;
+}
+
+function formatHoursMinutes(totalHours) {
+  const h = Math.floor(totalHours);
+  const m = Math.round((totalHours - h) * 60);
+  if (m === 0) return h + ' שעות';
+  return h + ':' + String(m).padStart(2,'0') + ' שעות';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (tab === 'daily' && i === 0) || (tab === 'monthly' && i === 1));
+  });
+  document.getElementById('dailyView').style.display = tab === 'daily' ? 'block' : 'none';
+  document.getElementById('monthlyView').style.display = tab === 'monthly' ? 'block' : 'none';
+  if (tab === 'monthly') renderMonthly();
+}
+
+function changeDate(dir) {
+  currentDate.setDate(currentDate.getDate() + dir);
+  renderDaily();
+}
+
+function changeMonth(dir) {
+  currentMonth.setMonth(currentMonth.getMonth() + dir);
+  renderMonthly();
+}
+
+function saveToggles() {
+  const key = dateKey(currentDate);
+  const dayData = getDayData(key);
+  dayData.travel = document.getElementById('travelToggle').checked;
+  dayData.home = document.getElementById('homeToggle').checked;
+  saveData();
+  renderDaySummary(key);
+}
+
+function addEntry() {
+  const start = document.getElementById('startTime').value;
+  const end = document.getElementById('endTime').value;
+  if (!start || !end) {
+    showToast('&#9888;&#65039; יש למלא שעת התחלה וסיום');
+    return;
+  }
+  if (start >= end) {
+    showToast('&#9888;&#65039; שעת הסיום חייבת להיות אחרי ההתחלה');
+    return;
+  }
+  const key = dateKey(currentDate);
+  const dayData = getDayData(key);
+  dayData.entries.push({ start, end, id: Date.now() });
+  dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
+  saveData();
+  document.getElementById('startTime').value = '';
+  document.getElementById('endTime').value = '';
+  renderDaily();
+  showToast('&#10004;&#65039; רשומה נוספה');
+}
+
+function deleteEntry(key, id) {
+  const dayData = getDayData(key);
+  dayData.entries = dayData.entries.filter(e => e.id !== id);
+  if (dayData.entries.length === 0 && !dayData.travel) delete data[key];
+  saveData();
+  renderDaily();
+  showToast('&#128465; רשומה נמחקה');
+}
+
+function renderDaily() {
+  const f = formatDate(currentDate);
+  document.getElementById('dateDay').textContent = f.day;
+  document.getElementById('dateFull').textContent = f.full;
+
+  const key = dateKey(currentDate);
+  const dayData = getDayData(key);
+
+  document.getElementById('travelToggle').checked = dayData.travel || false;
+  document.getElementById('homeToggle').checked = dayData.home || false;
+
+  const list = document.getElementById('entriesList');
+  if (!dayData.entries || dayData.entries.length === 0) {
+    list.innerHTML = '<div class="no-entries">&#128203; אין רשומות עדיין להיום</div>';
+  } else {
+    list.innerHTML = dayData.entries.map(e => {
+      const hours = calcHours(e.start, e.end);
+      return `
+        <div class="entry-card">
+          <button class="delete-btn" onclick="deleteEntry('${key}',${e.id})">&#10005;</button>
+          <div class="times">
+            <span>${e.start}</span>
+            <span class="arrow">&#8592;</span>
+            <span>${e.end}</span>
+          </div>
+          <div class="hours">${formatHoursMinutes(hours)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  renderDaySummary(key);
+}
+
+function renderDaySummary(key) {
+  const dayData = getDayData(key);
+  const summary = document.getElementById('daySummary');
+  if (!dayData.entries || dayData.entries.length === 0) {
+    summary.innerHTML = '';
+    return;
+  }
+  const total = dayData.entries.reduce((sum, e) => sum + calcHours(e.start, e.end), 0);
+  summary.innerHTML = `
+    <div class="day-summary">
+      <div class="total-label">&#128202; סה"כ שעות היום</div>
+      <div class="total-hours">${formatHoursMinutes(total)}</div>
+      <div class="total-sub">${dayData.entries.length} רשומות</div>
+      <div class="badges-row">
+        ${dayData.home ? '<div class="home-badge">&#127968; מהבית</div>' : ''}
+        ${dayData.travel ? '<div class="travel-badge">&#128663; נסיעות</div>' : ''}
+      </div>
+    </div>`;
+}
+
+function renderMonthly() {
+  const m = currentMonth.getMonth();
+  const y = currentMonth.getFullYear();
+  document.getElementById('monthDisplay').textContent = MONTHS_HE[m] + ' ' + y;
+
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let totalHours = 0;
+  let workDays = 0;
+  let travelDays = 0;
+  let homeDays = 0;
+  const dayRows = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(y, m, d);
+    const key = dateKey(dt);
+    const dayData = data[key];
+    if (!dayData || !dayData.entries || dayData.entries.length === 0) continue;
+
+    const dayTotal = dayData.entries.reduce((sum, e) => sum + calcHours(e.start, e.end), 0);
+    totalHours += dayTotal;
+    workDays++;
+    if (dayData.travel) travelDays++;
+    if (dayData.home) homeDays++;
+
+    dayRows.push(`
+      <div class="month-day-row" onclick="goToDay(${y},${m},${d})">
+        <div class="day-info">
+          <div class="day-name">יום ${DAYS_HE[dt.getDay()]}</div>
+          <div class="day-date">${d} ${MONTHS_HE[m]}</div>
+        </div>
+        <div class="day-meta">
+          ${dayData.home ? '<span class="travel-icon">&#127968;</span>' : ''}
+          ${dayData.travel ? '<span class="travel-icon">&#128663;</span>' : ''}
+          <div class="day-hours">${formatHoursMinutes(dayTotal)}</div>
+        </div>
+      </div>`);
+  }
+
+  const avgHours = workDays > 0 ? (totalHours / workDays) : 0;
+
+  document.getElementById('monthStats').innerHTML = `
+    <div class="stat-card highlight">
+      <div class="stat-value">${formatHoursMinutes(totalHours)}</div>
+      <div class="stat-label">&#128202; סה"כ שעות</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${workDays}</div>
+      <div class="stat-label">&#128197; ימי עבודה</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${formatHoursMinutes(avgHours)}</div>
+      <div class="stat-label">&#128200; ממוצע יומי</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${homeDays}</div>
+      <div class="stat-label">&#127968; ימים מהבית</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${travelDays}</div>
+      <div class="stat-label">&#128663; ימי נסיעות</div>
+    </div>`;
+
+  const daysList = document.getElementById('monthDaysList');
+  if (dayRows.length === 0) {
+    daysList.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>אין דיווחים בחודש זה</p></div>';
+  } else {
+    daysList.innerHTML = dayRows.reverse().join('');
+  }
+}
+
+function goToDay(y, m, d) {
+  currentDate = new Date(y, m, d);
+  switchTab('daily');
+  renderDaily();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+renderDaily();
+</script>
+</body>
+</html>
