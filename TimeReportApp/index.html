@@ -354,6 +354,18 @@ body {
   margin-top: 3px;
 }
 
+.cal-holiday {
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--warning);
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.cal-cell.holiday {
+  border-color: rgba(255, 217, 61, 0.3);
+}
+
 .cal-week-total { display: none; }
 
 /* Day Modal */
@@ -1819,6 +1831,10 @@ function pickLoc(key, loc) {
   const hBtn = document.getElementById('loc-home-' + key);
   if (oBtn) oBtn.classList.toggle('active', loc === 'office');
   if (hBtn) hBtn.classList.toggle('active', loc === 'home');
+  const travelEl = document.getElementById('travel-' + key);
+  if (travelEl && loc === 'office') {
+    travelEl.checked = true;
+  }
 }
 
 function startAddEntry(key) {
@@ -1835,9 +1851,11 @@ function addEntry(key) {
   if (!start || !end) { showToast('יש למלא שעת התחלה וסיום'); return; }
   if (start >= end) { showToast('שעת הסיום חייבת להיות אחרי ההתחלה'); return; }
   const dayData = getDayData(key);
-  const loc = pendingLoc[key] || 'office';
+  const loc = pendingLoc[key] || 'home';
   dayData.entries.push({ start, end, id: Date.now(), loc });
   dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
+  const travelEl = document.getElementById('travel-' + key);
+  if (travelEl) dayData.travel = travelEl.checked;
   saveData();
   addingEntry = null;
   showToast('רשומה נוספה');
@@ -1905,6 +1923,45 @@ function saveToggle(key, field) {
   refreshViews();
 }
 
+const HOLIDAYS = {
+  '2025-03-14': 'פורים', '2025-04-13': 'פסח', '2025-04-19': 'שביעי של פסח',
+  '2025-04-14': 'חוה"מ פסח', '2025-04-15': 'חוה"מ פסח', '2025-04-16': 'חוה"מ פסח', '2025-04-17': 'חוה"מ פסח', '2025-04-18': 'חוה"מ פסח',
+  '2025-04-30': 'יום הזיכרון', '2025-05-01': 'יום העצמאות',
+  '2025-06-02': 'שבועות',
+  '2025-09-23': 'ראש השנה א׳', '2025-09-24': 'ראש השנה ב׳',
+  '2025-10-02': 'יום כיפור',
+  '2025-10-07': 'סוכות',
+  '2025-10-08': 'חוה"מ סוכות', '2025-10-09': 'חוה"מ סוכות', '2025-10-10': 'חוה"מ סוכות', '2025-10-11': 'חוה"מ סוכות', '2025-10-12': 'חוה"מ סוכות', '2025-10-13': 'הושענא רבה',
+  '2025-10-14': 'שמחת תורה',
+  '2026-03-03': 'פורים', '2026-04-02': 'פסח', '2026-04-08': 'שביעי של פסח',
+  '2026-04-03': 'חוה"מ פסח', '2026-04-04': 'חוה"מ פסח', '2026-04-05': 'חוה"מ פסח', '2026-04-06': 'חוה"מ פסח', '2026-04-07': 'חוה"מ פסח',
+  '2026-04-22': 'יום הזיכרון', '2026-04-23': 'יום העצמאות',
+  '2026-05-22': 'שבועות',
+  '2026-09-12': 'ראש השנה א׳', '2026-09-13': 'ראש השנה ב׳',
+  '2026-09-21': 'יום כיפור',
+  '2026-09-26': 'סוכות',
+  '2026-09-27': 'חוה"מ סוכות', '2026-09-28': 'חוה"מ סוכות', '2026-09-29': 'חוה"מ סוכות', '2026-09-30': 'חוה"מ סוכות', '2026-10-01': 'חוה"מ סוכות', '2026-10-02': 'הושענא רבה',
+  '2026-10-03': 'שמחת תורה',
+  '2027-03-23': 'פורים', '2027-04-22': 'פסח', '2027-04-28': 'שביעי של פסח',
+  '2027-04-23': 'חוה"מ פסח', '2027-04-24': 'חוה"מ פסח', '2027-04-25': 'חוה"מ פסח', '2027-04-26': 'חוה"מ פסח', '2027-04-27': 'חוה"מ פסח',
+  '2027-05-12': 'יום הזיכרון', '2027-05-13': 'יום העצמאות',
+  '2027-06-11': 'שבועות',
+  '2027-10-02': 'ראש השנה א׳', '2027-10-03': 'ראש השנה ב׳',
+  '2027-10-11': 'יום כיפור',
+  '2027-10-16': 'סוכות',
+  '2027-10-17': 'חוה"מ סוכות', '2027-10-18': 'חוה"מ סוכות', '2027-10-19': 'חוה"מ סוכות', '2027-10-20': 'חוה"מ סוכות', '2027-10-21': 'חוה"מ סוכות', '2027-10-22': 'הושענא רבה',
+  '2027-10-23': 'שמחת תורה',
+  '2028-03-12': 'פורים', '2028-04-11': 'פסח', '2028-04-17': 'שביעי של פסח',
+  '2028-04-12': 'חוה"מ פסח', '2028-04-13': 'חוה"מ פסח', '2028-04-14': 'חוה"מ פסח', '2028-04-15': 'חוה"מ פסח', '2028-04-16': 'חוה"מ פסח',
+  '2028-05-02': 'יום הזיכרון', '2028-05-03': 'יום העצמאות',
+  '2028-05-31': 'שבועות',
+  '2028-09-21': 'ראש השנה א׳', '2028-09-22': 'ראש השנה ב׳',
+  '2028-09-30': 'יום כיפור',
+  '2028-10-05': 'סוכות',
+  '2028-10-06': 'חוה"מ סוכות', '2028-10-07': 'חוה"מ סוכות', '2028-10-08': 'חוה"מ סוכות', '2028-10-09': 'חוה"מ סוכות', '2028-10-10': 'חוה"מ סוכות', '2028-10-11': 'הושענא רבה',
+  '2028-10-12': 'שמחת תורה',
+};
+
 function renderReport() {
   const m = currentMonth.getMonth();
   const y = currentMonth.getFullYear();
@@ -1938,12 +1995,19 @@ function renderReport() {
 
     weekHours += totalH;
 
+    const holiday = HOLIDAYS[key];
+
     let cls = 'cal-cell';
     if (isToday) cls += ' today';
     if (isWeekend) cls += ' weekend';
     if (hasData || isDayOff) cls += ' has-data';
+    if (holiday) cls += ' holiday';
 
     let content = `<span class="cal-day-num">${d}</span>`;
+
+    if (holiday) {
+      content += `<span class="cal-holiday">${holiday}</span>`;
+    }
 
     if (isDayOff) {
       content += `<span class="cal-off-badge">${dayData.off === 'vacation' ? 'חופש' : 'מחלה'}</span>`;
@@ -1990,9 +2054,10 @@ function renderModal() {
   const totalH = entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
   const isDayOff = !!dayData.off;
 
+  const modalHoliday = HOLIDAYS[modalKey];
   let html = `
     <div class="modal-header">
-      <span class="modal-title">יום ${DAYS_HE[dow]}, ${d} ${MONTHS_HE[mo-1]}</span>
+      <span class="modal-title">יום ${DAYS_HE[dow]}, ${d} ${MONTHS_HE[mo-1]}${modalHoliday ? ` - ${modalHoliday}` : ''}</span>
       <button class="modal-close" onclick="closeDayModal()">&times;</button>
     </div>
   `;
@@ -2048,8 +2113,8 @@ function renderModal() {
         </div>
         <div class="loc-selector">
           <span class="loc-label">מיקום:</span>
-          <button class="loc-btn active" id="loc-office-${modalKey}" onclick="pickLoc('${modalKey}','office')">משרד</button>
-          <button class="loc-btn" id="loc-home-${modalKey}" onclick="pickLoc('${modalKey}','home')">בית</button>
+          <button class="loc-btn" id="loc-office-${modalKey}" onclick="pickLoc('${modalKey}','office')">משרד</button>
+          <button class="loc-btn active" id="loc-home-${modalKey}" onclick="pickLoc('${modalKey}','home')">בית</button>
         </div>
         <button class="save-entry-btn" onclick="addEntry('${modalKey}')">שמור</button>
       `;
