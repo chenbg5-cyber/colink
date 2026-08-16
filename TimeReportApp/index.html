@@ -1211,56 +1211,72 @@ body {
   color: var(--success);
 }
 
-.project-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 8px 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+.sidebar-projects {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
 }
 
-.project-tabs::-webkit-scrollbar { display: none; }
+.sidebar-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.project-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .project-tab {
-  flex-shrink: 0;
-  padding: 6px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--input-bg);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: none;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s;
-  white-space: nowrap;
+  text-align: right;
+}
+
+.project-tab:hover {
+  background: var(--accent-glow);
+  color: var(--text);
 }
 
 .project-tab.active {
   background: var(--accent);
-  border-color: var(--accent);
   color: white;
   font-weight: 600;
 }
 
-.project-tab:active { transform: scale(0.95); }
+.project-tab:active { transform: scale(0.98); }
 
 .project-add-btn {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  padding: 6px 12px;
+  border-radius: 8px;
   border: 1px dashed var(--border);
   background: none;
   color: var(--text-dim);
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   font-family: inherit;
   transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.project-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .project-add-btn:active {
@@ -1439,8 +1455,6 @@ body {
 
 <div class="greeting-bar" id="greetingBar"></div>
 
-<div class="project-tabs" id="projectTabs"></div>
-
 <div class="reminder-banner" id="reminderBanner">
   <button class="reminder-close" onclick="dismissReminder()">&times;</button>
   <div class="reminder-icon">&#9200;</div>
@@ -1476,6 +1490,10 @@ body {
   <div class="sidebar-header">
     <span class="sidebar-title">דשבורד</span>
     <button class="sidebar-close" onclick="closeSidebar()">&times;</button>
+  </div>
+  <div class="sidebar-projects">
+    <div class="sidebar-section-title">פרויקטים</div>
+    <div class="project-tabs" id="projectTabs"></div>
   </div>
   <div class="month-nav">
     <button onclick="changeDashMonth(1)">&#8250;</button>
@@ -1633,13 +1651,13 @@ function renderProjectTabs() {
   const projects = getProjects();
   const el = document.getElementById('projectTabs');
   if (!el) return;
-  if (projects.length <= 1 && !(projects.length === 1)) { el.innerHTML = ''; return; }
+  if (projects.length === 0) { el.innerHTML = ''; return; }
   let html = '';
   projects.forEach(p => {
     const active = p.id === activeProjectId ? ' active' : '';
     html += `<button class="project-tab${active}" onclick="setActiveProject('${p.id}')" oncontextmenu="event.preventDefault();openProjectEdit('${p.id}')">${p.name}</button>`;
   });
-  html += `<button class="project-add-btn" onclick="openProjectEdit(null)">+</button>`;
+  html += `<button class="project-add-btn" onclick="openProjectEdit(null)">+ הוסף פרויקט</button>`;
   el.innerHTML = html;
 }
 
