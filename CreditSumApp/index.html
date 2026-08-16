@@ -26,6 +26,23 @@
       --yellow: #d4aa50;
     }
 
+    :root.light {
+      --bg: #f0f1f5;
+      --card: #ffffff;
+      --card-border: #e0e2ea;
+      --accent: #b8506a;
+      --accent-glow: rgba(184, 80, 106, 0.1);
+      --green: #3d9477;
+      --green-glow: rgba(61, 148, 119, 0.08);
+      --text: #2a2d3e;
+      --text-dim: #6b7094;
+      --yellow: #b8922e;
+    }
+
+    :root.light .header {
+      background: linear-gradient(135deg, #ffffff 0%, #f5f6fa 100%);
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
@@ -713,8 +730,8 @@
   <div class="header">
     <button class="settings-btn" onclick="openSidebar()">&#9776;</button>
     <button class="reset-btn" onclick="confirmReset()">איפוס חודש</button>
-    <h1>מעקב אשראי</h1>
-    <div class="subtitle">מעקב הוצאות בזמן אמת מ-SMS</div>
+    <div id="greetingLine" style="font-size:15px; font-weight:600; margin-bottom:2px;"></div>
+    <div id="dateLine" style="font-size:12px; color:var(--text-dim);"></div>
   </div>
 
   <!-- Sidebar -->
@@ -755,6 +772,10 @@
   <div class="settings-modal" id="profileModal">
     <div class="settings-content">
       <h3>פרופיל</h3>
+      <div class="setting-row">
+        <label>שם</label>
+        <input type="text" id="profileName" placeholder="הכניסי שם" maxlength="15" style="width:140px; padding:8px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:15px; font-family:inherit; text-align:center; direction:rtl;">
+      </div>
       <div class="setting-row" style="flex-direction:column; align-items:stretch;">
         <label style="margin-bottom:8px;">קוד שחזור</label>
         <div id="profileRecoveryCode" style="background:rgba(212,170,80,0.1); border:1px solid var(--yellow); border-radius:10px; padding:14px; text-align:center; font-size:28px; font-weight:800; letter-spacing:8px; color:var(--yellow); direction:ltr;"></div>
@@ -768,6 +789,7 @@
         <label>שחזור מגיבוי</label>
         <button onclick="closeProfile(); promptRestore()" style="padding:8px 16px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:8px; font-family:inherit; cursor:pointer; font-size:13px;">שחזר</button>
       </div>
+      <button class="settings-save" onclick="saveProfile()">שמור</button>
       <button class="settings-close" onclick="closeProfile()">סגור</button>
     </div>
   </div>
@@ -986,10 +1008,38 @@
       const cookieMatch = document.cookie.match(/device_id=([^;]+)/);
       if (cookieMatch) id = cookieMatch[1];
     }
-    if (!id) return Promise.resolve(null);
-    return fetch(`${FB_DB}/users/${id}/state.json`)
+    if (id) {
+      return fetch(`${FB_DB}/users/${id}/state.json`)
+        .then(r => r.json())
+        .then(d => (d && d.months) ? d : cloudLoadFindAny())
+        .catch(() => cloudLoadFindAny());
+    }
+    return cloudLoadFindAny();
+  }
+
+  function cloudLoadFindAny() {
+    return fetch(`${FB_DB}/users.json`)
       .then(r => r.json())
-      .then(d => (d && d.months) ? d : null)
+      .then(users => {
+        if (!users) return null;
+        let best = null, bestId = null, bestCount = 0;
+        for (const [uid, data] of Object.entries(users)) {
+          if (uid === 'test123') continue;
+          const s = data.state;
+          if (s && s.months) {
+            const count = Object.values(s.months).reduce((sum, m) => sum + (m.entries ? m.entries.length : 0), 0);
+            if (count > bestCount) { best = s; bestId = uid; bestCount = count; }
+          }
+        }
+        if (best && bestId) {
+          localStorage.setItem('device_id', bestId);
+          document.cookie = 'device_id=' + bestId + '; max-age=315360000; path=/; SameSite=Lax';
+          if (users[bestId].recovery_code) {
+            localStorage.setItem('recovery_code', users[bestId].recovery_code);
+          }
+        }
+        return best;
+      })
       .catch(() => null);
   }
 
@@ -1614,10 +1664,23 @@
   function openProfile() {
     document.getElementById('profileModal').classList.add('show');
     document.getElementById('profileRecoveryCode').textContent = getRecoveryCode();
+    document.getElementById('profileName').value = localStorage.getItem('user_name') || '';
   }
 
   function closeProfile() {
     document.getElementById('profileModal').classList.remove('show');
+  }
+
+  function saveProfile() {
+    const name = document.getElementById('profileName').value.trim();
+    if (name) {
+      localStorage.setItem('user_name', name);
+    } else {
+      localStorage.removeItem('user_name');
+    }
+    updateGreeting();
+    closeProfile();
+    showToast('הפרופיל נשמר!');
   }
 
   function resetRecoveryCode() {
@@ -1861,6 +1924,43 @@
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; }, 2500);
     setTimeout(() => toast.remove(), 3000);
   }
+
+  function updateGreeting() {
+    const hour = new Date().getHours();
+    let greeting;
+    if (hour >= 5 && hour < 12) greeting = 'בוקר טוב';
+    else if (hour >= 12 && hour < 17) greeting = 'צהריים טובים';
+    else if (hour >= 17 && hour < 21) greeting = 'ערב טוב';
+    else greeting = 'לילה טוב';
+
+    const name = localStorage.getItem('user_name');
+    const greetEl = document.getElementById('greetingLine');
+    greetEl.textContent = name ? `${greeting}, ${name}` : greeting;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('dateLine').textContent = `${dateStr} • ${timeStr}`;
+
+    // Light theme: 6am-7pm, dark otherwise
+    if (hour >= 6 && hour < 19) {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+
+    // Ask for name on first visit
+    if (!name && !localStorage.getItem('name_asked')) {
+      localStorage.setItem('name_asked', '1');
+      setTimeout(() => {
+        openProfile();
+        showToast('הכניסי את השם שלך בפרופיל');
+      }, 500);
+    }
+  }
+
+  updateGreeting();
+  setInterval(updateGreeting, 60000);
 
   // Init - log every page load for debugging
   debugPush({ src: 'page-load', url: window.location.href, search: window.location.search, hash: window.location.hash, sw: navigator.serviceWorker ? (navigator.serviceWorker.controller ? 'active' : 'no-controller') : 'unsupported' });
