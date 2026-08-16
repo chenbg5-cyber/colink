@@ -1909,6 +1909,9 @@ async function backupFromCloud() {
     } catch(e) {}
   }
   if (loaded) {
+    migrateData();
+    activeProjectId = data._active || (data._projects && data._projects[0] && data._projects[0].id) || 'proj_default';
+    renderProjectTabs();
     renderReport();
     showToast('הנתונים שוחזרו מהענן');
     setSyncStatus('נטען מהענן');
