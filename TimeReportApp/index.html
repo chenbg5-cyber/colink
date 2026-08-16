@@ -16,9 +16,9 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #0f0f1a;
-  --card: #1a1a2e;
-  --card-hover: #222240;
+  --bg: #1a1a2e;
+  --card: #242445;
+  --card-hover: #2e2e55;
   --accent: #3b82f6;
   --accent-light: #60a5fa;
   --accent-glow: rgba(59, 130, 246, 0.15);
@@ -27,8 +27,8 @@
   --success: #4ecdc4;
   --danger: #ff6b6b;
   --warning: #ffd93d;
-  --border: #2a2a45;
-  --input-bg: #12122a;
+  --border: #3a3a5c;
+  --input-bg: #1a1a35;
 }
 
 body {
@@ -41,7 +41,7 @@ body {
 }
 
 .app-header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, #242445 0%, #1e2a4a 100%);
   padding: 20px 16px 16px;
   position: sticky;
   top: 0;
@@ -131,7 +131,7 @@ body {
   justify-content: space-between;
   padding: 16px 14px 10px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, #242445 0%, #1e2a4a 100%);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -319,18 +319,7 @@ body {
   margin-top: 3px;
 }
 
-.cal-week-total {
-  grid-column: 1 / -1;
-  background: var(--input-bg);
-  border-radius: 6px;
-  padding: 5px 8px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-light);
-  border: 1px solid var(--border);
-  margin: 2px 0;
-}
+.cal-week-total { display: none; }
 
 /* Day Modal */
 .modal-overlay {
