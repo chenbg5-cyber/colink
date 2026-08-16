@@ -1936,7 +1936,12 @@ function signOut() {
 
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
-auth.getRedirectResult().catch(() => {});
+let redirectChecked = false;
+auth.getRedirectResult().then(() => {
+  redirectChecked = true;
+}).catch(() => {
+  redirectChecked = true;
+});
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -2108,9 +2113,23 @@ async function handleUser(user) {
     stopRealtimeSync();
     data = {};
     userProfile = null;
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('appMain').style.display = 'none';
-    document.getElementById('onboardingScreen').style.display = 'none';
+    if (redirectChecked) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('appMain').style.display = 'none';
+      document.getElementById('onboardingScreen').style.display = 'none';
+    } else {
+      auth.getRedirectResult().then(result => {
+        if (!result || !result.user) {
+          document.getElementById('loginScreen').style.display = 'flex';
+          document.getElementById('appMain').style.display = 'none';
+          document.getElementById('onboardingScreen').style.display = 'none';
+        }
+      }).catch(() => {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('appMain').style.display = 'none';
+        document.getElementById('onboardingScreen').style.display = 'none';
+      });
+    }
   }
 }
 
