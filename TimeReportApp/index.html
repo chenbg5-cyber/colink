@@ -2198,7 +2198,7 @@ function saveToggle(key, field) {
   const dayData = getDayData(key);
   dayData[field] = el.checked;
   saveData();
-  refreshViews();
+  renderReport();
 }
 
 const HOLIDAYS = {
