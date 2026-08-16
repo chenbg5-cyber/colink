@@ -286,7 +286,8 @@ body {
 .day-card.day-off .day-content .loc-selector,
 .day-card.day-off .day-content .save-entry-btn,
 .day-card.day-off .day-content .edit-day-btn,
-.day-card.day-off .day-content .entries-in-day {
+.day-card.day-off .day-content .entries-in-day,
+.day-card.day-off .day-content .add-entry-btn {
   display: none;
 }
 
@@ -396,6 +397,26 @@ body {
   background: var(--accent-glow);
 }
 
+.add-entry-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.add-entry-btn:active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
 .loc-selector {
   display: flex;
   align-items: center;
@@ -497,6 +518,58 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.entry-edit-icon {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.entry-edit-icon:active {
+  color: var(--accent);
+}
+
+.entry-edit-form {
+  background: var(--input-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+}
+
+.entry-edit-form .time-row {
+  margin-top: 0;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-actions .save-entry-btn {
+  flex: 1;
+}
+
+.cancel-edit-btn {
+  flex: 0.5;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .toggles-row {
@@ -725,6 +798,8 @@ let currentMonth = new Date();
 let dashMonth = new Date();
 let openDay = null;
 let editingDay = null;
+let editingEntry = null;
+let addingEntry = null;
 let data = loadData();
 
 function loadData() {
@@ -838,6 +913,12 @@ function doneEdit(key) {
   renderReport();
 }
 
+function startAddEntry(key) {
+  addingEntry = key;
+  openDay = key;
+  renderReport();
+}
+
 function addEntry(key) {
   const startEl = document.getElementById('start-' + key);
   const endEl = document.getElementById('end-' + key);
@@ -852,6 +933,7 @@ function addEntry(key) {
   dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
   saveData();
   editingDay = null;
+  addingEntry = null;
   openDay = key;
   renderReport();
   showToast('רשומה נוספה');
@@ -861,10 +943,55 @@ function deleteEntry(key, id) {
   const dayData = getDayData(key);
   dayData.entries = dayData.entries.filter(e => e.id !== id);
   saveData();
-  renderReport();
   openDay = key;
+  editingEntry = null;
   renderReport();
   showToast('רשומה נמחקה');
+}
+
+function editEntry(key, id) {
+  editingEntry = { key, id };
+  openDay = key;
+  renderReport();
+  setTimeout(() => {
+    const entry = getDayData(key).entries.find(e => e.id === id);
+    if (!entry) return;
+    const s = document.getElementById('edit-start-' + id);
+    const e = document.getElementById('edit-end-' + id);
+    if (s) s.value = entry.start;
+    if (e) e.value = entry.end;
+  }, 30);
+}
+
+function saveEditEntry(key, id) {
+  const s = document.getElementById('edit-start-' + id);
+  const e = document.getElementById('edit-end-' + id);
+  if (!s || !e || !s.value || !e.value) { showToast('יש למלא שעת התחלה וסיום'); return; }
+  if (s.value >= e.value) { showToast('שעת הסיום חייבת להיות אחרי ההתחלה'); return; }
+  const dayData = getDayData(key);
+  const entry = dayData.entries.find(en => en.id === id);
+  if (!entry) return;
+  entry.start = s.value;
+  entry.end = e.value;
+  const locBtn = document.querySelector('.edit-loc-btn.active[data-eid="' + id + '"]');
+  if (locBtn) entry.loc = locBtn.dataset.loc;
+  dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
+  saveData();
+  editingEntry = null;
+  openDay = key;
+  renderReport();
+  showToast('רשומה עודכנה');
+}
+
+function pickEditLoc(id, loc) {
+  document.querySelectorAll('.edit-loc-btn[data-eid="' + id + '"]').forEach(b => {
+    b.classList.toggle('active', b.dataset.loc === loc);
+  });
+}
+
+function cancelEditEntry() {
+  editingEntry = null;
+  renderReport();
 }
 
 function saveToggle(key, field) {
@@ -942,6 +1069,30 @@ function renderReport() {
           ${entries.map(e => {
             const h = calcHours(e.start, e.end);
             const locTag = e.loc === 'home' ? '<span class="entry-loc home">בית</span>' : '<span class="entry-loc office">משרד</span>';
+            const isEditing = editingEntry && editingEntry.key === key && editingEntry.id === e.id;
+            if (isEditing) {
+              return `<div class="entry-edit-form">
+                <div class="time-row">
+                  <div class="time-input-wrap">
+                    <span>התחלה</span>
+                    <input type="time" id="edit-start-${e.id}">
+                  </div>
+                  <div class="time-input-wrap">
+                    <span>סיום</span>
+                    <input type="time" id="edit-end-${e.id}">
+                  </div>
+                </div>
+                <div class="loc-selector">
+                  <span class="loc-label">מיקום:</span>
+                  <button class="loc-btn edit-loc-btn ${e.loc !== 'home' ? 'active' : ''}" data-eid="${e.id}" data-loc="office" onclick="pickEditLoc(${e.id},'office')">משרד</button>
+                  <button class="loc-btn edit-loc-btn ${e.loc === 'home' ? 'active' : ''}" data-eid="${e.id}" data-loc="home" onclick="pickEditLoc(${e.id},'home')">בית</button>
+                </div>
+                <div class="edit-actions">
+                  <button class="save-entry-btn" onclick="saveEditEntry('${key}',${e.id})">שמור</button>
+                  <button class="cancel-edit-btn" onclick="cancelEditEntry()">ביטול</button>
+                </div>
+              </div>`;
+            }
             return `<div class="entry-row">
               ${editingDay === key ? `<button class="entry-del" onclick="deleteEntry('${key}',${e.id})">&#10005;</button>` : ''}
               <div class="entry-times">
@@ -951,6 +1102,9 @@ function renderReport() {
               </div>
               ${locTag}
               <div class="entry-hours">${fmtH(h)}</div>
+              <button class="entry-edit-icon" onclick="editEntry('${key}',${e.id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+              </button>
             </div>`;
           }).join('')}
         </div>` : ''}
@@ -961,6 +1115,7 @@ function renderReport() {
           </button>
         ` : ''}
         ${editingDay === key ? `<button class="edit-day-btn done" onclick="doneEdit('${key}')">סיום עריכה</button>` : ''}
+        ${(entries.length === 0 || addingEntry === key) ? `
           <div class="time-row">
             <div class="time-input-wrap">
               <span>התחלה</span>
@@ -977,6 +1132,9 @@ function renderReport() {
             <button class="loc-btn" id="loc-home-${key}" onclick="pickLoc('${key}','home')">בית</button>
           </div>
           <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
+        ` : entries.length > 0 ? `
+          <button class="add-entry-btn" onclick="startAddEntry('${key}')">+ הוסף שעות</button>
+        ` : ''}
         <div class="off-selector">
           <button class="off-btn ${dayData.off === 'vacation' ? 'active' : ''}" onclick="setDayOff('${key}','vacation')">חופש</button>
           <button class="off-btn ${dayData.off === 'sick' ? 'active' : ''}" onclick="setDayOff('${key}','sick')">מחלה</button>
