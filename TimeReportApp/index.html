@@ -2010,11 +2010,17 @@ function loadProfileLocal() {
 async function loadProfileCloud() {
   if (!currentUser) return null;
   try {
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    if (doc.exists && doc.data().profile) {
-      const p = doc.data().profile;
-      localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(p));
-      return p;
+    const token = await currentUser.getIdToken();
+    const url = `https://firestore.googleapis.com/v1/projects/time-report-app-il/databases/default/documents/users/${currentUser.uid}`;
+    const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (resp.ok) {
+      const doc = await resp.json();
+      if (doc.fields && doc.fields.profile && doc.fields.profile.mapValue) {
+        const f = doc.fields.profile.mapValue.fields;
+        const p = { name: f.name ? f.name.stringValue : '', project: f.project ? f.project.stringValue : '' };
+        localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(p));
+        return p;
+      }
     }
   } catch(e) {}
   return null;
@@ -2053,6 +2059,39 @@ async function handleUser(user) {
     document.getElementById('loginScreen').style.display = 'none';
 
     userProfile = loadProfileLocal();
+    let needCloudLoad = false;
+
+    const userData = localStorage.getItem(userStorageKey());
+    if (userData) {
+      try { data = JSON.parse(userData); } catch(e) { data = {}; needCloudLoad = true; }
+    } else {
+      data = {};
+      needCloudLoad = true;
+    }
+
+    if (!userProfile || needCloudLoad) {
+      showToast('טוען נתונים מהענן...');
+      try {
+        const token = await currentUser.getIdToken();
+        const url = `https://firestore.googleapis.com/v1/projects/time-report-app-il/databases/default/documents/users/${currentUser.uid}`;
+        const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (resp.ok) {
+          const doc = await resp.json();
+          if (doc.fields) {
+            if (doc.fields.timeData && doc.fields.timeData.stringValue) {
+              data = JSON.parse(doc.fields.timeData.stringValue);
+              localStorage.setItem(userStorageKey(), JSON.stringify(data));
+            }
+            if (doc.fields.profile && doc.fields.profile.mapValue) {
+              const f = doc.fields.profile.mapValue.fields;
+              userProfile = { name: f.name ? f.name.stringValue : '', project: f.project ? f.project.stringValue : '' };
+              localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(userProfile));
+            }
+          }
+          if (doc.fields && doc.fields.timeData) showToast('נתונים שוחזרו מהענן');
+        }
+      } catch(e) {}
+    }
 
     if (!userProfile) {
       document.getElementById('appMain').style.display = 'none';
@@ -2061,15 +2100,6 @@ async function handleUser(user) {
       if (nameInput && !nameInput.value && user.displayName) {
         nameInput.value = user.displayName.split(' ')[0];
       }
-      loadProfileCloud().then(p => {
-        if (p) {
-          userProfile = p;
-          document.getElementById('onboardingScreen').style.display = 'none';
-          document.getElementById('appMain').style.display = 'block';
-          updateGreeting();
-          renderReport();
-        }
-      });
     } else {
       document.getElementById('onboardingScreen').style.display = 'none';
       document.getElementById('appMain').style.display = 'block';
@@ -2089,13 +2119,6 @@ async function handleUser(user) {
     } else {
       photoEl.style.display = 'none';
       if (profileIcon) profileIcon.style.display = 'block';
-    }
-
-    const userData = localStorage.getItem(userStorageKey());
-    if (userData) {
-      try { data = JSON.parse(userData); } catch(e) { data = {}; }
-    } else {
-      data = {};
     }
 
     migrateData();
