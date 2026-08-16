@@ -952,6 +952,103 @@ body {
   height: 20px;
 }
 
+.onboarding-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  text-align: center;
+}
+
+.onboarding-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.onboarding-card h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.onboarding-card p {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.onboarding-field {
+  text-align: right;
+  margin-bottom: 16px;
+}
+
+.onboarding-field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.onboarding-field input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.onboarding-field input:focus {
+  border-color: var(--accent);
+}
+
+.onboarding-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+}
+
+.onboarding-btn:active {
+  opacity: 0.85;
+}
+
+.greeting-bar {
+  text-align: center;
+  padding: 14px 16px 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.greeting-bar .greeting-name {
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .user-bar {
   display: flex;
   align-items: center;
@@ -1030,6 +1127,23 @@ body {
   </button>
 </div>
 
+<!-- Onboarding Screen -->
+<div id="onboardingScreen" class="onboarding-screen">
+  <div class="onboarding-card">
+    <h2>ברוכה הבאה!</h2>
+    <p>כמה פרטים לפני שמתחילים</p>
+    <div class="onboarding-field">
+      <label>שם</label>
+      <input type="text" id="onboardName" placeholder="איך קוראים לך?">
+    </div>
+    <div class="onboarding-field">
+      <label>פרויקט</label>
+      <input type="text" id="onboardProject" placeholder="שם הפרויקט">
+    </div>
+    <button class="onboarding-btn" onclick="saveOnboarding()">בואי נתחיל</button>
+  </div>
+</div>
+
 <!-- App (hidden until login) -->
 <div id="appMain" style="display:none">
 
@@ -1044,6 +1158,8 @@ body {
     <button class="user-bar button" onclick="signOut()">יציאה</button>
   </div>
 </div>
+
+<div class="greeting-bar" id="greetingBar"></div>
 
 <header class="app-header">
   <div class="header-row">
@@ -1115,6 +1231,7 @@ let addingEntry = null;
 let currentUser = null;
 let data = {};
 let modalKey = null;
+let userProfile = null;
 
 function userStorageKey() {
   return currentUser ? STORAGE_KEY_BASE + '_' + currentUser.uid : STORAGE_KEY_BASE;
@@ -1212,12 +1329,65 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
 auth.getRedirectResult().catch(() => {});
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'בוקר טוב';
+  if (h >= 12 && h < 17) return 'צהריים טובים';
+  if (h >= 17 && h < 21) return 'ערב טוב';
+  return 'לילה טוב';
+}
+
+function updateGreeting() {
+  const el = document.getElementById('greetingBar');
+  if (!el || !userProfile) return;
+  const name = userProfile.name || '';
+  el.innerHTML = `${getGreeting()}, <span class="greeting-name">${name}</span>`;
+}
+
+async function loadProfile() {
+  if (!currentUser) return null;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists && doc.data().profile) {
+      return doc.data().profile;
+    }
+  } catch(e) {}
+  const local = localStorage.getItem('profile_' + currentUser.uid);
+  if (local) { try { return JSON.parse(local); } catch(e) {} }
+  return null;
+}
+
+async function saveOnboarding() {
+  const name = document.getElementById('onboardName').value.trim();
+  const project = document.getElementById('onboardProject').value.trim();
+  if (!name) { showToast('נא להזין שם'); return; }
+  userProfile = { name, project };
+  localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(userProfile));
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid).set({ profile: userProfile }, { merge: true });
+  }
+  document.getElementById('onboardingScreen').style.display = 'none';
+  document.getElementById('appMain').style.display = 'block';
+  updateGreeting();
+  showToast('שלום ' + name + '!');
+}
+
 async function handleUser(user) {
   currentUser = user;
   if (user) {
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appMain').style.display = 'block';
-    document.getElementById('userName').textContent = user.displayName || user.email;
+
+    userProfile = await loadProfile();
+    if (!userProfile) {
+      document.getElementById('onboardingScreen').style.display = 'flex';
+      document.getElementById('appMain').style.display = 'none';
+    } else {
+      document.getElementById('onboardingScreen').style.display = 'none';
+      document.getElementById('appMain').style.display = 'block';
+      updateGreeting();
+    }
+
+    document.getElementById('userName').textContent = userProfile ? userProfile.name : (user.displayName || user.email);
     document.getElementById('userPhoto').src = user.photoURL || '';
 
     setSyncStatus('טוען נתונים...');
@@ -1261,8 +1431,10 @@ async function handleUser(user) {
     }
   } else {
     data = {};
+    userProfile = null;
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appMain').style.display = 'none';
+    document.getElementById('onboardingScreen').style.display = 'none';
   }
 }
 
