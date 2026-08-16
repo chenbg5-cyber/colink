@@ -1629,7 +1629,6 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 const provider = new firebase.auth.GoogleAuthProvider();
 
 const STORAGE_KEY_BASE = 'timeReportData';
@@ -1701,12 +1700,28 @@ let skipNextSnapshot = false;
 function saveToCloud() {
   if (!currentUser) return;
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
+  setSyncStatus('שומר...');
+  saveTimeout = setTimeout(async () => {
     skipNextSnapshot = true;
-    db.collection('users').doc(currentUser.uid).set({ timeData: JSON.stringify(data) }, { merge: true })
-      .then(() => { setSyncStatus('נשמר בענן'); })
-      .catch(e => { setSyncStatus('שגיאה בשמירה'); showToast('שגיאת שמירה: ' + e.message); });
-  }, 1500);
+    try {
+      const token = await currentUser.getIdToken();
+      const url = `https://firestore.googleapis.com/v1/projects/time-report-app-il/databases/default/documents/users/${currentUser.uid}?updateMask.fieldPaths=timeData`;
+      const resp = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { timeData: { stringValue: JSON.stringify(data) } } })
+      });
+      if (resp.ok) {
+        setSyncStatus('נשמר בענן');
+      } else {
+        setSyncStatus('שגיאה בשמירה');
+        showToast('שגיאת שמירה: ' + resp.status);
+      }
+    } catch(e) {
+      setSyncStatus('שגיאה בשמירה');
+      showToast('שגיאת שמירה: ' + e.message);
+    }
+  }, 500);
 }
 
 function setSyncStatus(msg) {
@@ -2010,7 +2025,15 @@ async function saveOnboarding() {
   userProfile = { name, project };
   localStorage.setItem('profile_' + currentUser.uid, JSON.stringify(userProfile));
   if (currentUser) {
-    db.collection('users').doc(currentUser.uid).set({ profile: userProfile }, { merge: true });
+    try {
+      const token = await currentUser.getIdToken();
+      const url = `https://firestore.googleapis.com/v1/projects/time-report-app-il/databases/default/documents/users/${currentUser.uid}?updateMask.fieldPaths=profile`;
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { profile: { mapValue: { fields: { name: { stringValue: name }, project: { stringValue: project } } } } } })
+      });
+    } catch(e) {}
   }
   document.getElementById('onboardingScreen').style.display = 'none';
   document.getElementById('appMain').style.display = 'block';
