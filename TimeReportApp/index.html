@@ -166,28 +166,24 @@ body {
   color: white;
 }
 
-.sidebar-dashboard {
-  padding: 12px 14px;
-}
-
-.sidebar-dashboard .month-nav {
+.sidebar-section-content .month-nav {
   margin: 8px 0;
   padding: 8px 0;
 }
 
-.sidebar-dashboard .month-nav .month-display {
+.sidebar-section-content .month-nav .month-display {
   font-size: 15px;
   min-width: 110px;
 }
 
-.sidebar-dashboard .month-nav button {
+.sidebar-section-content .month-nav button {
   width: 32px;
   height: 32px;
   font-size: 16px;
 }
 
 .sidebar #dashContent {
-  padding: 0 0 20px;
+  padding: 0;
 }
 
 .container {
@@ -919,6 +915,37 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+.month-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.month-stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.month-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.month-stat-lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.month-stat.alert .month-stat-val {
+  color: var(--warning);
+}
+
 .version {
   text-align: center;
   padding: 20px;
@@ -1224,17 +1251,48 @@ body {
   color: var(--success);
 }
 
-.sidebar-projects {
-  padding: 12px 14px;
+.sidebar-section {
   border-bottom: 1px solid var(--border);
 }
 
 .sidebar-section-title {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.sidebar-section-title:active {
+  background: var(--accent-glow);
+}
+
+.section-chevron {
+  transition: transform 0.3s;
+}
+
+.sidebar-section.open .section-chevron {
+  transform: rotate(180deg);
+}
+
+.sidebar-section-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding: 0 14px;
+}
+
+.sidebar-section.open .sidebar-section-content {
+  max-height: 800px;
+  padding: 0 14px 12px;
 }
 
 .project-tabs {
@@ -1504,18 +1562,28 @@ body {
     <span class="sidebar-title">תפריט</span>
     <button class="sidebar-close" onclick="closeSidebar()">&times;</button>
   </div>
-  <div class="sidebar-projects">
-    <div class="sidebar-section-title">פרויקטים</div>
-    <div class="project-tabs" id="projectTabs"></div>
-  </div>
-  <div class="sidebar-dashboard">
-    <div class="sidebar-section-title">דשבורד</div>
-    <div class="month-nav">
-      <button onclick="changeDashMonth(1)">&#8250;</button>
-      <div class="month-display" id="dashMonthDisplay"></div>
-      <button onclick="changeDashMonth(-1)">&#8249;</button>
+  <div class="sidebar-section" id="sectionProjects">
+    <button class="sidebar-section-title" onclick="toggleSection('sectionProjects')">
+      <span>פרויקטים</span>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="sidebar-section-content">
+      <div class="project-tabs" id="projectTabs"></div>
     </div>
-    <div id="dashContent"></div>
+  </div>
+  <div class="sidebar-section" id="sectionDashboard">
+    <button class="sidebar-section-title" onclick="toggleSection('sectionDashboard')">
+      <span>דשבורד</span>
+      <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="sidebar-section-content">
+      <div class="month-nav">
+        <button onclick="changeDashMonth(1)">&#8250;</button>
+        <div class="month-display" id="dashMonthDisplay"></div>
+        <button onclick="changeDashMonth(-1)">&#8249;</button>
+      </div>
+      <div id="dashContent"></div>
+    </div>
   </div>
 </div>
 
@@ -1529,6 +1597,7 @@ body {
     </div>
     <div id="daysList" class="cal-grid"></div>
   </div>
+  <div class="month-stats" id="monthStats"></div>
   <div class="version">דיווח שעות v3.2</div>
 </div>
 
@@ -2103,6 +2172,11 @@ function toggleSidebar() {
   renderDashboard();
 }
 
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+  if (id === 'sectionDashboard') renderDashboard();
+}
+
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
@@ -2374,6 +2448,43 @@ function renderReport() {
   }
 
   document.getElementById('daysList').innerHTML = html;
+  renderMonthStats(m, y);
+}
+
+function renderMonthStats(m, y) {
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const pd = getProjectData();
+  let workDays = 0, vacationDays = 0, sickDays = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k = dateKey(y, m, d);
+    const dd = pd[k];
+    if (!dd) continue;
+    if (dd.off === 'vacation') { vacationDays++; continue; }
+    if (dd.off === 'sick') { sickDays++; continue; }
+    if (dd.entries && dd.entries.length > 0) workDays++;
+  }
+  const workingDaysInMonth = countWorkingDays(y, m);
+  const reported = workDays + vacationDays + sickDays;
+  const el = document.getElementById('monthStats');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="month-stat">
+      <div class="month-stat-val">${workDays}</div>
+      <div class="month-stat-lbl">ימי עבודה</div>
+    </div>
+    <div class="month-stat">
+      <div class="month-stat-val">${reported} / ${workingDaysInMonth}</div>
+      <div class="month-stat-lbl">מדווחים</div>
+    </div>
+    <div class="month-stat">
+      <div class="month-stat-val">${vacationDays}</div>
+      <div class="month-stat-lbl">חופש</div>
+    </div>
+    <div class="month-stat">
+      <div class="month-stat-val">${sickDays}</div>
+      <div class="month-stat-lbl">מחלה</div>
+    </div>
+  `;
 }
 
 function renderModal() {
