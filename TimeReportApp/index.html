@@ -69,7 +69,7 @@ body {
 
 .sidebar-toggle {
   position: absolute;
-  left: 0;
+  right: 0;
   background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -107,18 +107,18 @@ body {
 .sidebar {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   width: 300px;
   max-width: 85vw;
   height: 100vh;
   height: 100dvh;
   background: var(--bg);
   z-index: 201;
-  transform: translateX(-100%);
+  transform: translateX(100%);
   transition: transform 0.3s ease;
   overflow-y: auto;
   padding: 0;
-  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
 }
 
 .sidebar.open {
@@ -166,24 +166,28 @@ body {
   color: white;
 }
 
-.sidebar .month-nav {
-  margin: 10px 12px;
-  padding: 10px 12px;
+.sidebar-dashboard {
+  padding: 12px 14px;
 }
 
-.sidebar .month-nav .month-display {
+.sidebar-dashboard .month-nav {
+  margin: 8px 0;
+  padding: 8px 0;
+}
+
+.sidebar-dashboard .month-nav .month-display {
   font-size: 15px;
   min-width: 110px;
 }
 
-.sidebar .month-nav button {
+.sidebar-dashboard .month-nav button {
   width: 32px;
   height: 32px;
   font-size: 16px;
 }
 
 .sidebar #dashContent {
-  padding: 0 12px 20px;
+  padding: 0 0 20px;
 }
 
 .container {
@@ -1080,7 +1084,7 @@ body {
 
 .profile-btn {
   position: absolute;
-  right: 0;
+  left: 0;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -1128,7 +1132,7 @@ body {
 .profile-menu {
   position: fixed;
   top: 56px;
-  right: 16px;
+  left: 16px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1140,7 +1144,7 @@ body {
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s;
-  transform-origin: top right;
+  transform-origin: top left;
 }
 
 .profile-menu.open {
@@ -1451,8 +1455,8 @@ body {
 
 <header class="app-header">
   <div class="header-row">
-    <button class="sidebar-toggle" onclick="toggleSidebar()" title="דשבורד">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="תפריט">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <h1>דיווח שעות</h1>
     <button class="profile-btn" onclick="toggleProfileMenu()" id="profileBtn">
@@ -1497,19 +1501,22 @@ body {
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <span class="sidebar-title">דשבורד</span>
+    <span class="sidebar-title">תפריט</span>
     <button class="sidebar-close" onclick="closeSidebar()">&times;</button>
   </div>
   <div class="sidebar-projects">
     <div class="sidebar-section-title">פרויקטים</div>
     <div class="project-tabs" id="projectTabs"></div>
   </div>
-  <div class="month-nav">
-    <button onclick="changeDashMonth(1)">&#8250;</button>
-    <div class="month-display" id="dashMonthDisplay"></div>
-    <button onclick="changeDashMonth(-1)">&#8249;</button>
+  <div class="sidebar-dashboard">
+    <div class="sidebar-section-title">דשבורד</div>
+    <div class="month-nav">
+      <button onclick="changeDashMonth(1)">&#8250;</button>
+      <div class="month-display" id="dashMonthDisplay"></div>
+      <button onclick="changeDashMonth(-1)">&#8249;</button>
+    </div>
+    <div id="dashContent"></div>
   </div>
-  <div id="dashContent"></div>
 </div>
 
 <div class="container">
