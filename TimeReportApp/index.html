@@ -312,6 +312,30 @@ body {
   transform: scale(0.97);
 }
 
+.edit-day-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.edit-day-btn:active {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
 .entries-in-day {
   margin-top: 10px;
   display: flex;
@@ -588,6 +612,7 @@ const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','�
 let currentMonth = new Date();
 let dashMonth = new Date();
 let openDay = null;
+let editingDay = null;
 let data = loadData();
 
 function loadData() {
@@ -653,6 +678,7 @@ function changeDashMonth(dir) {
 }
 
 function toggleDay(key) {
+  if (openDay !== key) editingDay = null;
   openDay = openDay === key ? null : key;
   renderReport();
   if (openDay) {
@@ -661,6 +687,16 @@ function toggleDay(key) {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 50);
   }
+}
+
+function editDay(key) {
+  editingDay = key;
+  openDay = key;
+  renderReport();
+  setTimeout(() => {
+    const el = document.getElementById('day-' + key);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 50);
 }
 
 function addEntry(key) {
@@ -675,7 +711,7 @@ function addEntry(key) {
   dayData.entries.push({ start, end, id: Date.now() });
   dayData.entries.sort((a,b) => a.start.localeCompare(b.start));
   saveData();
-  renderReport();
+  editingDay = null;
   openDay = key;
   renderReport();
   showToast('רשומה נוספה');
@@ -754,7 +790,7 @@ function renderReport() {
           ${entries.map(e => {
             const h = calcHours(e.start, e.end);
             return `<div class="entry-row">
-              <button class="entry-del" onclick="deleteEntry('${key}',${e.id})">&#10005;</button>
+              ${editingDay === key ? `<button class="entry-del" onclick="deleteEntry('${key}',${e.id})">&#10005;</button>` : ''}
               <div class="entry-times">
                 <span>${e.start}</span>
                 <span class="arrow">&#8592;</span>
@@ -764,17 +800,24 @@ function renderReport() {
             </div>`;
           }).join('')}
         </div>` : ''}
-        <div class="time-row">
-          <div class="time-input-wrap">
-            <span>התחלה</span>
-            <input type="time" id="start-${key}">
+        ${(entries.length === 0 || editingDay === key) ? `
+          <div class="time-row">
+            <div class="time-input-wrap">
+              <span>התחלה</span>
+              <input type="time" id="start-${key}">
+            </div>
+            <div class="time-input-wrap">
+              <span>סיום</span>
+              <input type="time" id="end-${key}">
+            </div>
           </div>
-          <div class="time-input-wrap">
-            <span>סיום</span>
-            <input type="time" id="end-${key}">
-          </div>
-        </div>
-        <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
+          <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
+        ` : `
+          <button class="edit-day-btn" onclick="editDay('${key}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            עריכה
+          </button>
+        `}
         <div class="toggles-row">
           <label class="toggle-pill">
             <span class="pill-text">מהבית</span>
