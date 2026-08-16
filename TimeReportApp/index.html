@@ -1705,7 +1705,7 @@ function saveToCloud() {
     skipNextSnapshot = true;
     db.collection('users').doc(currentUser.uid).set({ timeData: JSON.stringify(data) }, { merge: true })
       .then(() => { setSyncStatus('נשמר בענן'); })
-      .catch(() => { setSyncStatus('שגיאה בשמירה'); });
+      .catch(e => { setSyncStatus('שגיאה בשמירה'); showToast('שגיאת שמירה: ' + e.message); });
   }, 1500);
 }
 
@@ -1721,13 +1721,16 @@ async function loadFromCloud() {
   if (!currentUser) return false;
   try {
     const doc = await db.collection('users').doc(currentUser.uid).get();
-    if (doc.exists && doc.data().timeData) {
-      data = JSON.parse(doc.data().timeData);
-      localStorage.setItem(userStorageKey(), JSON.stringify(data));
-      return true;
+    if (doc.exists) {
+      const d = doc.data();
+      if (d.timeData) {
+        data = JSON.parse(d.timeData);
+        localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        return true;
+      }
     }
   } catch(e) {
-    console.log('Cloud load error:', e);
+    showToast('שגיאת ענן: ' + e.message);
   }
   return false;
 }
