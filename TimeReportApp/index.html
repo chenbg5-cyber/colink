@@ -260,6 +260,41 @@ body {
   flex-direction: column;
   align-items: center;
   transition: all 0.15s;
+  position: relative;
+}
+
+.cal-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: pre-line;
+  z-index: 50;
+  min-width: 130px;
+  text-align: right;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  pointer-events: none;
+  line-height: 1.6;
+}
+
+.cal-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--accent);
+}
+
+.cal-cell:hover .cal-tip {
+  display: block;
 }
 
 .cal-cell:active {
@@ -1131,13 +1166,18 @@ async function loadFromCloud() {
 async function backupFromCloud() {
   if (!currentUser) { showToast('יש להתחבר קודם'); return; }
   setSyncStatus('טוען מענן...');
-  const loaded = await loadFromCloud();
+  let loaded = await loadFromCloud();
+  if (!loaded) {
+    await new Promise(r => setTimeout(r, 2000));
+    loaded = await loadFromCloud();
+  }
   if (loaded) {
     renderReport();
     showToast('הנתונים שוחזרו מהענן');
-    setSyncStatus('');
+    setSyncStatus('נטען מהענן');
+    setTimeout(() => setSyncStatus(''), 3000);
   } else {
-    showToast('לא נמצאו נתונים בענן');
+    showToast('לא נמצאו נתונים בענן - נסי שוב');
     setSyncStatus('');
   }
 }
@@ -1425,6 +1465,12 @@ function renderReport() {
       if (hasHome && hasOffice) content += '<span class="cal-loc-dot hybrid"></span>';
       else if (hasHome) content += '<span class="cal-loc-dot home"></span>';
       else content += '<span class="cal-loc-dot office"></span>';
+      const tipLines = entries.map(e => {
+        const loc = e.loc === 'home' ? 'בית' : 'משרד';
+        return `${e.start} - ${e.end}  ${loc}`;
+      });
+      tipLines.push(`סה"כ: ${fmtHLabel(totalH)}`);
+      content += `<div class="cal-tip">${tipLines.join('\n')}</div>`;
     }
 
     html += `<div class="${cls}" onclick="openDayModal('${key}')">${content}</div>`;
