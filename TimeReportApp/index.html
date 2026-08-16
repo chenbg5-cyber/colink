@@ -1092,7 +1092,7 @@ body {
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyD_HtHDB6acBl-5rfMHwzUiAJMSgmDm3Ug",
-  authDomain: "time-report-app-il.firebaseapp.com",
+  authDomain: "time-report-app-il.web.app",
   projectId: "time-report-app-il",
   storageBucket: "time-report-app-il.firebasestorage.app",
   messagingSenderId: "116713899150",
@@ -1194,76 +1194,79 @@ async function backupFromCloud() {
 }
 
 function googleLogin() {
-  auth.signInWithPopup(provider).catch(() => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
     auth.signInWithRedirect(provider);
-  });
+  } else {
+    auth.signInWithPopup(provider).catch(() => {
+      auth.signInWithRedirect(provider);
+    });
+  }
 }
 
 function signOut() {
   auth.signOut();
 }
 
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
-  auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
-    if (user) {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('appMain').style.display = 'block';
-      document.getElementById('userName').textContent = user.displayName || user.email;
-      document.getElementById('userPhoto').src = user.photoURL || '';
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
-      setSyncStatus('טוען נתונים...');
-      let cloudLoaded = false;
-      try {
-        const doc = await db.collection('users').doc(user.uid).get({ source: 'cache' });
-        if (doc.exists && doc.data().timeData) {
-          data = JSON.parse(doc.data().timeData);
-          localStorage.setItem(userStorageKey(), JSON.stringify(data));
-          cloudLoaded = true;
-        }
-      } catch(e) {}
+auth.getRedirectResult().catch(() => {});
 
-      if (!cloudLoaded) {
-        cloudLoaded = await loadFromCloud();
+async function handleUser(user) {
+  currentUser = user;
+  if (user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appMain').style.display = 'block';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    document.getElementById('userPhoto').src = user.photoURL || '';
+
+    setSyncStatus('טוען נתונים...');
+    let cloudLoaded = false;
+    try {
+      const doc = await db.collection('users').doc(user.uid).get({ source: 'cache' });
+      if (doc.exists && doc.data().timeData) {
+        data = JSON.parse(doc.data().timeData);
+        localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        cloudLoaded = true;
       }
-      if (!cloudLoaded) {
-        await new Promise(r => setTimeout(r, 1500));
-        cloudLoaded = await loadFromCloud();
+    } catch(e) {}
+
+    if (!cloudLoaded) {
+      const userData = localStorage.getItem(userStorageKey());
+      if (userData) {
+        try { data = JSON.parse(userData); cloudLoaded = true; } catch(e) {}
       }
-      if (!cloudLoaded) {
-        const oldData = localStorage.getItem(STORAGE_KEY_BASE);
-        const userData = localStorage.getItem(userStorageKey());
-        if (userData) {
-          data = JSON.parse(userData);
-          setSyncStatus('');
-        } else if (oldData) {
-          data = JSON.parse(oldData);
-          localStorage.setItem(userStorageKey(), oldData);
-          localStorage.removeItem(STORAGE_KEY_BASE);
-          saveToCloud();
-        } else {
-          data = {};
-          setSyncStatus('');
-        }
-      } else {
+    }
+
+    if (cloudLoaded) {
+      setSyncStatus('');
+      renderReport();
+      loadFromCloud().then(fresh => {
+        if (fresh) { renderReport(); setSyncStatus('מעודכן מהענן'); setTimeout(() => setSyncStatus(''), 2000); }
+      });
+    } else {
+      let serverLoaded = await loadFromCloud();
+      if (!serverLoaded) {
+        await new Promise(r => setTimeout(r, 2000));
+        serverLoaded = await loadFromCloud();
+      }
+      if (serverLoaded) {
         setSyncStatus('נטען מהענן');
         setTimeout(() => setSyncStatus(''), 2000);
+      } else {
+        data = {};
+        setSyncStatus('');
       }
-
       renderReport();
-
-      if (cloudLoaded) {
-        loadFromCloud().then(fresh => {
-          if (fresh) renderReport();
-        });
-      }
-    } else {
-      data = {};
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('appMain').style.display = 'none';
     }
-  });
-});
+  } else {
+    data = {};
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appMain').style.display = 'none';
+  }
+}
+
+auth.onAuthStateChanged(handleUser);
 
 function dateKey(y, m, d) {
   return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
