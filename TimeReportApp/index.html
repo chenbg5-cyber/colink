@@ -1898,15 +1898,30 @@ function stopRealtimeSync() {
 async function backupFromCloud() {
   if (!currentUser) { showToast('יש להתחבר קודם'); return; }
   showToast('טוען מהענן...');
-  const loaded = await loadFromCloud();
-  if (loaded) {
-    migrateData();
-    activeProjectId = data._active || (data._projects && data._projects[0] && data._projects[0].id) || 'proj_default';
-    renderProjectTabs();
-    renderReport();
-    showToast('הנתונים שוחזרו מהענן');
-  } else {
-    showToast('לא נמצאו נתונים בענן');
+  try {
+    const token = await currentUser.getIdToken();
+    const url = `https://firestore.googleapis.com/v1/projects/time-report-app-il/databases/default/documents/users/${currentUser.uid}`;
+    const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (resp.ok) {
+      const doc = await resp.json();
+      if (doc.fields && doc.fields.timeData && doc.fields.timeData.stringValue) {
+        data = JSON.parse(doc.fields.timeData.stringValue);
+        localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        migrateData();
+        activeProjectId = data._active || (data._projects && data._projects[0] && data._projects[0].id) || 'proj_default';
+        renderProjectTabs();
+        renderReport();
+        showToast('הנתונים שוחזרו מהענן');
+        return;
+      }
+      showToast('מסמך קיים אך ללא נתוני שעות');
+    } else if (resp.status === 404) {
+      showToast('לא נמצא מסמך בענן עבור המשתמש');
+    } else {
+      showToast('שגיאת שרת: ' + resp.status);
+    }
+  } catch(e) {
+    showToast('שגיאה: ' + e.message);
   }
 }
 
