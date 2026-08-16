@@ -390,6 +390,12 @@ body {
   color: var(--text);
 }
 
+.edit-day-btn.done {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
 .loc-selector {
   display: flex;
   align-items: center;
@@ -826,6 +832,12 @@ function editDay(key) {
   }, 50);
 }
 
+function doneEdit(key) {
+  editingDay = null;
+  openDay = key;
+  renderReport();
+}
+
 function addEntry(key) {
   const startEl = document.getElementById('start-' + key);
   const endEl = document.getElementById('end-' + key);
@@ -942,7 +954,13 @@ function renderReport() {
             </div>`;
           }).join('')}
         </div>` : ''}
-        ${(entries.length === 0 || editingDay === key) ? `
+        ${entries.length > 0 && editingDay !== key ? `
+          <button class="edit-day-btn" onclick="editDay('${key}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            עריכה
+          </button>
+        ` : ''}
+        ${editingDay === key ? `<button class="edit-day-btn done" onclick="doneEdit('${key}')">סיום עריכה</button>` : ''}
           <div class="time-row">
             <div class="time-input-wrap">
               <span>התחלה</span>
@@ -959,12 +977,6 @@ function renderReport() {
             <button class="loc-btn" id="loc-home-${key}" onclick="pickLoc('${key}','home')">בית</button>
           </div>
           <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
-        ` : `
-          <button class="edit-day-btn" onclick="editDay('${key}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-            עריכה
-          </button>
-        `}
         <div class="off-selector">
           <button class="off-btn ${dayData.off === 'vacation' ? 'active' : ''}" onclick="setDayOff('${key}','vacation')">חופש</button>
           <button class="off-btn ${dayData.off === 'sick' ? 'active' : ''}" onclick="setDayOff('${key}','sick')">מחלה</button>
