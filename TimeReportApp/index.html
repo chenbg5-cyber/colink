@@ -1720,7 +1720,9 @@ function setSyncStatus(msg) {
 async function loadFromCloud() {
   if (!currentUser) return false;
   try {
-    const doc = await db.collection('users').doc(currentUser.uid).get();
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+    const query = db.collection('users').doc(currentUser.uid).get();
+    const doc = await Promise.race([query, timeout]);
     if (doc.exists) {
       const d = doc.data();
       if (d.timeData) {
