@@ -2066,35 +2066,11 @@ async function handleUser(user) {
       if (profileIcon) profileIcon.style.display = 'block';
     }
 
-    setSyncStatus('טוען נתונים...');
-    let cloudLoaded = false;
-    try {
-      const doc = await db.collection('users').doc(user.uid).get({ source: 'cache' });
-      if (doc.exists && doc.data().timeData) {
-        data = JSON.parse(doc.data().timeData);
-        localStorage.setItem(userStorageKey(), JSON.stringify(data));
-        cloudLoaded = true;
-      }
-    } catch(e) {}
-
-    if (!cloudLoaded) {
-      const userData = localStorage.getItem(userStorageKey());
-      if (userData) {
-        try { data = JSON.parse(userData); cloudLoaded = true; } catch(e) {}
-      }
-    }
-
-    if (cloudLoaded) {
-      setSyncStatus('');
+    const userData = localStorage.getItem(userStorageKey());
+    if (userData) {
+      try { data = JSON.parse(userData); } catch(e) { data = {}; }
     } else {
-      const serverLoaded = await loadFromCloud();
-      if (serverLoaded) {
-        setSyncStatus('נטען מהענן');
-        setTimeout(() => setSyncStatus(''), 2000);
-      } else {
-        data = {};
-        setSyncStatus('');
-      }
+      data = {};
     }
 
     migrateData();
@@ -2103,6 +2079,7 @@ async function handleUser(user) {
     renderReport();
     startRealtimeSync();
     checkMonthEndReminder();
+    setSyncStatus('');
   } else {
     stopRealtimeSync();
     data = {};
