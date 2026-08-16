@@ -202,6 +202,12 @@ body {
   color: var(--accent-light);
 }
 
+.day-total small {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 .day-total.empty {
   color: var(--text-dim);
   font-weight: 400;
@@ -286,23 +292,24 @@ body {
   border-color: var(--accent);
 }
 
-.add-entry-btn {
+.save-entry-btn {
   margin-top: 10px;
   width: 100%;
-  padding: 10px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--accent-light);
-  font-size: 14px;
-  font-weight: 600;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s;
+  box-shadow: 0 3px 12px rgba(108, 99, 255, 0.3);
 }
 
-.add-entry-btn:active {
-  background: var(--accent-glow);
+.save-entry-btn:active {
+  transform: scale(0.97);
 }
 
 .entries-in-day {
@@ -738,7 +745,7 @@ function renderReport() {
         <div class="day-header-left">
           <div class="day-tags">${tags}</div>
           ${hasData
-            ? `<div class="day-total">${fmtH(totalH)}</div>`
+            ? `<div class="day-total">${fmtH(totalH)} <small>שעות</small></div>`
             : `<div class="day-total empty">--</div>`}
         </div>
       </div>
@@ -767,7 +774,7 @@ function renderReport() {
             <input type="time" id="end-${key}">
           </div>
         </div>
-        <button class="add-entry-btn" onclick="addEntry('${key}')">+ הוסף שעות</button>
+        <button class="save-entry-btn" onclick="addEntry('${key}')">שמור</button>
         <div class="toggles-row">
           <label class="toggle-pill">
             <span class="pill-text">מהבית</span>
