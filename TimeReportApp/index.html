@@ -1897,33 +1897,16 @@ function stopRealtimeSync() {
 
 async function backupFromCloud() {
   if (!currentUser) { showToast('יש להתחבר קודם'); return; }
-  setSyncStatus('טוען מענן...');
-  let loaded = await loadFromCloud();
-  if (!loaded) {
-    await new Promise(r => setTimeout(r, 2000));
-    loaded = await loadFromCloud();
-  }
-  if (!loaded) {
-    try {
-      const doc = await db.collection('users').doc(currentUser.uid).get({ source: 'cache' });
-      if (doc.exists && doc.data().timeData) {
-        data = JSON.parse(doc.data().timeData);
-        localStorage.setItem(userStorageKey(), JSON.stringify(data));
-        loaded = true;
-      }
-    } catch(e) {}
-  }
+  showToast('טוען מהענן...');
+  const loaded = await loadFromCloud();
   if (loaded) {
     migrateData();
     activeProjectId = data._active || (data._projects && data._projects[0] && data._projects[0].id) || 'proj_default';
     renderProjectTabs();
     renderReport();
     showToast('הנתונים שוחזרו מהענן');
-    setSyncStatus('נטען מהענן');
-    setTimeout(() => setSyncStatus(''), 3000);
   } else {
-    showToast('לא נמצאו נתונים בענן - נסי שוב');
-    setSyncStatus('');
+    showToast('לא נמצאו נתונים בענן');
   }
 }
 
