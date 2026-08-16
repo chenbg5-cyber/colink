@@ -19,9 +19,9 @@
   --bg: #0f0f1a;
   --card: #1a1a2e;
   --card-hover: #222240;
-  --accent: #6c63ff;
-  --accent-light: #8b83ff;
-  --accent-glow: rgba(108, 99, 255, 0.15);
+  --accent: #3b82f6;
+  --accent-light: #60a5fa;
+  --accent-glow: rgba(59, 130, 246, 0.15);
   --text: #e8e8f0;
   --text-dim: #8888a0;
   --success: #4ecdc4;
@@ -60,33 +60,130 @@ body {
   background-clip: text;
 }
 
-.tab-bar {
+.header-row {
   display: flex;
-  gap: 8px;
-  margin-top: 14px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  left: 0;
   background: var(--input-bg);
-  border-radius: 12px;
-  padding: 4px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 10px 8px;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: transparent;
   color: var(--text-dim);
-  font-size: 14px;
-  font-weight: 600;
+  width: 38px;
+  height: 38px;
   cursor: pointer;
-  transition: all 0.25s ease;
-  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.tab-btn.active {
+.sidebar-toggle:active {
   background: var(--accent);
+  border-color: var(--accent);
   color: white;
-  box-shadow: 0 2px 12px rgba(108, 99, 255, 0.4);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 300px;
+  max-width: 85vw;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+  z-index: 201;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  padding: 0;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-light), var(--success));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sidebar-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-close:active {
+  background: var(--danger);
+  color: white;
+}
+
+.sidebar .month-nav {
+  margin: 10px 12px;
+  padding: 10px 12px;
+}
+
+.sidebar .month-nav .month-display {
+  font-size: 15px;
+  min-width: 110px;
+}
+
+.sidebar .month-nav button {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.sidebar #dashContent {
+  padding: 0 12px 20px;
 }
 
 .container {
@@ -236,7 +333,7 @@ body {
 }
 
 .tag-hybrid {
-  background: rgba(108, 99, 255, 0.15);
+  background: rgba(59, 130, 246, 0.15);
   color: var(--accent-light);
 }
 
@@ -364,7 +461,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s;
-  box-shadow: 0 3px 12px rgba(108, 99, 255, 0.3);
+  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
 }
 
 .save-entry-btn:active {
@@ -465,7 +562,7 @@ body {
 }
 
 .entry-loc.office {
-  background: rgba(108, 99, 255, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   color: var(--accent-light);
 }
 
@@ -643,14 +740,14 @@ body {
 
 /* Dashboard */
 .dash-section {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .dash-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -658,13 +755,13 @@ body {
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 6px;
 }
 
 .stat-box {
   background: var(--card);
-  border-radius: 14px;
-  padding: 18px 14px;
+  border-radius: 10px;
+  padding: 10px 8px;
   text-align: center;
   border: 1px solid var(--border);
 }
@@ -675,27 +772,27 @@ body {
 
 .stat-box.accent {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--card), rgba(108, 99, 255, 0.08));
+  background: linear-gradient(135deg, var(--card), rgba(59, 130, 246, 0.08));
 }
 
 .stat-val {
-  font-size: 30px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--accent-light);
 }
 
 .stat-lbl {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-dim);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .progress-bar-wrap {
   background: var(--card);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .progress-label {
@@ -900,12 +997,27 @@ body {
 </div>
 
 <header class="app-header">
-  <h1>דיווח שעות</h1>
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('report')">דיווח</button>
-    <button class="tab-btn" onclick="switchTab('dashboard')">דשבורד</button>
+  <div class="header-row">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="דשבורד">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <h1>דיווח שעות</h1>
   </div>
 </header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">דשבורד</span>
+    <button class="sidebar-close" onclick="closeSidebar()">&times;</button>
+  </div>
+  <div class="month-nav">
+    <button onclick="changeDashMonth(1)">&#8250;</button>
+    <div class="month-display" id="dashMonthDisplay"></div>
+    <button onclick="changeDashMonth(-1)">&#8249;</button>
+  </div>
+  <div id="dashContent"></div>
+</div>
 
 <div class="container">
   <!-- Report View -->
@@ -918,17 +1030,7 @@ body {
     <div id="daysList" class="days-list"></div>
   </div>
 
-  <!-- Dashboard View -->
-  <div id="dashboardView" style="display:none;">
-    <div class="month-nav">
-      <button onclick="changeDashMonth(1)">&#8250;</button>
-      <div class="month-display" id="dashMonthDisplay"></div>
-      <button onclick="changeDashMonth(-1)">&#8249;</button>
-    </div>
-    <div id="dashContent"></div>
-  </div>
-
-  <div class="version">דיווח שעות v3.0</div>
+  <div class="version">דיווח שעות v3.1</div>
 </div>
 
 </div><!-- end appMain -->
@@ -1002,10 +1104,11 @@ async function loadFromCloud() {
     if (doc.exists && doc.data().timeData) {
       data = JSON.parse(doc.data().timeData);
       localStorage.setItem(userStorageKey(), JSON.stringify(data));
-      renderReport();
       return true;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.log('Cloud load error:', e);
+  }
   return false;
 }
 
@@ -1032,6 +1135,8 @@ function signOut() {
   auth.signOut();
 }
 
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
 auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   if (user) {
@@ -1040,12 +1145,18 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('userPhoto').src = user.photoURL || '';
 
-    const cloudLoaded = await loadFromCloud();
+    setSyncStatus('טוען נתונים...');
+    let cloudLoaded = await loadFromCloud();
+    if (!cloudLoaded) {
+      await new Promise(r => setTimeout(r, 1500));
+      cloudLoaded = await loadFromCloud();
+    }
     if (!cloudLoaded) {
       const oldData = localStorage.getItem(STORAGE_KEY_BASE);
       const userData = localStorage.getItem(userStorageKey());
       if (userData) {
         data = JSON.parse(userData);
+        setSyncStatus('');
       } else if (oldData) {
         data = JSON.parse(oldData);
         localStorage.setItem(userStorageKey(), oldData);
@@ -1053,7 +1164,11 @@ auth.onAuthStateChanged(async (user) => {
         saveToCloud();
       } else {
         data = {};
+        setSyncStatus('');
       }
+    } else {
+      setSyncStatus('נטען מהענן');
+      setTimeout(() => setSyncStatus(''), 2000);
     }
     renderReport();
   } else {
@@ -1108,13 +1223,15 @@ function fmtHLabel(totalHours) {
   return `${h}:${String(m).padStart(2,'0')} שעות`;
 }
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', (tab === 'report' && i === 0) || (tab === 'dashboard' && i === 1));
-  });
-  document.getElementById('reportView').style.display = tab === 'report' ? 'block' : 'none';
-  document.getElementById('dashboardView').style.display = tab === 'dashboard' ? 'block' : 'none';
-  if (tab === 'dashboard') renderDashboard();
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  renderDashboard();
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
 function changeMonth(dir) {
