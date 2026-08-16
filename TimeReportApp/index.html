@@ -1211,6 +1211,140 @@ body {
   color: var(--success);
 }
 
+.project-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.project-tabs::-webkit-scrollbar { display: none; }
+
+.project-tab {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.project-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+.project-tab:active { transform: scale(0.95); }
+
+.project-add-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.project-add-btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.project-edit-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 350;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-edit-modal.open { display: flex; }
+
+.project-edit-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 320px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.project-edit-card h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.project-edit-card input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.project-edit-card input:focus { border-color: var(--accent); }
+
+.project-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.project-edit-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.project-edit-actions .proj-save {
+  background: var(--accent);
+  color: white;
+}
+
+.project-edit-actions .proj-cancel {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.project-edit-actions .proj-delete {
+  background: var(--danger);
+  color: white;
+  flex: 0;
+  padding: 10px 14px;
+}
+
 .reminder-banner {
   display: none;
   margin: 0 16px 8px;
@@ -1305,6 +1439,8 @@ body {
 
 <div class="greeting-bar" id="greetingBar"></div>
 
+<div class="project-tabs" id="projectTabs"></div>
+
 <div class="reminder-banner" id="reminderBanner">
   <button class="reminder-close" onclick="dismissReminder()">&times;</button>
   <div class="reminder-icon">&#9200;</div>
@@ -1368,6 +1504,14 @@ body {
   <div class="modal" id="modalContent"></div>
 </div>
 
+<div class="project-edit-modal" id="projectEditModal" onclick="if(event.target===this)closeProjectEdit()">
+  <div class="project-edit-card">
+    <h3 id="projectEditTitle">פרויקט חדש</h3>
+    <input type="text" id="projectEditName" placeholder="שם הפרויקט">
+    <div class="project-edit-actions" id="projectEditActions"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1398,9 +1542,45 @@ let data = {};
 let modalKey = null;
 let userProfile = null;
 let realtimeUnsubscribe = null;
+let activeProjectId = null;
 
 function userStorageKey() {
   return currentUser ? STORAGE_KEY_BASE + '_' + currentUser.uid : STORAGE_KEY_BASE;
+}
+
+function migrateData() {
+  if (data._projects) return;
+  const projectName = (userProfile && userProfile.project) || 'ברירת מחדל';
+  const pid = 'proj_default';
+  const oldEntries = {};
+  Object.keys(data).forEach(k => {
+    if (k.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      oldEntries[k] = data[k];
+      delete data[k];
+    }
+  });
+  data._projects = [{ id: pid, name: projectName }];
+  data._active = pid;
+  data[pid] = oldEntries;
+  activeProjectId = pid;
+}
+
+function getProjects() {
+  return data._projects || [];
+}
+
+function getProjectData() {
+  const pid = activeProjectId || data._active || 'proj_default';
+  if (!data[pid]) data[pid] = {};
+  return data[pid];
+}
+
+function setActiveProject(pid) {
+  activeProjectId = pid;
+  data._active = pid;
+  saveData();
+  renderProjectTabs();
+  refreshViews();
 }
 
 function loadLocalData() {
@@ -1447,6 +1627,95 @@ async function loadFromCloud() {
     console.log('Cloud load error:', e);
   }
   return false;
+}
+
+function renderProjectTabs() {
+  const projects = getProjects();
+  const el = document.getElementById('projectTabs');
+  if (!el) return;
+  if (projects.length <= 1 && !(projects.length === 1)) { el.innerHTML = ''; return; }
+  let html = '';
+  projects.forEach(p => {
+    const active = p.id === activeProjectId ? ' active' : '';
+    html += `<button class="project-tab${active}" onclick="setActiveProject('${p.id}')" oncontextmenu="event.preventDefault();openProjectEdit('${p.id}')">${p.name}</button>`;
+  });
+  html += `<button class="project-add-btn" onclick="openProjectEdit(null)">+</button>`;
+  el.innerHTML = html;
+}
+
+function openProjectEdit(pid) {
+  const modal = document.getElementById('projectEditModal');
+  const title = document.getElementById('projectEditTitle');
+  const input = document.getElementById('projectEditName');
+  const actions = document.getElementById('projectEditActions');
+  modal.classList.add('open');
+
+  if (pid) {
+    const proj = getProjects().find(p => p.id === pid);
+    title.textContent = 'עריכת פרויקט';
+    input.value = proj ? proj.name : '';
+    let btns = `<button class="proj-save" onclick="saveProjectEdit('${pid}')">שמור</button>`;
+    btns += `<button class="proj-cancel" onclick="closeProjectEdit()">ביטול</button>`;
+    if (getProjects().length > 1) {
+      btns += `<button class="proj-delete" onclick="deleteProject('${pid}')">&#10005;</button>`;
+    }
+    actions.innerHTML = btns;
+  } else {
+    title.textContent = 'פרויקט חדש';
+    input.value = '';
+    actions.innerHTML = `
+      <button class="proj-save" onclick="addNewProject()">הוסף</button>
+      <button class="proj-cancel" onclick="closeProjectEdit()">ביטול</button>
+    `;
+  }
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeProjectEdit() {
+  document.getElementById('projectEditModal').classList.remove('open');
+}
+
+function addNewProject() {
+  const name = document.getElementById('projectEditName').value.trim();
+  if (!name) { showToast('נא להזין שם פרויקט'); return; }
+  const pid = 'proj_' + Date.now();
+  if (!data._projects) data._projects = [];
+  data._projects.push({ id: pid, name });
+  data[pid] = {};
+  activeProjectId = pid;
+  data._active = pid;
+  saveData();
+  closeProjectEdit();
+  renderProjectTabs();
+  refreshViews();
+  showToast('פרויקט נוסף: ' + name);
+}
+
+function saveProjectEdit(pid) {
+  const name = document.getElementById('projectEditName').value.trim();
+  if (!name) { showToast('נא להזין שם פרויקט'); return; }
+  const proj = getProjects().find(p => p.id === pid);
+  if (proj) proj.name = name;
+  saveData();
+  closeProjectEdit();
+  renderProjectTabs();
+  showToast('פרויקט עודכן');
+}
+
+function deleteProject(pid) {
+  const projects = getProjects();
+  if (projects.length <= 1) { showToast('לא ניתן למחוק את הפרויקט האחרון'); return; }
+  data._projects = projects.filter(p => p.id !== pid);
+  delete data[pid];
+  if (activeProjectId === pid) {
+    activeProjectId = data._projects[0].id;
+    data._active = activeProjectId;
+  }
+  saveData();
+  closeProjectEdit();
+  renderProjectTabs();
+  refreshViews();
+  showToast('פרויקט נמחק');
 }
 
 function checkMonthEndReminder() {
@@ -1498,7 +1767,10 @@ function startRealtimeSync() {
       if (doc.exists && doc.data().timeData) {
         const newData = JSON.parse(doc.data().timeData);
         data = newData;
+        migrateData();
+        activeProjectId = data._active || activeProjectId;
         localStorage.setItem(userStorageKey(), JSON.stringify(data));
+        renderProjectTabs();
         renderReport();
         if (modalKey) renderModal();
       }
@@ -1636,7 +1908,10 @@ async function saveOnboarding() {
   }
   document.getElementById('onboardingScreen').style.display = 'none';
   document.getElementById('appMain').style.display = 'block';
+  migrateData();
+  activeProjectId = data._active || 'proj_default';
   updateGreeting();
+  renderProjectTabs();
   renderReport();
   showToast('שלום ' + name + '!');
 }
@@ -1705,7 +1980,6 @@ async function handleUser(user) {
 
     if (cloudLoaded) {
       setSyncStatus('');
-      renderReport();
     } else {
       let serverLoaded = await loadFromCloud();
       if (!serverLoaded) {
@@ -1719,9 +1993,12 @@ async function handleUser(user) {
         data = {};
         setSyncStatus('');
       }
-      renderReport();
     }
 
+    migrateData();
+    activeProjectId = data._active || (data._projects && data._projects[0] && data._projects[0].id) || 'proj_default';
+    renderProjectTabs();
+    renderReport();
     startRealtimeSync();
     checkMonthEndReminder();
   } else {
@@ -1741,9 +2018,10 @@ function dateKey(y, m, d) {
 }
 
 function getDayData(key) {
-  if (!data[key]) data[key] = { entries: [], travel: false, home: false, off: '' };
-  if (!data[key].entries) data[key].entries = [];
-  return data[key];
+  const pd = getProjectData();
+  if (!pd[key]) pd[key] = { entries: [], travel: false, home: false, off: '' };
+  if (!pd[key].entries) pd[key].entries = [];
+  return pd[key];
 }
 
 function setDayOff(key, type) {
@@ -1985,7 +2263,8 @@ function renderReport() {
     const dt = new Date(y, m, d);
     const dow = dt.getDay();
     const key = dateKey(y, m, d);
-    const dayData = data[key] || { entries: [], travel: false, home: false, off: '' };
+    const pd = getProjectData();
+    const dayData = pd[key] || { entries: [], travel: false, home: false, off: '' };
     const entries = dayData.entries || [];
     const totalH = entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
     const isToday = key === todayKey;
@@ -2049,7 +2328,8 @@ function renderModal() {
   const [y, mo, d] = modalKey.split('-').map(Number);
   const dt = new Date(y, mo-1, d);
   const dow = dt.getDay();
-  const dayData = data[modalKey] || { entries: [], travel: false, home: false, off: '' };
+  const pd = getProjectData();
+  const dayData = pd[modalKey] || { entries: [], travel: false, home: false, off: '' };
   const entries = dayData.entries || [];
   const totalH = entries.reduce((s, e) => s + calcHours(e.start, e.end), 0);
   const isDayOff = !!dayData.off;
@@ -2153,7 +2433,8 @@ function renderDashboard() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const key = dateKey(y, m, d);
-    const dayData = data[key];
+    const pd = getProjectData();
+    const dayData = pd[key];
     if (!dayData) continue;
     if (dayData.off === 'vacation') { vacationDays++; continue; }
     if (dayData.off === 'sick') { sickDays++; continue; }
