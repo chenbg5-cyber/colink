@@ -4973,18 +4973,31 @@ function viewTaskAttachment(id) {
   const task = (appData.tasks || []).find(t => t.id === id);
   if (!task || !task.attachment) return;
   const att = task.attachment;
+  const hasData = att.data && att.data.startsWith('data:');
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
   const box = document.createElement('div');
   box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:90vw;max-height:85vh;overflow:auto;text-align:center;';
   const isImage = att.type && att.type.startsWith('image/');
-  box.innerHTML = (isImage ? '<img src="' + att.data + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;">' : '<div style="font-size:3rem;margin-bottom:12px;">📄</div>') +
-    '<div style="font-size:0.9rem;margin-bottom:12px;color:#333;">' + att.name + '</div>' +
-    '<div style="display:flex;gap:8px;justify-content:center;">' +
-    '<a href="' + att.data + '" download="' + att.name + '" style="background:var(--primary,#6C63FF);color:white;border:none;border-radius:10px;padding:10px 20px;text-decoration:none;font-size:0.9rem;">הורדה</a>' +
-    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
-    '</div>';
+  let content = '';
+  if (hasData && isImage) {
+    content = '<img src="' + att.data + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;">';
+  } else {
+    content = '<div style="font-size:3rem;margin-bottom:12px;">📄</div>';
+  }
+  content += '<div style="font-size:0.9rem;margin-bottom:12px;color:#333;">' + att.name + '</div>';
+  if (hasData) {
+    content += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+      '<button onclick="var a=document.createElement(\'a\');a.href=\'' + att.data + '\';a.download=\'' + att.name + '\';document.body.appendChild(a);a.click();a.remove();" style="background:var(--primary,#6C63FF);color:white;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">הורדה</button>' +
+      (isImage ? '' : '<button onclick="window.open(\'' + att.data + '\')" style="background:#10b981;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">פתיחה</button>') +
+      '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
+      '</div>';
+  } else {
+    content += '<div style="font-size:0.8rem;color:#e74c3c;margin-bottom:12px;">הקובץ זמין רק במכשיר שבו הועלה</div>' +
+      '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>';
+  }
+  box.innerHTML = content;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 }
@@ -6973,7 +6986,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '79';
+const APP_VERSION = '80';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
