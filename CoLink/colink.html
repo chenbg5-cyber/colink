@@ -1512,6 +1512,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -2796,6 +2797,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 auth.languageCode = 'he';
 
 let currentFirebaseUser = null;
@@ -3101,6 +3103,7 @@ function saveToCloud() {
       if (!t.attachment) return t;
       const copy = {...t};
       copy.attachment = { name: t.attachment.name, type: t.attachment.type };
+      if (t.attachment.url) copy.attachment.url = t.attachment.url;
       return copy;
     });
   }
@@ -4992,6 +4995,12 @@ function viewTaskAttachment(id) {
       (isImage ? '' : '<button onclick="window.open(\'' + att.data + '\')" style="background:#10b981;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">פתיחה</button>') +
       '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
       '</div>';
+  } else if (att.url) {
+    if (isImage) content = '<img src="' + att.url + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;" crossorigin="anonymous">' + '<div style="font-size:0.9rem;margin-bottom:12px;color:#333;">' + att.name + '</div>';
+    content += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+      '<a href="' + att.url + '" target="_blank" rel="noopener" style="background:var(--primary,#6C63FF);color:white;border:none;border-radius:10px;padding:10px 20px;text-decoration:none;font-size:0.9rem;">פתיחה / הורדה</a>' +
+      '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
+      '</div>';
   } else {
     content += '<div style="font-size:0.8rem;color:#e74c3c;margin-bottom:12px;">הקובץ זמין רק במכשיר שבו הועלה</div>' +
       '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>';
@@ -4999,6 +5008,19 @@ function viewTaskAttachment(id) {
   box.innerHTML = content;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
+}
+
+async function uploadTaskAttachment(taskId, attachment) {
+  if (!appData.familyCode || !currentFirebaseUser || !attachment.data) return null;
+  try {
+    const path = 'families/' + appData.familyCode + '/tasks/' + taskId + '/' + attachment.name;
+    const ref = storage.ref(path);
+    const response = await fetch(attachment.data);
+    const blob = await response.blob();
+    await ref.put(blob, { contentType: attachment.type });
+    const url = await ref.getDownloadURL();
+    return url;
+  } catch (e) { console.warn('Attachment upload failed:', e); return null; }
 }
 
 function addTask() {
@@ -5069,6 +5091,14 @@ function addTask() {
   }
 
   saveData();
+  const tasksToUpload = editId ? [appData.tasks.find(t => t.id === parseInt(editId))] : appData.tasks.slice(-1);
+  tasksToUpload.forEach(t => {
+    if (t && t.attachment && t.attachment.data && !t.attachment.url) {
+      uploadTaskAttachment(t.id, t.attachment).then(url => {
+        if (url) { t.attachment.url = url; saveData(); }
+      });
+    }
+  });
   closeModal('taskModal');
   showToast(editId ? 'המשימה עודכנה ✅' : 'משימה נוספה בהצלחה ✅');
   document.getElementById('taskEditId').value = '';
@@ -6985,7 +7015,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '80';
+const APP_VERSION = '81';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
