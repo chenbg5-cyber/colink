@@ -2998,7 +2998,19 @@ async function onAuthSuccess() {
     listenToFamilyNotifications();
     listenToSharedData();
     initFCM();
+    syncLocalAttachmentsToFirestore();
   }
+}
+
+function syncLocalAttachmentsToFirestore() {
+  if (!appData.familyCode || !currentFirebaseUser) return;
+  (appData.tasks || []).forEach(t => {
+    if (t.attachment && t.attachment.data && !t.attachment.cloudSaved) {
+      uploadAttachmentToFirestore(t.id, t.attachment).then(ok => {
+        if (ok) { t.attachment.cloudSaved = true; saveData(); }
+      });
+    }
+  });
 }
 
 function listenToFamilyNotifications() {
