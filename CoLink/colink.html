@@ -1512,7 +1512,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <!-- Storage via Firestore (no Storage SDK needed) -->
 </head>
 <body>
 
@@ -2797,7 +2797,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+// Attachments stored in Firestore docs (no Storage SDK needed)
 auth.languageCode = 'he';
 
 let currentFirebaseUser = null;
@@ -3103,7 +3103,7 @@ function saveToCloud() {
       if (!t.attachment) return t;
       const copy = {...t};
       copy.attachment = { name: t.attachment.name, type: t.attachment.type };
-      if (t.attachment.url) copy.attachment.url = t.attachment.url;
+      if (t.attachment.cloudSaved) copy.attachment.cloudSaved = true;
       return copy;
     });
   }
@@ -4937,8 +4937,8 @@ let pendingTaskAttachment = null;
 function handleTaskAttachment(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('הקובץ גדול מדי — מקסימום 5MB');
+  if (file.size > 700 * 1024) {
+    showToast('הקובץ גדול מדי — מקסימום 700KB');
     input.value = '';
     return;
   }
@@ -4971,11 +4971,22 @@ function clearTaskAttachment() {
   document.getElementById('taskAttachPreview').innerHTML = '';
 }
 
-function viewTaskAttachment(id) {
+async function viewTaskAttachment(id) {
   const task = (appData.tasks || []).find(t => t.id === id);
   if (!task || !task.attachment) return;
   const att = task.attachment;
-  const hasData = att.data && att.data.startsWith('data:');
+  let hasData = att.data && att.data.startsWith('data:');
+
+  if (!hasData && appData.familyCode && currentFirebaseUser) {
+    showToast('טוען קובץ מהענן...');
+    const cloudAtt = await loadAttachmentFromFirestore(id);
+    if (cloudAtt && cloudAtt.data) {
+      att.data = cloudAtt.data;
+      hasData = true;
+      saveData();
+    }
+  }
+
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
@@ -4995,14 +5006,8 @@ function viewTaskAttachment(id) {
       (isImage ? '' : '<button onclick="window.open(\'' + att.data + '\')" style="background:#10b981;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">פתיחה</button>') +
       '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
       '</div>';
-  } else if (att.url) {
-    if (isImage) content = '<img src="' + att.url + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;" crossorigin="anonymous">' + '<div style="font-size:0.9rem;margin-bottom:12px;color:#333;">' + att.name + '</div>';
-    content += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
-      '<a href="' + att.url + '" target="_blank" rel="noopener" style="background:var(--primary,#6C63FF);color:white;border:none;border-radius:10px;padding:10px 20px;text-decoration:none;font-size:0.9rem;">פתיחה / הורדה</a>' +
-      '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>' +
-      '</div>';
   } else {
-    content += '<div style="font-size:0.8rem;color:#e74c3c;margin-bottom:12px;">הקובץ זמין רק במכשיר שבו הועלה</div>' +
+    content += '<div style="font-size:0.8rem;color:#e74c3c;margin-bottom:12px;">הקובץ לא נמצא בענן</div>' +
       '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--border,#ddd);color:#333;border:none;border-radius:10px;padding:10px 20px;font-size:0.9rem;cursor:pointer;">סגור</button>';
   }
   box.innerHTML = content;
@@ -5010,17 +5015,28 @@ function viewTaskAttachment(id) {
   document.body.appendChild(overlay);
 }
 
-async function uploadTaskAttachment(taskId, attachment) {
-  if (!appData.familyCode || !currentFirebaseUser || !attachment.data) return null;
+async function uploadAttachmentToFirestore(taskId, attachment) {
+  if (!appData.familyCode || !currentFirebaseUser || !attachment.data) return false;
   try {
-    const path = 'families/' + appData.familyCode + '/tasks/' + taskId + '/' + attachment.name;
-    const ref = storage.ref(path);
-    const response = await fetch(attachment.data);
-    const blob = await response.blob();
-    await ref.put(blob, { contentType: attachment.type });
-    const url = await ref.getDownloadURL();
-    return url;
-  } catch (e) { console.warn('Attachment upload failed:', e); return null; }
+    await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc(String(taskId)).set({
+        name: attachment.name,
+        type: attachment.type,
+        data: attachment.data,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    return true;
+  } catch (e) { console.warn('Attachment upload failed:', e); return false; }
+}
+
+async function loadAttachmentFromFirestore(taskId) {
+  if (!appData.familyCode || !currentFirebaseUser) return null;
+  try {
+    const doc = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc(String(taskId)).get();
+    if (doc.exists) return doc.data();
+    return null;
+  } catch (e) { console.warn('Attachment load failed:', e); return null; }
 }
 
 function addTask() {
@@ -5093,9 +5109,9 @@ function addTask() {
   saveData();
   const tasksToUpload = editId ? [appData.tasks.find(t => t.id === parseInt(editId))] : appData.tasks.slice(-1);
   tasksToUpload.forEach(t => {
-    if (t && t.attachment && t.attachment.data && !t.attachment.url) {
-      uploadTaskAttachment(t.id, t.attachment).then(url => {
-        if (url) { t.attachment.url = url; saveData(); }
+    if (t && t.attachment && t.attachment.data) {
+      uploadAttachmentToFirestore(t.id, t.attachment).then(ok => {
+        if (ok) { t.attachment.cloudSaved = true; saveData(); }
       });
     }
   });
@@ -7015,7 +7031,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '81';
+const APP_VERSION = '82';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
