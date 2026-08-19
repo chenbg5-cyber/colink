@@ -4989,13 +4989,27 @@ async function viewTaskAttachment(id) {
   const att = task.attachment;
   let hasData = att.data && att.data.startsWith('data:');
 
-  if (!hasData && appData.familyCode && currentFirebaseUser) {
-    showToast('טוען קובץ מהענן...');
-    const cloudAtt = await loadAttachmentFromFirestore(id);
-    if (cloudAtt && cloudAtt.data) {
-      att.data = cloudAtt.data;
-      hasData = true;
-      saveData();
+  if (!hasData) {
+    if (appData.familyCode && currentFirebaseUser) {
+      showToast('טוען קובץ מהענן...');
+      const cloudAtt = await loadAttachmentFromFirestore(id);
+      if (cloudAtt && cloudAtt.data) {
+        att.data = cloudAtt.data;
+        hasData = true;
+        saveData();
+      }
+    }
+    if (!hasData) {
+      try {
+        const backup = JSON.parse(localStorage.getItem('colink_backup') || '{}');
+        const bt = (backup.tasks || []).find(t => t.id === id);
+        if (bt && bt.attachment && bt.attachment.data) {
+          att.data = bt.attachment.data;
+          hasData = true;
+          saveData();
+          uploadAttachmentToFirestore(id, att);
+        }
+      } catch(e) {}
     }
   }
 
