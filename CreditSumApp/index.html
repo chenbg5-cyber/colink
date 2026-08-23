@@ -827,10 +827,12 @@
       </button>
       <div id="expectedContent" style="display:none; padding:0 16px 14px;">
         <div id="expectedList"></div>
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <input type="number" id="expectedAmount" placeholder="סכום" inputmode="decimal" style="width:80px; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:ltr; text-align:center;">
-          <input type="text" id="expectedName" placeholder="על מה?" maxlength="20" style="flex:1; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:rtl;">
-          <button onclick="addExpected()" style="padding:8px 14px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">+</button>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="expectedAmount" placeholder="סכום" inputmode="decimal" style="width:80px; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:ltr; text-align:center;">
+            <input type="text" id="expectedName" placeholder="על מה?" maxlength="20" style="flex:1; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:rtl;">
+          </div>
+          <button onclick="addExpected()" style="width:100%; padding:10px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">+ הוסף הוצאה צפויה</button>
         </div>
       </div>
     </div>
