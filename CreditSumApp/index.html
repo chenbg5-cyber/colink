@@ -810,6 +810,32 @@
     </div>
   </div>
 
+  <!-- Days remaining -->
+  <div style="text-align:center; padding:0 20px 10px;">
+    <div id="daysLeft" style="font-size:13px; color:var(--text-dim);"></div>
+  </div>
+
+  <!-- Expected expenses -->
+  <div style="padding:0 20px 10px;">
+    <div class="sms-box" style="padding:0;">
+      <button onclick="toggleExpected()" style="width:100%; display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:none; border:none; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">
+        <span>הוצאות צפויות עד ה-10</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="expectedTotal" style="font-size:13px; color:var(--yellow);"></span>
+          <span id="expectedArrow" style="font-size:12px; color:var(--text-dim); transition:transform 0.2s;">▼</span>
+        </div>
+      </button>
+      <div id="expectedContent" style="display:none; padding:0 16px 14px;">
+        <div id="expectedList"></div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input type="number" id="expectedAmount" placeholder="סכום" inputmode="decimal" style="width:80px; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:ltr; text-align:center;">
+          <input type="text" id="expectedName" placeholder="על מה?" maxlength="20" style="flex:1; padding:8px; background:rgba(255,255,255,0.05); border:1px solid var(--card-border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; direction:rtl;">
+          <button onclick="addExpected()" style="padding:8px 14px; background:var(--yellow); color:#1a1a2e; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Milestone progress -->
   <div class="milestone-section">
     <div class="milestone-bar-container">
@@ -1236,6 +1262,8 @@
     document.getElementById('cycleDates').textContent = getCycleLabel(viewMonth);
 
     const passedAll = total >= milestones[milestones.length - 1];
+    updateDaysLeft();
+    updateExpectedUI();
     document.getElementById('milestoneCurrentLabel').textContent = passedAll ? `₪${formatNum(total)} — עברת את כל ההתראות!` : `₪${formatNum(total)} מתוך ₪${formatNum(nextMilestone)}`;
     document.getElementById('milestoneNextLabel').textContent = passedAll ? 'כל ההתראות הופעלו' : `התראה הבאה: ₪${formatNum(nextMilestone)}`;
     document.getElementById('milestoneFill').style.width = Math.min(progress, 100) + '%';
@@ -1269,6 +1297,76 @@
         </div>
       </div>`;
     }).join('');
+  }
+
+  function updateDaysLeft() {
+    const now = new Date();
+    const day = now.getDate();
+    let daysLeft;
+    if (day >= 10) {
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
+      daysLeft = Math.ceil((nextMonth - now) / (1000 * 60 * 60 * 24));
+    } else {
+      daysLeft = 10 - day;
+    }
+    document.getElementById('daysLeft').textContent = daysLeft === 0 ? 'היום יום חיוב!' : `${daysLeft} ימים עד סגירת תקופת חיוב (ה-10)`;
+  }
+
+  function toggleExpected() {
+    const content = document.getElementById('expectedContent');
+    const arrow = document.getElementById('expectedArrow');
+    const open = content.style.display === 'none';
+    content.style.display = open ? 'block' : 'none';
+    arrow.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  function getExpected() {
+    const key = 'expected_' + viewMonth;
+    const data = getMonthData(viewMonth);
+    return data.expected || [];
+  }
+
+  function addExpected() {
+    const amtInput = document.getElementById('expectedAmount');
+    const nameInput = document.getElementById('expectedName');
+    const amt = parseFloat(amtInput.value);
+    if (!amt || amt <= 0) return;
+    const data = getMonthData(viewMonth);
+    if (!data.expected) data.expected = [];
+    data.expected.push({ amount: amt, name: nameInput.value.trim() || null });
+    saveState();
+    amtInput.value = '';
+    nameInput.value = '';
+    updateExpectedUI();
+  }
+
+  function deleteExpected(index) {
+    const data = getMonthData(viewMonth);
+    if (data.expected) {
+      data.expected.splice(index, 1);
+      saveState();
+      updateExpectedUI();
+    }
+  }
+
+  function updateExpectedUI() {
+    const data = getMonthData(viewMonth);
+    const expected = data.expected || [];
+    const list = document.getElementById('expectedList');
+    const totalEl = document.getElementById('expectedTotal');
+    const sum = expected.reduce((s, e) => s + e.amount, 0);
+    totalEl.textContent = sum > 0 ? `₪${formatNum(sum)}` : '';
+
+    if (expected.length === 0) {
+      list.innerHTML = '<div style="font-size:12px; color:var(--text-dim); text-align:center; padding:8px 0;">אין הוצאות צפויות</div>';
+      return;
+    }
+    list.innerHTML = expected.map((e, i) =>
+      `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--card-border);">
+        <span style="font-size:14px;">${e.name || 'הוצאה צפויה'} • ₪${formatNum(e.amount)}</span>
+        <button onclick="deleteExpected(${i})" style="background:none; border:none; color:var(--accent); font-size:14px; cursor:pointer;">✕</button>
+      </div>`
+    ).join('');
   }
 
   function formatNum(n) {
