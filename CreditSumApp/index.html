@@ -2106,10 +2106,25 @@
       .then(r => r.json())
       .then(pending => {
         if (!pending) return;
-        for (const [key, text] of Object.entries(pending)) {
-          if (typeof text === 'string' && text.length > 5) {
-            debugPush({ src: 'firebase-pending', text, key });
-            processSharedText(text);
+        for (const [key, val] of Object.entries(pending)) {
+          const text = typeof val === 'string' ? val : (val && val.text ? val.text : null);
+          debugPush({ src: 'firebase-pending', text: text || JSON.stringify(val), key });
+          if (!text || text.length < 3) {
+            fetch(`${FB_DB}/users/${id}/pending/${key}.json`, { method: 'DELETE' }).catch(() => {});
+            continue;
+          }
+          const amt = extractAmount(text);
+          if (amt) {
+            const store = extractStore(text);
+            const smsTime = extractTime(text);
+            addEntry(amt, store, smsTime);
+            showToast(`נוסף חיוב ₪${formatNum(amt)}${store ? ' • ' + store : ''}`);
+            debugPush({ src: 'firebase-added', amount: amt, store, key });
+          } else if (isChargeSMS(text)) {
+            smsInput.value = text;
+            smsInput.dispatchEvent(new Event('input'));
+            document.getElementById('smsBox').style.display = 'block';
+            debugPush({ src: 'firebase-manual', text, key });
           }
           fetch(`${FB_DB}/users/${id}/pending/${key}.json`, { method: 'DELETE' }).catch(() => {});
         }
