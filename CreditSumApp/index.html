@@ -2099,8 +2099,28 @@
     });
   }
 
+  // Firebase pending queue - MacroDroid sends SMS here, app picks them up
+  function checkFirebasePending() {
+    const id = getDeviceId();
+    fetch(`${FB_DB}/users/${id}/pending.json`)
+      .then(r => r.json())
+      .then(pending => {
+        if (!pending) return;
+        for (const [key, text] of Object.entries(pending)) {
+          if (typeof text === 'string' && text.length > 5) {
+            debugPush({ src: 'firebase-pending', text, key });
+            processSharedText(text);
+          }
+          fetch(`${FB_DB}/users/${id}/pending/${key}.json`, { method: 'DELETE' }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }
+  checkFirebasePending();
+  setInterval(checkFirebasePending, 30000);
+
   // Re-check URL params and pending charges when page regains focus
-  function checkAll() { handleSharedText(); checkPendingCharges(); }
+  function checkAll() { handleSharedText(); checkPendingCharges(); checkFirebasePending(); }
   window.addEventListener('pageshow', checkAll);
   window.addEventListener('focus', checkAll);
   window.addEventListener('hashchange', handleSharedText);
