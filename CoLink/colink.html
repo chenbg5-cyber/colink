@@ -4963,7 +4963,7 @@ function renderKids() {
           <div>
             <span class="kid-detail">גיל ${age}</span>
             <span class="kid-detail">${kid.school}</span>
-            <span class="kid-detail">${kid.class.includes('גן') ? kid.class : 'כיתה ' + kid.class}</span>
+            <span class="kid-detail">${(kid.class || '').includes('גן') ? kid.class : 'כיתה ' + (kid.class || '')}</span>
             <span class="kid-detail">${kid.teacher}</span>
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${kid.tzaaron}</span></div>` : ''}
@@ -7245,7 +7245,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '90';
+const APP_VERSION = '91';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
