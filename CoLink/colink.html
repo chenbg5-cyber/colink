@@ -944,27 +944,22 @@
     .whatsapp-float {
       position: fixed;
       bottom: 80px;
-      left: 16px;
-      height: 44px;
+      left: 14px;
+      width: 36px;
+      height: 36px;
       background: #25D366;
-      border-radius: 22px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 0 16px 0 12px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       z-index: 9998;
       text-decoration: none;
       transition: transform 0.2s;
+      touch-action: none;
     }
-    .whatsapp-float:hover { transform: scale(1.05); }
-    .whatsapp-label {
-      color: white;
-      font-size: 0.8rem;
-      font-weight: 600;
-      white-space: nowrap;
-      font-family: inherit;
-    }
+    .whatsapp-float:hover { transform: scale(1.1); }
+    .whatsapp-label { display: none; }
 
     .pending-chip {
       display: flex;
@@ -1596,9 +1591,8 @@
 <body>
 
 <!-- Toast notification -->
-<a class="whatsapp-float" href="https://wa.me/972542884504?text=%D7%94%D7%99%2C%20%D7%9E%D7%A6%D7%90%D7%AA%D7%99%20%D7%91%D7%A2%D7%99%D7%94%20%D7%91%D7%90%D7%A4%D7%9C%D7%99%D7%A7%D7%A6%D7%99%D7%94%20CoLink" target="_blank" rel="noopener" title="מצאת בעיה? דברו איתנו">
-  <span class="whatsapp-label">צריכים עזרה?</span>
-  <svg viewBox="0 0 32 32" width="28" height="28" fill="white"><path d="M16.004 2.003C8.272 2.003 2.003 8.27 2.003 15.998c0 2.467.644 4.878 1.87 7.004L2 30l7.2-1.888A13.94 13.94 0 0016.004 30c7.728 0 13.993-6.267 13.993-13.998S23.732 2.003 16.004 2.003zm0 25.594a11.58 11.58 0 01-5.908-1.618l-.424-.252-4.394 1.152 1.172-4.282-.276-.44a11.566 11.566 0 01-1.776-6.16c0-6.402 5.21-11.61 11.614-11.61 6.4 0 11.606 5.208 11.606 11.61 0 6.406-5.214 11.6-11.614 11.6zm6.364-8.696c-.348-.174-2.064-1.02-2.384-1.136-.32-.116-.552-.174-.784.174-.232.348-.9 1.136-1.104 1.37-.204.232-.408.26-.756.086-.348-.174-1.468-.54-2.796-1.724-1.034-.92-1.732-2.058-1.936-2.406-.204-.348-.022-.536.153-.71.158-.156.348-.408.522-.612.174-.204.232-.348.348-.58.116-.232.058-.436-.028-.61-.088-.174-.784-1.89-1.074-2.588-.284-.68-.572-.588-.784-.598l-.668-.012c-.232 0-.61.088-.928.436-.32.348-1.218 1.19-1.218 2.902s1.246 3.366 1.42 3.598c.174.232 2.452 3.744 5.942 5.25.83.358 1.478.572 1.984.732.834.264 1.592.228 2.192.138.668-.1 2.064-.844 2.354-1.66.29-.816.29-1.516.204-1.66-.088-.146-.32-.232-.668-.408z"/></svg>
+<a class="whatsapp-float" id="waFloat" href="https://wa.me/972542884504?text=%D7%94%D7%99%2C%20%D7%9E%D7%A6%D7%90%D7%AA%D7%99%20%D7%91%D7%A2%D7%99%D7%94%20%D7%91%D7%90%D7%A4%D7%9C%D7%99%D7%A7%D7%A6%D7%99%D7%94%20CoLink" target="_blank" rel="noopener" title="צריכים עזרה? דברו איתנו">
+  <svg viewBox="0 0 32 32" width="20" height="20" fill="white"><path d="M16.004 2.003C8.272 2.003 2.003 8.27 2.003 15.998c0 2.467.644 4.878 1.87 7.004L2 30l7.2-1.888A13.94 13.94 0 0016.004 30c7.728 0 13.993-6.267 13.993-13.998S23.732 2.003 16.004 2.003zm0 25.594a11.58 11.58 0 01-5.908-1.618l-.424-.252-4.394 1.152 1.172-4.282-.276-.44a11.566 11.566 0 01-1.776-6.16c0-6.402 5.21-11.61 11.614-11.61 6.4 0 11.606 5.208 11.606 11.61 0 6.406-5.214 11.6-11.614 11.6zm6.364-8.696c-.348-.174-2.064-1.02-2.384-1.136-.32-.116-.552-.174-.784.174-.232.348-.9 1.136-1.104 1.37-.204.232-.408.26-.756.086-.348-.174-1.468-.54-2.796-1.724-1.034-.92-1.732-2.058-1.936-2.406-.204-.348-.022-.536.153-.71.158-.156.348-.408.522-.612.174-.204.232-.348.348-.58.116-.232.058-.436-.028-.61-.088-.174-.784-1.89-1.074-2.588-.284-.68-.572-.588-.784-.598l-.668-.012c-.232 0-.61.088-.928.436-.32.348-1.218 1.19-1.218 2.902s1.246 3.366 1.42 3.598c.174.232 2.452 3.744 5.942 5.25.83.358 1.478.572 1.984.732.834.264 1.592.228 2.192.138.668-.1 2.064-.844 2.354-1.66.29-.816.29-1.516.204-1.66-.088-.146-.32-.232-.668-.408z"/></svg>
 </a>
 <div class="toast" id="toast"></div>
 
@@ -7251,7 +7245,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '89';
+const APP_VERSION = '90';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
@@ -7287,6 +7281,36 @@ if ('serviceWorker' in navigator) {
     reg.update();
   }).catch(() => {});
 }
+
+// Draggable WhatsApp button
+(function() {
+  const el = document.getElementById('waFloat');
+  if (!el) return;
+  let startX, startY, startLeft, startBottom, dragged;
+  el.addEventListener('touchstart', function(e) {
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    const r = el.getBoundingClientRect();
+    startLeft = r.left; startBottom = window.innerHeight - r.bottom;
+    dragged = false;
+  }, {passive: true});
+  el.addEventListener('touchmove', function(e) {
+    const t = e.touches[0];
+    const dx = t.clientX - startX, dy = t.clientY - startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragged = true;
+    if (!dragged) return;
+    e.preventDefault();
+    let newLeft = startLeft + dx;
+    let newBottom = startBottom - dy;
+    newLeft = Math.max(0, Math.min(window.innerWidth - 36, newLeft));
+    newBottom = Math.max(0, Math.min(window.innerHeight - 36, newBottom));
+    el.style.left = newLeft + 'px';
+    el.style.bottom = newBottom + 'px';
+  }, {passive: false});
+  el.addEventListener('click', function(e) {
+    if (dragged) { e.preventDefault(); dragged = false; }
+  });
+})();
 </script>
 </body>
 </html>
