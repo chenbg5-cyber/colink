@@ -2891,8 +2891,8 @@ async function onAuthSuccess() {
     } catch (e) { console.warn('Family code recovery failed:', e); }
   }
 
-  // Fallback: use Firebase auth profile if user data is still empty
-  if (!appData.user.name && currentFirebaseUser) {
+  // Fallback: use Firebase auth profile if user data is still empty (only for existing users with familyCode)
+  if (!appData.user.name && currentFirebaseUser && appData.familyCode) {
     appData.user.name = currentFirebaseUser.displayName || '';
     appData.user.email = currentFirebaseUser.email || '';
     if (appData.user.name) {
@@ -2989,7 +2989,7 @@ async function onAuthSuccess() {
   loadingFromCloud = false;
   localStorage.setItem('colink_data', JSON.stringify(appData));
   migrateData();
-  if (appData.user.name) {
+  if (appData.user.name && appData.familyCode) {
     document.getElementById('onboarding').classList.add('hidden');
     document.getElementById('appContainer').classList.add('active');
     updateApp();
