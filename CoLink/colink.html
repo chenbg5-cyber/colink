@@ -4497,12 +4497,14 @@ function updateDashboard() {
 
   // Card 7: My assignments checklist (next 14 days)
   const dashChecklist = document.getElementById('dashTodayChecklist');
-  const twoWeeks = new Date(now); twoWeeks.setDate(twoWeeks.getDate() + 14);
-  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done' && (!t.date || new Date(t.date) <= twoWeeks)).sort((a,b) => new Date(a.date) - new Date(b.date));
+  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
   if (myTodayTasks.length === 0) {
     dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
   } else {
-    dashChecklist.innerHTML = myTodayTasks.map(t => {
+    const COLLAPSED_LIMIT = 5;
+    const isExpanded = dashChecklist.dataset.expanded === 'true';
+    const visibleTasks = isExpanded ? myTodayTasks : myTodayTasks.slice(0, COLLAPSED_LIMIT);
+    const taskItems = visibleTasks.map(t => {
       const isDone = t.status === 'done';
       const lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
       const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.desc + '</div>' : '';
@@ -4520,6 +4522,10 @@ function updateDashboard() {
         </div>
       `;
     }).join('');
+    const toggleBtn = myTodayTasks.length > COLLAPSED_LIMIT
+      ? `<div style="text-align:center;padding:8px;"><button onclick="this.parentElement.parentElement.dataset.expanded=this.parentElement.parentElement.dataset.expanded==='true'?'false':'true';updateDashboard();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${isExpanded ? 'הצג פחות' : 'הצג עוד ' + (myTodayTasks.length - COLLAPSED_LIMIT) + ' משימות'}</button></div>`
+      : '';
+    dashChecklist.innerHTML = taskItems + toggleBtn;
   }
 
   // Card 8: Upcoming events (current month)
@@ -4550,22 +4556,24 @@ function updateDashboard() {
   const sigCard = document.getElementById('dashPendingSigsCard');
   const sigContainer = document.getElementById('dashPendingSigs');
   const myRole = getMyRole();
-  const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
-  if (pendingSigs.length === 0) {
-    sigCard.style.display = 'none';
-  } else {
-    sigCard.style.display = '';
-    sigContainer.innerHTML = pendingSigs.map(s => {
-      const whoSigned = s.signedBy.length > 0 ? s.signedBy.join(', ') + ' חתם/ה' : '';
-      return `
-        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])">
-          <div class="list-item-content">
-            <div class="list-item-title" style="font-size:0.88rem;">${s.title}</div>
-            <div class="list-item-meta">${s.child || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + whoSigned : ''}</div>
-          </div>
-          <span style="color:var(--primary);font-size:1.1rem;">✎</span>
-        </div>`;
-    }).join('');
+  if (sigCard) {
+    const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
+    if (pendingSigs.length === 0) {
+      sigCard.style.display = 'none';
+    } else {
+      sigCard.style.display = '';
+      sigContainer.innerHTML = pendingSigs.map(s => {
+        const whoSigned = s.signedBy.length > 0 ? s.signedBy.join(', ') + ' חתם/ה' : '';
+        return `
+          <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])">
+            <div class="list-item-content">
+              <div class="list-item-title" style="font-size:0.88rem;">${s.title}</div>
+              <div class="list-item-meta">${s.child || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + whoSigned : ''}</div>
+            </div>
+            <span style="color:var(--primary);font-size:1.1rem;">✎</span>
+          </div>`;
+      }).join('');
+    }
   }
 
   // Activities & camps stat chips
@@ -4599,29 +4607,32 @@ function updateDashboard() {
   // Activities dashboard card
   const actCard = document.getElementById('dashActivitiesCard');
   const actContainer = document.getElementById('dashActivities');
-  if (acts.length === 0) {
-    actCard.style.display = 'none';
-  } else {
-    actCard.style.display = '';
-    const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-    const sortedActs = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
-    actContainer.innerHTML = sortedActs.map(a => {
-      const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
-      return `
-        <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">
-          <div class="list-item-content">
-            <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
-            <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
-          </div>
-          <span style="color:var(--text-light);font-size:1rem;">←</span>
-        </div>`;
-    }).join('');
+  if (actCard) {
+    if (acts.length === 0) {
+      actCard.style.display = 'none';
+    } else {
+      actCard.style.display = '';
+      const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+      const sortedActs = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+      actContainer.innerHTML = sortedActs.map(a => {
+        const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
+        return `
+          <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">
+            <div class="list-item-content">
+              <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
+              <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
+            </div>
+            <span style="color:var(--text-light);font-size:1rem;">←</span>
+          </div>`;
+      }).join('');
+    }
   }
 
   // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
   const campsCard = document.getElementById('dashCampsCard');
   const campsContainer = document.getElementById('dashCamps');
   const camps = appData.camps || [];
+  if (campsCard) {
   const nowCamp = new Date();
   const campMonth = nowCamp.getMonth(); // 0-based: 5=June, 6=July, 7=Aug
   const inCampSeason = campMonth >= 5 && campMonth <= 7;
@@ -4651,10 +4662,12 @@ function updateDashboard() {
         </div>`;
     }).join('');
   }
+  }
 
   // Pending custody requests for me to review
   const custodyCard = document.getElementById('dashCustodyRequestsCard');
   const custodyContainer = document.getElementById('dashCustodyRequests');
+  if (custodyCard) {
   const pendingForMe = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   if (pendingForMe.length === 0) {
     custodyCard.style.display = 'none';
@@ -4676,6 +4689,7 @@ function updateDashboard() {
         </div>
       `;
     }).join('');
+  }
   }
 }
 
@@ -7237,7 +7251,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '88';
+const APP_VERSION = '89';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
