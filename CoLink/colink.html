@@ -5883,10 +5883,10 @@ function renderExpenses() {
     `;
   }).join('');
 
-  const approvedMine = appData.expenses.filter(e => e.status === 'approved' && e.requestedBy === myRole);
-  const approvedTheirs = appData.expenses.filter(e => e.status === 'approved' && e.requestedBy && e.requestedBy !== myRole);
-  const owedToMe = approvedMine.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
-  const iOwe = approvedTheirs.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
+  const activeMine = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy === myRole);
+  const activeTheirs = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy && e.requestedBy !== myRole);
+  const owedToMe = activeMine.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
+  const iOwe = activeTheirs.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
   const balance = owedToMe - iOwe;
 
   document.getElementById('totalOwedToMe').textContent = '₪' + owedToMe.toLocaleString();
@@ -7076,7 +7076,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '83';
+const APP_VERSION = '84';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
