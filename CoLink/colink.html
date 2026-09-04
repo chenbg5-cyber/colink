@@ -3866,21 +3866,18 @@ function collectKidsData() {
   }
   const kids = [];
   for (const card of cards) {
-    const fields = [
-      { el: card.querySelector('.kid-name'), val: card.querySelector('.kid-name').value.trim() },
-      { el: card.querySelector('.kid-id'), val: card.querySelector('.kid-id').value.trim() },
-      { el: card.querySelector('.kid-dob'), val: card.querySelector('.kid-dob').value },
-      { el: card.querySelector('.kid-gender'), val: card.querySelector('.kid-gender').value },
-      { el: card.querySelector('.kid-class'), val: card.querySelector('.kid-class').value.trim() },
-      { el: card.querySelector('.kid-teacher'), val: card.querySelector('.kid-teacher').value.trim() }
-    ];
+    const selectors = ['.kid-name', '.kid-id', '.kid-dob', '.kid-gender', '.kid-class', '.kid-teacher'];
+    const fields = selectors.map(sel => {
+      const el = card.querySelector(sel);
+      return { el: el, val: el ? (el.value || '').trim() : '' };
+    });
 
     card.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
 
     let hasError = false;
     for (const f of fields) {
       if (!f.val) {
-        f.el.classList.add('error');
+        if (f.el) f.el.classList.add('error');
         hasError = true;
       }
     }
@@ -3908,7 +3905,7 @@ function collectKidsData() {
 
     kids.push({
       name: fields[0].val, id, dob: fields[2].val, gender: fields[3].val,
-      school: fields[4].val, class: fields[5].val, teacher: fields[6].val,
+      school: (card.querySelector('.kid-school')?.value || '').trim(), class: fields[4].val, teacher: fields[5].val,
       teacherPhone: card.querySelector('.kid-teacherPhone')?.value || '',
       teacherEmail: card.querySelector('.kid-teacherEmail')?.value || '',
       tzaaron: card.querySelector('.kid-tzaaron')?.value || '',
