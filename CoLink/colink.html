@@ -1931,15 +1931,14 @@
             <span class="stat-chip-summary" id="statCampsSummary"></span>
           </div>
         </div>
-      </div>
-
-      <!-- Upcoming holidays countdown -->
-      <div class="card card-compact" id="dashHolidayCountdownCard" style="display:none;">
-        <div class="card-compact-header">
-          <h3>חגים מתקרבים</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('holidays', document.querySelectorAll('.nav-item')[6])">צפייה</button>
+        <div class="stat-chip" onclick="showPage('holidays', document.querySelectorAll('.nav-item')[6])">
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF3E0;">✡&#xFE0E;</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statNextHoliday">-</span>
+            <span class="stat-chip-label">חג קרוב</span>
+            <span class="stat-chip-summary" id="statNextHolidaySummary"></span>
+          </div>
         </div>
-        <div id="dashHolidayCountdown"></div>
       </div>
 
       <!-- Pending requests summary -->
@@ -4430,31 +4429,32 @@ function updateDashboard() {
   checkTaskReminders();
   checkCampReminders();
 
-  // Upcoming holidays countdown (7 days)
-  const holidayCard = document.getElementById('dashHolidayCountdownCard');
-  const holidayContainer = document.getElementById('dashHolidayCountdown');
+  // Upcoming holidays stat chip
   const todayMs = new Date().setHours(0,0,0,0);
   const weekFromNow = todayMs + 7 * 86400000;
   const allUpcoming = HOLIDAYS_2026.filter(h => new Date(h.date).getTime() >= todayMs);
   const soonHolidays = allUpcoming.filter(h => new Date(h.date).getTime() <= weekFromNow);
   const nextHoliday = allUpcoming.length > 0 ? allUpcoming[0] : null;
-  if (holidayCard) {
-    if (!nextHoliday) {
-      holidayCard.style.display = 'none';
+  const statHoliday = document.getElementById('statNextHoliday');
+  const statHolidaySummary = document.getElementById('statNextHolidaySummary');
+  if (statHoliday) {
+    if (nextHoliday) {
+      const daysLeft = Math.ceil((new Date(nextHoliday.date).getTime() - todayMs) / 86400000);
+      const daysText = daysLeft === 0 ? 'היום!' : daysLeft === 1 ? 'מחר' : 'עוד ' + daysLeft + ' ימים';
+      statHoliday.textContent = nextHoliday.name;
+      statHoliday.style.fontSize = '0.75rem';
+      statHolidaySummary.textContent = daysText;
+      const assignment = appData.holidayAssignments[nextHoliday.name] || 'unset';
+      if (daysLeft <= 7 && assignment === 'unset') {
+        statHolidaySummary.textContent = daysText + ' · לא הוגדר';
+        statHolidaySummary.style.color = '#D63031';
+      } else {
+        statHolidaySummary.style.color = '';
+      }
     } else {
-      holidayCard.style.display = '';
-      const displayHolidays = soonHolidays.length > 0 ? soonHolidays : [nextHoliday];
-      holidayContainer.innerHTML = displayHolidays.map(h => {
-        const daysLeft = Math.ceil((new Date(h.date).getTime() - todayMs) / 86400000);
-        const assignment = appData.holidayAssignments[h.name] || 'unset';
-        const daysText = daysLeft === 0 ? 'היום!' : daysLeft === 1 ? 'מחר' : 'עוד ' + daysLeft + ' ימים';
-        const isSoon = daysLeft <= 7;
-        const warn = isSoon && assignment === 'unset' ? '<div class="holiday-countdown-warn">לא הוגדר אצל מי הילדים</div>' : '';
-        return `<div class="holiday-countdown-item" onclick="showPage('holidays', document.querySelectorAll('.nav-item')[6])" style="cursor:pointer;">
-          <div><div class="holiday-countdown-name">${h.name}</div>${warn}</div>
-          <span class="holiday-countdown-days${daysLeft === 0 ? ' today' : isSoon ? '' : ' far'}">${daysText}</span>
-        </div>`;
-      }).join('');
+      statHoliday.textContent = '-';
+      statHoliday.style.fontSize = '';
+      statHolidaySummary.textContent = '';
     }
   }
 
@@ -7249,7 +7249,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '92';
+const APP_VERSION = '93';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
