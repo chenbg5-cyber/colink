@@ -1008,6 +1008,7 @@
       color: #E17055;
     }
     .holiday-countdown-days.today { background: #FFEBEE; color: #D63031; }
+    .holiday-countdown-days.far { background: #F0EEFF; color: var(--primary); }
     .holiday-countdown-warn {
       font-size: 0.75rem;
       color: #D63031;
@@ -4271,6 +4272,7 @@ window.addEventListener('popstate', function(e) {
 function renderCustodyToday() {
   const container = document.getElementById('custodyTodayContent');
   const card = document.getElementById('custodyTodayCard');
+  if (!container || !card) return;
   const today = new Date();
   const dayOfWeek = today.getDay();
   const todayISO = today.toISOString().split('T')[0];
@@ -4332,6 +4334,7 @@ function openBirthdayTask() {
 }
 
 function updateDashboard() {
+  if (!document.getElementById('dashGreeting')) return;
   renderCustodyToday();
 
   // Greeting
@@ -4432,31 +4435,32 @@ function updateDashboard() {
   const holidayContainer = document.getElementById('dashHolidayCountdown');
   const todayMs = new Date().setHours(0,0,0,0);
   const weekFromNow = todayMs + 7 * 86400000;
-  const upcomingHolidays = HOLIDAYS_2026.filter(h => {
-    const hDate = new Date(h.date).getTime();
-    return hDate >= todayMs && hDate <= weekFromNow;
-  });
+  const allUpcoming = HOLIDAYS_2026.filter(h => new Date(h.date).getTime() >= todayMs);
+  const soonHolidays = allUpcoming.filter(h => new Date(h.date).getTime() <= weekFromNow);
+  const nextHoliday = allUpcoming.length > 0 ? allUpcoming[0] : null;
   if (holidayCard) {
-    if (upcomingHolidays.length === 0) {
+    if (!nextHoliday) {
       holidayCard.style.display = 'none';
     } else {
       holidayCard.style.display = '';
-      holidayContainer.innerHTML = upcomingHolidays.map(h => {
+      const displayHolidays = soonHolidays.length > 0 ? soonHolidays : [nextHoliday];
+      holidayContainer.innerHTML = displayHolidays.map(h => {
         const daysLeft = Math.ceil((new Date(h.date).getTime() - todayMs) / 86400000);
         const assignment = appData.holidayAssignments[h.name] || 'unset';
         const daysText = daysLeft === 0 ? 'היום!' : daysLeft === 1 ? 'מחר' : 'עוד ' + daysLeft + ' ימים';
-        const warn = assignment === 'unset' ? '<div class="holiday-countdown-warn">לא הוגדר אצל מי הילדים</div>' : '';
+        const isSoon = daysLeft <= 7;
+        const warn = isSoon && assignment === 'unset' ? '<div class="holiday-countdown-warn">לא הוגדר אצל מי הילדים</div>' : '';
         return `<div class="holiday-countdown-item" onclick="showPage('holidays', document.querySelectorAll('.nav-item')[6])" style="cursor:pointer;">
           <div><div class="holiday-countdown-name">${h.name}</div>${warn}</div>
-          <span class="holiday-countdown-days${daysLeft === 0 ? ' today' : ''}">${daysText}</span>
+          <span class="holiday-countdown-days${daysLeft === 0 ? ' today' : isSoon ? '' : ' far'}">${daysText}</span>
         </div>`;
       }).join('');
     }
   }
 
-  // Holiday assignment alert (once per session)
+  // Holiday assignment alert (once per session, 7 days before)
   if (!window._holidayAlertShown) {
-    const unassigned = upcomingHolidays.filter(h => (appData.holidayAssignments[h.name] || 'unset') === 'unset');
+    const unassigned = soonHolidays.filter(h => (appData.holidayAssignments[h.name] || 'unset') === 'unset');
     if (unassigned.length > 0) {
       window._holidayAlertShown = true;
       const names = unassigned.map(h => h.name).join(', ');
@@ -7245,7 +7249,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '91';
+const APP_VERSION = '92';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
