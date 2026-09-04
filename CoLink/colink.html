@@ -5734,7 +5734,12 @@ function notifyPartnerCustodyChange(type, from, to, reason) {
   if (!partnerEmail) return;
   const subject = encodeURIComponent('CoLink - בקשת שינוי משמורת חדשה');
   const body = encodeURIComponent(`שלום,\n\n${name} שלח/ה בקשת שינוי משמורת:\n\nסוג: ${typeLabel}\nמתאריך: ${from}\nעד: ${to}\n${reason ? 'סיבה: ' + reason : ''}\n\nנא להיכנס לאפליקציה לאשר, לדחות, או לבקש פרטים נוספים.\n\nCoLink`);
-  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
+  const a = document.createElement('a');
+  a.href = `mailto:${partnerEmail}?subject=${subject}&body=${body}`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function notifyPartnerCustodyResponse(change, status, note) {
@@ -5748,7 +5753,12 @@ function notifyPartnerCustodyResponse(change, status, note) {
   if (note) bodyText += `\nהערה: ${note}`;
   bodyText += '\n\nנא להיכנס לאפליקציה.\n\nCoLink';
   const body = encodeURIComponent(bodyText);
-  window.open(`mailto:${partnerEmail}?subject=${subject}&body=${body}`, '_blank');
+  const a = document.createElement('a');
+  a.href = `mailto:${partnerEmail}?subject=${subject}&body=${body}`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ============ EXPENSES ============
@@ -7066,7 +7076,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '82';
+const APP_VERSION = '83';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
