@@ -961,60 +961,6 @@
     .whatsapp-float:hover { transform: scale(1.1); }
     .whatsapp-label { display: none; }
 
-    .pending-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 14px;
-      cursor: pointer;
-      flex: 1 1 calc(50% - 4px);
-      min-width: 120px;
-    }
-    .pending-chip-count {
-      background: var(--primary);
-      color: white;
-      font-weight: 700;
-      font-size: 0.85rem;
-      min-width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .pending-chip-label {
-      font-size: 0.82rem;
-      color: var(--text);
-    }
-
-    .holiday-countdown-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .holiday-countdown-item:last-child { border-bottom: none; }
-    .holiday-countdown-name { font-weight: 600; font-size: 0.9rem; }
-    .holiday-countdown-days {
-      font-size: 0.82rem;
-      font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 20px;
-      background: #FFF3E0;
-      color: #E17055;
-    }
-    .holiday-countdown-days.today { background: #FFEBEE; color: #D63031; }
-    .holiday-countdown-days.far { background: #F0EEFF; color: var(--primary); }
-    .holiday-countdown-warn {
-      font-size: 0.75rem;
-      color: #D63031;
-      margin-top: 2px;
-    }
-
     /* Mobile hamburger */
     .mobile-header {
       display: none;
@@ -1939,14 +1885,14 @@
             <span class="stat-chip-summary" id="statNextHolidaySummary"></span>
           </div>
         </div>
-      </div>
-
-      <!-- Pending requests summary -->
-      <div class="card card-compact" id="dashPendingSummaryCard" style="display:none;">
-        <div class="card-compact-header">
-          <h3>בקשות ממתינות לאישור</h3>
+        <div class="stat-chip" id="statSentPendingChip" style="display:none;cursor:pointer;" onclick="showSentPending()">
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF0F0;">⏳</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statSentPending">0</span>
+            <span class="stat-chip-label">ממתין לצד השני</span>
+            <span class="stat-chip-summary" id="statSentPendingSummary"></span>
+          </div>
         </div>
-        <div id="dashPendingSummary" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;"></div>
       </div>
 
       <!-- Today assignments checklist -->
@@ -4080,6 +4026,7 @@ function filterEvents(filter, btn) {
 }
 
 function updateApp() {
+  try {
   const vd = document.getElementById('versionDisplay');
   if (vd) vd.textContent = 'גרסה v' + APP_VERSION;
   populateKidSelects();
@@ -4093,24 +4040,28 @@ function updateApp() {
   renderSignatures();
   populateSigChildSelect();
   renderActivities();
-  if (!document.getElementById('activityModal').classList.contains('active')) {
+  const actModal = document.getElementById('activityModal');
+  if (actModal && !actModal.classList.contains('active')) {
     populateActivityChildSelect();
   }
   renderCamps();
   renderHolidays();
   renderCalendar();
   renderProfile();
+  } catch(e) { console.warn('updateApp error:', e); }
 }
 
 function updateSidebar() {
-  document.getElementById('sidebarName').textContent = appData.user.firstName || appData.user.name || '';
+  const sName = document.getElementById('sidebarName');
+  if (!sName) return;
+  sName.textContent = appData.user.firstName || appData.user.name || '';
 
   const now = new Date();
   const dayName = HEB_DAYS[now.getDay()];
   const dateStr = `יום ${dayName}, ${now.getDate()} ${HEB_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('sidebarDate').textContent = dateStr;
 
-  const familyName = appData.familyName || appData.user.lastName || appData.user.name.split(' ').pop();
+  const familyName = appData.familyName || appData.user.lastName || (appData.user.name || '').split(' ').pop();
   document.getElementById('sidebarFamily').textContent = `משפחת ${familyName}`;
 }
 
@@ -4201,6 +4152,51 @@ function showPendingRequests() {
     }
     cont.innerHTML = html;
   }
+  openModal('pendingModal');
+}
+
+function showSentPending() {
+  const myRole = getMyRole();
+  const sentCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy === myRole);
+  const sentExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy === myRole);
+  const sentSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && s.signedBy && s.signedBy.includes(myRole));
+  const cont = document.getElementById('pendingModalContent');
+  let html = '<div style="text-align:center;font-size:0.85rem;color:var(--text-light);margin-bottom:12px;">בקשות ששלחת וממתינות לאישור הצד השני</div>';
+  if (sentCustody.length === 0 && sentExpenses.length === 0 && sentSigs.length === 0) {
+    html += '<p style="text-align:center;color:var(--text-light);padding:1.5rem 0;">אין בקשות ממתינות</p>';
+  } else {
+    if (sentCustody.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ החלפת משמורת (' + sentCustody.length + ')</strong>';
+      sentCustody.forEach(c => {
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+        html += (c.date ? formatDate(c.date) : '') + ' · ' + (c.reason || 'בקשת החלפה');
+        html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    if (sentExpenses.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>₪ הוצאות (' + sentExpenses.length + ')</strong>';
+      sentExpenses.forEach(e => {
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+        html += (e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0);
+        html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    if (sentSigs.length > 0) {
+      html += '<div style="margin-bottom:0.75rem;"><strong>⊡ חתימות (' + sentSigs.length + ')</strong>';
+      sentSigs.forEach(s => {
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+        html += (s.title || 'מסמך') + (s.child ? ' · ' + s.child : '');
+        html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לחתימת הצד השני</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+  }
+  cont.innerHTML = html;
   openModal('pendingModal');
 }
 
@@ -4472,28 +4468,40 @@ function updateDashboard() {
     }
   }
 
-  // Pending requests summary tile
-  const pendingSummaryCard = document.getElementById('dashPendingSummaryCard');
-  const pendingSummaryEl = document.getElementById('dashPendingSummary');
-  if (pendingSummaryCard) {
-    const myRoleForPending = getMyRole();
-    const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending').length;
-    const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending').length;
-    const pendingSigCount = (appData.signatures || []).filter(s => s.status === 'pending').length;
-    const totalPending = pendingCustody + pendingExpenses + pendingSigCount;
-    if (totalPending === 0) {
-      pendingSummaryCard.style.display = 'none';
+  // Sent-to-partner pending stat-chip
+  const sentMyRole = getMyRole();
+  const sentCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy === sentMyRole).length;
+  const sentExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy === sentMyRole).length;
+  const sentSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && s.signedBy && s.signedBy.includes(sentMyRole)).length;
+  const sentTotal = sentCustody + sentExpenses + sentSigs;
+  const sentChip = document.getElementById('statSentPendingChip');
+  if (sentChip) {
+    if (sentTotal > 0) {
+      sentChip.style.display = '';
+      document.getElementById('statSentPending').textContent = sentTotal;
+      const parts = [];
+      if (sentCustody > 0) parts.push('משמורת ' + sentCustody);
+      if (sentExpenses > 0) parts.push('הוצאות ' + sentExpenses);
+      if (sentSigs > 0) parts.push('חתימות ' + sentSigs);
+      const summaryEl = document.getElementById('statSentPendingSummary');
+      if (summaryEl) summaryEl.textContent = parts.join(' · ');
     } else {
-      pendingSummaryCard.style.display = '';
-      let chips = '';
-      if (pendingCustody > 0) chips += `<div class="pending-chip" onclick="showPage('custody', document.querySelectorAll('.nav-item')[4])"><span class="pending-chip-count">${pendingCustody}</span><span class="pending-chip-label">החלפת משמורת</span></div>`;
-      if (pendingExpenses > 0) chips += `<div class="pending-chip" onclick="showPage('expenses', document.querySelectorAll('.nav-item')[5])"><span class="pending-chip-count">${pendingExpenses}</span><span class="pending-chip-label">הוצאות</span></div>`;
-      if (pendingSigCount > 0) chips += `<div class="pending-chip" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])"><span class="pending-chip-count">${pendingSigCount}</span><span class="pending-chip-label">מסמכים לחתימה</span></div>`;
-      pendingSummaryEl.innerHTML = chips;
+      sentChip.style.display = 'none';
     }
   }
 
-  // Card 7: My assignments checklist (next 14 days)
+  // Camps stat-chip — only show June 25 to September 1
+  const campsChip = document.getElementById('statCamps');
+  if (campsChip) {
+    const nowDate = new Date();
+    const yr = nowDate.getFullYear();
+    const campSeasonStart = new Date(yr, 5, 25); // June 25
+    const campSeasonEnd = new Date(yr, 8, 1); // Sep 1
+    const inSeason = nowDate >= campSeasonStart && nowDate < campSeasonEnd;
+    campsChip.closest('.stat-chip').style.display = inSeason ? '' : 'none';
+  }
+
+  // Card 7: My assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
   const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
   if (myTodayTasks.length === 0) {
@@ -4626,14 +4634,14 @@ function updateDashboard() {
     }
   }
 
-  // Camps dashboard card — visible June 1 through Aug 31, hide from Sep 1
+  // Camps dashboard card — visible June 25 through September 1
   const campsCard = document.getElementById('dashCampsCard');
   const campsContainer = document.getElementById('dashCamps');
   const camps = appData.camps || [];
   if (campsCard) {
   const nowCamp = new Date();
-  const campMonth = nowCamp.getMonth(); // 0-based: 5=June, 6=July, 7=Aug
-  const inCampSeason = campMonth >= 5 && campMonth <= 7;
+  const yrCamp = nowCamp.getFullYear();
+  const inCampSeason = nowCamp >= new Date(yrCamp, 5, 25) && nowCamp < new Date(yrCamp, 8, 1);
   if (camps.length === 0 || !inCampSeason) {
     campsCard.style.display = 'none';
   } else {
@@ -7249,7 +7257,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '93';
+const APP_VERSION = '94';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
