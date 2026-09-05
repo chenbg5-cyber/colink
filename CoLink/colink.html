@@ -7070,6 +7070,7 @@ function renderHolidays() {
           <option value="me" ${assignment === 'me' ? 'selected' : ''}>אצלי</option>
           <option value="partner" ${assignment === 'partner' ? 'selected' : ''}>אצל ההורה השני</option>
           <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
+          <option value="regular" ${assignment === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
         </select>
       </div>
     `;
@@ -7116,7 +7117,7 @@ function renderCalendar() {
     const holidayAssign = holiday ? (appData.holidayAssignments[holiday.name] || 'unset') : 'unset';
 
     let classes = 'cal-day';
-    if (holiday && holidayAssign !== 'unset') {
+    if (holiday && holidayAssign !== 'unset' && holidayAssign !== 'regular') {
       if (holidayAssign === 'me') classes += ' custody-me';
       else if (holidayAssign === 'partner') classes += ' custody-partner';
       else if (holidayAssign === 'split') classes += ' custody-split';
@@ -7156,8 +7157,8 @@ function showCalDayDetails(dateStr) {
   const holiday = HOLIDAYS_2026.find(h => dateStr >= h.date && dateStr <= (h.endDate || h.date));
   if (holiday) {
     const assign = appData.holidayAssignments[holiday.name] || 'unset';
-    const assignLabels = { me: 'אצלי', partner: 'אצל ההורה השני', split: 'חלוקה', unset: 'לא הוגדר' };
-    const assignColors = { me: 'var(--primary)', partner: 'var(--secondary)', split: '#E17055', unset: 'var(--text-muted)' };
+    const assignLabels = { me: 'אצלי', partner: 'אצל ההורה השני', split: 'חלוקה', regular: 'לפי שהות רגילה', unset: 'לא הוגדר' };
+    const assignColors = { me: 'var(--primary)', partner: 'var(--secondary)', split: '#E17055', regular: 'var(--success)', unset: 'var(--text-muted)' };
     html += `<div style="margin-bottom:10px;padding:8px 12px;background:#FFF8E1;border-radius:8px;border-right:3px solid var(--warning);">`;
     html += `<strong style="color:var(--warning);">✡ ${esc(holiday.name)}</strong>`;
     html += `<span style="margin-right:8px;font-size:0.8rem;color:${assignColors[assign]};">· ${assignLabels[assign]}</span>`;
@@ -7508,7 +7509,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '104';
+const APP_VERSION = '105';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
