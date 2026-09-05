@@ -693,18 +693,31 @@
     }
 
     .cal-day {
-      aspect-ratio: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       border-radius: 10px;
       font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
-      min-height: 48px;
+      min-height: 54px;
+      padding: 4px 2px 2px;
     }
+    .cal-day-label {
+      font-size: 0.55rem;
+      line-height: 1.1;
+      width: 100%;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 1px;
+      margin-top: 1px;
+      border-radius: 3px;
+    }
+    .cal-day-label.holiday-label { background: rgba(253,203,110,0.35); color: #b45309; }
+    .cal-day-label.event-label { background: rgba(245,158,11,0.2); color: #92400e; }
 
     .cal-day:hover { background: #F8F7FF; }
     .cal-day.today { background: var(--primary); color: white; font-weight: 700; }
@@ -1474,8 +1487,9 @@
       .tab-btn { padding: 7px 6px; font-size: 0.76rem; }
 
       /* Calendar */
-      .cal-day { min-height: 38px; font-size: 0.75rem; }
+      .cal-day { min-height: 44px; font-size: 0.75rem; padding: 3px 1px 1px; }
       .cal-day-name { font-size: 0.65rem; padding: 4px 0; }
+      .cal-day-label { font-size: 0.48rem; }
       .calendar-grid { gap: 2px; }
       .cal-header h3 { font-size: 0.95rem; }
       .cal-nav-btn { padding: 4px 10px; font-size: 0.82rem; }
@@ -7277,14 +7291,17 @@ function renderCalendar() {
     const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr);
     const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
     const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
+    let labels = '';
+    if (holiday) labels += `<div class="cal-day-label holiday-label">${esc(holiday.heb || holiday.name)}</div>`;
+    if (dayEvents.length > 0) labels += dayEvents.slice(0, 1).map(e => `<div class="cal-day-label event-label">${esc(e.title)}</div>`).join('');
     let dots = '';
     if (dayTasks.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#6C63FF;display:inline-block;"></span>';
-    if (dayEvents.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>';
+    if (dayEvents.length > 1) dots += '<span style="font-size:0.5rem;color:var(--text-muted);">+' + (dayEvents.length - 1) + '</span>';
 
     html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? holiday.name : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
       ${d}
-      ${holiday ? '<div class="holiday-dot"></div>' : ''}
-      ${dots ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:1px;">' + dots + '</div>' : ''}
+      ${labels}
+      ${dots ? '<div style="display:flex;gap:2px;align-items:center;justify-content:center;margin-top:1px;">' + dots + '</div>' : ''}
     </div>`;
   }
 
