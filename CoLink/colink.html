@@ -1688,8 +1688,20 @@
             <input type="date" id="obWeekendRefDate" onchange="onWeekendRefDateChange(this.value)" style="padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;text-align:center;">
           </div>
           <div style="margin-top:20px;text-align:center;">
-            <p style="font-weight:500;margin-bottom:8px;">האם יש ימי חול שמשתנים לפי הסופ״ש?</p>
-            <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:12px;">למשל: מי שהילדים אצלו בסופ״ש, ביום רביעי הם לא איתו</p>
+            <p style="font-weight:500;margin-bottom:8px;">ימים שהולכים עם הסופ״ש</p>
+            <p style="color:var(--text-light);font-size:0.82rem;margin-bottom:10px;">מי שאצלו הסופ״ש — גם ביום הזה הילדים אצלו</p>
+            <div class="custody-week" id="followDaysPicker" style="grid-template-columns:repeat(5,1fr);max-width:350px;margin:0 auto;">
+              <button class="custody-day follow-day" data-day="0" onclick="toggleFollowDay(this)"><div class="day-name">א׳</div><div class="day-label">ראשון</div></button>
+              <button class="custody-day follow-day" data-day="1" onclick="toggleFollowDay(this)"><div class="day-name">ב׳</div><div class="day-label">שני</div></button>
+              <button class="custody-day follow-day" data-day="2" onclick="toggleFollowDay(this)"><div class="day-name">ג׳</div><div class="day-label">שלישי</div></button>
+              <button class="custody-day follow-day" data-day="3" onclick="toggleFollowDay(this)"><div class="day-name">ד׳</div><div class="day-label">רביעי</div></button>
+              <button class="custody-day follow-day" data-day="4" onclick="toggleFollowDay(this)"><div class="day-name">ה׳</div><div class="day-label">חמישי</div></button>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.72rem;margin-top:6px;">למשל: יום ראשון — מי שאצלו שבת גם מביא לביה״ס</p>
+          </div>
+          <div style="margin-top:16px;text-align:center;">
+            <p style="font-weight:500;margin-bottom:8px;">ימים הפוכים מהסופ״ש</p>
+            <p style="color:var(--text-light);font-size:0.82rem;margin-bottom:10px;">מי שאצלו הסופ״ש — ביום הזה הילדים דווקא אצל השני</p>
             <div class="custody-week" id="alternatingDaysPicker" style="grid-template-columns:repeat(5,1fr);max-width:350px;margin:0 auto;">
               <button class="custody-day alt-day" data-day="0" onclick="toggleAlternatingDay(this)"><div class="day-name">א׳</div><div class="day-label">ראשון</div></button>
               <button class="custody-day alt-day" data-day="1" onclick="toggleAlternatingDay(this)"><div class="day-name">ב׳</div><div class="day-label">שני</div></button>
@@ -1697,7 +1709,8 @@
               <button class="custody-day alt-day" data-day="3" onclick="toggleAlternatingDay(this)"><div class="day-name">ד׳</div><div class="day-label">רביעי</div></button>
               <button class="custody-day alt-day" data-day="4" onclick="toggleAlternatingDay(this)"><div class="day-name">ה׳</div><div class="day-label">חמישי</div></button>
             </div>
-            <p style="color:var(--text-muted);font-size:0.75rem;margin-top:8px;">לחצ/י על ימים שמתחלפים (אפשר לדלג)</p>
+            <p style="color:var(--text-muted);font-size:0.72rem;margin-top:6px;">למשל: יום רביעי — מי שאצלו שבת, ברביעי הילדים אצל השני</p>
+            <p style="color:var(--text-muted);font-size:0.72rem;margin-top:4px;">אפשר לדלג על שניהם</p>
           </div>
         </div>
         <div id="weekendFixedQ" style="display:none;margin-top:16px;text-align:center;">
@@ -3261,7 +3274,7 @@ async function initFCM() {
 }
 
 const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','campReminders','familyName'];
-const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays'];
+const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','followWeekendDays'];
 let sharedDataListener = null;
 let ignoringSnapshot = false;
 let loadingFromCloud = false;
@@ -3360,6 +3373,7 @@ function listenToSharedData() {
         appData.weekendDays = sync.weekendDays || [5, 6];
         appData.weekendStartDate = sync.weekendStartDate || '';
         appData.alternatingDays = sync.alternatingDays || [];
+        appData.followWeekendDays = sync.followWeekendDays || [];
         if (sync.weekendStartWithMe !== null && sync.weekendStartWithMe !== undefined) {
           appData.weekendStartWithMe = !sync.weekendStartWithMe;
         }
@@ -3394,6 +3408,7 @@ let appData = {
   weekendFixedWith: '',
   weekendDays: [5, 6],
   alternatingDays: [],
+  followWeekendDays: [],
   kids: [],
   tasks: [],
   events: [],
@@ -3475,6 +3490,7 @@ function migrateData() {
   if (!appData.weekendFixedWith) appData.weekendFixedWith = '';
   if (!appData.weekendDays || !appData.weekendDays.length) appData.weekendDays = [5, 6];
   if (!appData.alternatingDays) appData.alternatingDays = [];
+  if (!appData.followWeekendDays) appData.followWeekendDays = [];
 
   // Repair orphaned child names in activities/tasks/events/camps
   const kidNames = appData.kids.map(k => k.name);
@@ -3789,7 +3805,7 @@ async function leaveFamily() {
   appData = {
     mode: '', familyCode: '', familyName: '', user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
     custodyDays: [], weekendMode: '', weekendStartWithMe: null, weekendStartDate: '', weekendFixedWith: '',
-    weekendDays: [5, 6], alternatingDays: [], kids: [], tasks: [], events: [], expenses: [],
+    weekendDays: [5, 6], alternatingDays: [], followWeekendDays: [], kids: [], tasks: [], events: [], expenses: [],
     custodyChanges: [], signatures: [], activities: [], camps: [], holidayAssignments: {}
   };
   document.getElementById('appContainer').classList.remove('active');
@@ -3852,8 +3868,10 @@ function onWeekendModeChange() {
   appData.weekendFixedWith = '';
   appData.weekendDays = [5, 6];
   appData.alternatingDays = [];
+  appData.followWeekendDays = [];
   document.querySelectorAll('.weekend-answer').forEach(b => b.classList.remove('selected'));
   document.querySelectorAll('.alt-day').forEach(b => b.classList.remove('mine'));
+  document.querySelectorAll('.follow-day').forEach(b => b.classList.remove('mine'));
   document.querySelectorAll('.weekend-day-btn, .weekend-day-btn-fixed').forEach(b => {
     b.classList.remove('selected');
     b.classList.add('selected');
@@ -3903,6 +3921,21 @@ function setWeekendFixed(who) {
   btns[who === 'me' ? 0 : 1].classList.add('selected');
 }
 
+function toggleFollowDay(el) {
+  const day = parseInt(el.dataset.day);
+  if (el.classList.contains('mine')) {
+    el.classList.remove('mine');
+    appData.followWeekendDays = appData.followWeekendDays.filter(d => d !== day);
+  } else {
+    el.classList.add('mine');
+    if (!appData.followWeekendDays) appData.followWeekendDays = [];
+    if (!appData.followWeekendDays.includes(day)) appData.followWeekendDays.push(day);
+    appData.alternatingDays = appData.alternatingDays.filter(d => d !== day);
+    const altEl = document.querySelector('#alternatingDaysPicker .alt-day[data-day="'+day+'"]');
+    if (altEl) altEl.classList.remove('mine');
+  }
+}
+
 function toggleAlternatingDay(el) {
   const day = parseInt(el.dataset.day);
   if (el.classList.contains('mine')) {
@@ -3911,6 +3944,9 @@ function toggleAlternatingDay(el) {
   } else {
     el.classList.add('mine');
     if (!appData.alternatingDays.includes(day)) appData.alternatingDays.push(day);
+    if (appData.followWeekendDays) appData.followWeekendDays = appData.followWeekendDays.filter(d => d !== day);
+    const followEl = document.querySelector('#followDaysPicker .follow-day[data-day="'+day+'"]');
+    if (followEl) followEl.classList.remove('mine');
   }
 }
 
@@ -3940,6 +3976,9 @@ function isDayMine(dayOfWeek, dateStr) {
   if (wDays.includes(dayOfWeek)) {
     if (appData.weekendMode === 'alternating') return isWeekendMine(getFridayOfWeek(dateStr));
     if (appData.weekendMode === 'fixed') return appData.weekendFixedWith === 'me';
+  }
+  if (appData.followWeekendDays && appData.followWeekendDays.includes(dayOfWeek)) {
+    return isWeekendMine(getFridayOfWeek(dateStr));
   }
   if (appData.alternatingDays && appData.alternatingDays.includes(dayOfWeek)) {
     return !isWeekendMine(getFridayOfWeek(dateStr));
@@ -5844,8 +5883,15 @@ function renderWeekendEditor() {
         <input type="date" id="editWeekendRef" value="${appData.weekendStartDate || ''}" onchange="updateWeekendRef(this.value)" style="margin-top:6px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
       </div>
       <div style="margin-top:12px;">
-        <label style="font-size:0.85rem;font-weight:500;">ימי חול שמתחלפים עם הסופ״ש</label>
-        <p style="font-size:0.75rem;color:var(--text-light);margin:4px 0 8px;">מי שהילדים אצלו בסופ״ש, באותם ימים הם לא איתו</p>
+        <label style="font-size:0.85rem;font-weight:500;">ימים שהולכים עם הסופ״ש</label>
+        <p style="font-size:0.75rem;color:var(--text-light);margin:4px 0 8px;">מי שאצלו הסופ״ש — גם ביום הזה הילדים אצלו</p>
+        <div class="custody-week" style="grid-template-columns:repeat(5,1fr);max-width:350px;">
+          ${weekdays.map(d => `<button class="custody-day follow-day-edit ${(appData.followWeekendDays||[]).includes(d.i)?'mine':''}" data-day="${d.i}" onclick="toggleFollowDayEdit(${d.i}, this)"><div class="day-name">${d.short}</div><div class="day-label">${d.full}</div></button>`).join('')}
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label style="font-size:0.85rem;font-weight:500;">ימים הפוכים מהסופ״ש</label>
+        <p style="font-size:0.75rem;color:var(--text-light);margin:4px 0 8px;">מי שאצלו הסופ״ש — ביום הזה הילדים דווקא אצל השני</p>
         <div class="custody-week" style="grid-template-columns:repeat(5,1fr);max-width:350px;">
           ${weekdays.map(d => `<button class="custody-day alt-day-edit ${(appData.alternatingDays||[]).includes(d.i)?'mine':''}" data-day="${d.i}" onclick="toggleAltDayEdit(${d.i}, this)"><div class="day-name">${d.short}</div><div class="day-label">${d.full}</div></button>`).join('')}
         </div>
@@ -5875,6 +5921,7 @@ function updateWeekendMode(mode) {
     appData.weekendStartDate = '';
     appData.weekendStartWithMe = null;
     appData.alternatingDays = [];
+    appData.followWeekendDays = [];
   }
   if (mode !== 'fixed') {
     appData.weekendFixedWith = '';
@@ -5932,6 +5979,27 @@ function updateWeekendFixed(who) {
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
+function toggleFollowDayEdit(day, el) {
+  if (!appData.followWeekendDays) appData.followWeekendDays = [];
+  const idx = appData.followWeekendDays.indexOf(day);
+  if (idx >= 0) {
+    appData.followWeekendDays.splice(idx, 1);
+    el.classList.remove('mine');
+  } else {
+    appData.followWeekendDays.push(day);
+    el.classList.add('mine');
+    if (appData.alternatingDays) {
+      const ai = appData.alternatingDays.indexOf(day);
+      if (ai >= 0) appData.alternatingDays.splice(ai, 1);
+    }
+    document.querySelectorAll('.alt-day-edit[data-day="'+day+'"]').forEach(e => e.classList.remove('mine'));
+  }
+  saveData();
+  showToast('נשמר ✓');
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
 function toggleAltDayEdit(day, el) {
   if (!appData.alternatingDays) appData.alternatingDays = [];
   const idx = appData.alternatingDays.indexOf(day);
@@ -5941,6 +6009,11 @@ function toggleAltDayEdit(day, el) {
   } else {
     appData.alternatingDays.push(day);
     el.classList.add('mine');
+    if (appData.followWeekendDays) {
+      const fi = appData.followWeekendDays.indexOf(day);
+      if (fi >= 0) appData.followWeekendDays.splice(fi, 1);
+    }
+    document.querySelectorAll('.follow-day-edit[data-day="'+day+'"]').forEach(e => e.classList.remove('mine'));
   }
   saveData();
   showToast('נשמר ✓');
@@ -7415,7 +7488,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '102';
+const APP_VERSION = '103';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
