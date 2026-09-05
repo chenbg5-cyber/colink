@@ -1555,6 +1555,11 @@
       התחברות עם Google
     </button>
     <p style="color:var(--text-muted);font-size:0.75rem;margin-top:16px;">הדאטה שלך נשמר בענן ומסונכרן בין מכשירים</p>
+    <div style="margin-top:12px;">
+      <a href="#" onclick="event.preventDefault();openModal('privacyModal')" style="font-size:0.7rem;color:var(--primary);">מדיניות פרטיות</a>
+      <span style="color:var(--text-light);font-size:0.7rem;"> · </span>
+      <a href="#" onclick="event.preventDefault();openModal('termsModal')" style="font-size:0.7rem;color:var(--primary);">תנאי שימוש</a>
+    </div>
   </div>
 </div>
 
@@ -7370,7 +7375,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '99';
+const APP_VERSION = '100';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
