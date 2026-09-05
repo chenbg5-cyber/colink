@@ -2825,8 +2825,8 @@
 </div>
 
 <script>
-window.onerror = function(msg, src, line) { alert('שגיאה בשורה ' + line + ': ' + msg); };
-window.onunhandledrejection = function(e) { alert('שגיאה: ' + (e.reason?.message || e.reason)); };
+window.onerror = function(msg, src, line) { console.warn('Error line ' + line + ': ' + msg); };
+window.onunhandledrejection = function(e) { console.warn('Unhandled:', e.reason?.message || e.reason); };
 // ============ FIREBASE ============
 const firebaseConfig = {
   apiKey: "AIzaSyAj8Er3isZdjjgZ1AoV4Dh4pQOExIrtYbU",
@@ -3539,6 +3539,10 @@ async function obNext(fromStep) {
     } else {
       const code = document.getElementById('obFamilyCode').value.trim();
       if (!code) { showToast('נא להזין קוד משפחה'); return; }
+      if (currentFirebaseUser) {
+        const famSnap = await db.collection('families').doc(code.toUpperCase()).get();
+        if (!famSnap.exists) { showToast('קוד משפחה לא נמצא — בדוק/י שהקוד נכון'); return; }
+      }
       appData.familyCode = code.toUpperCase();
     }
     goToObStep(3);
@@ -5873,6 +5877,7 @@ function renderCustodyChanges() {
 function respondCustodyChange(id, status) {
   const change = appData.custodyChanges.find(c => c.id === id);
   if (!change) return;
+  if (change.requestedBy === getMyRole()) { showToast('לא ניתן לאשר בקשה שאתה שלחת'); return; }
   change.status = status;
   change.respondedAt = new Date().toISOString();
   saveData();
@@ -6007,6 +6012,7 @@ function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, 
 function updateExpenseStatus(id, status) {
   const expense = appData.expenses.find(e => e.id === id);
   if (!expense) return;
+  if (expense.createdBy === getMyRole() || expense.requestedBy === getMyRole()) { showToast('לא ניתן לאשר הוצאה שאתה שלחת'); return; }
   expense.status = status;
   saveData();
   renderExpenses();
@@ -7257,7 +7263,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '94';
+const APP_VERSION = '95';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
