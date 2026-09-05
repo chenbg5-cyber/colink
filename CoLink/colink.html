@@ -4287,8 +4287,8 @@ function applyChildView() {
   const pendingBtn = document.getElementById('headerPendingBtn');
   if (pendingBtn) pendingBtn.style.display = hide ? 'none' : '';
   if (hide) {
-    document.querySelectorAll('.btn-sm').forEach(b => {
-      if (b.textContent.trim() === '+') b.style.display = 'none';
+    document.querySelectorAll('.card-compact-header .btn-sm').forEach(b => {
+      b.style.display = 'none';
     });
     ['dashCustodyRequestsCard','dashPendingSigsCard','statSentPendingChip'].forEach(id => {
       const el = document.getElementById(id);
