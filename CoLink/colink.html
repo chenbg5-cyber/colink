@@ -3145,13 +3145,6 @@ function saveToCloud() {
       return copy;
     });
   }
-  if (shared.kids) {
-    shared.kids = shared.kids.map(k => {
-      const copy = {...k};
-      delete copy.photo;
-      return copy;
-    });
-  }
   if (shared.tasks) {
     shared.tasks = shared.tasks.map(t => {
       if (!t.attachment) return t;
@@ -4086,11 +4079,11 @@ function renderBottomBarKids() {
     const avatarContent = kid.photo
       ? `<div class="bottom-bar-kid-avatar"><img src="${kid.photo}"></div>`
       : `<div class="bottom-bar-kid-avatar" style="background:${grad};overflow:hidden;">${silhouette}</div>`;
-    const gradeLabel = kid.class ? `<div class="bottom-bar-grade">${kid.class}</div>` : '';
+    const gradeLabel = kid.class ? `<div class="bottom-bar-grade">${esc(kid.class)}</div>` : '';
     return `
       <div class="bottom-bar-kid" onclick="openKidModal(${idx})">
         ${avatarContent}
-        <div class="bottom-bar-label">${kid.name}</div>
+        <div class="bottom-bar-label">${esc(kid.name)}</div>
         ${gradeLabel}
       </div>`;
   }).join('');
@@ -4124,7 +4117,7 @@ function showPendingRequests() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות החלפת משמורת (' + pendingCustody.length + ')</strong>';
       pendingCustody.forEach(c => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += '<div>' + (c.date ? formatDate(c.date) : '') + ' · ' + (c.reason || 'בקשת החלפה') + '</div>';
+        html += '<div>' + (c.date ? formatDate(c.date) : '') + ' · ' + esc(c.reason || 'בקשת החלפה') + '</div>';
         html += '<div style="display:flex;gap:8px;margin-top:6px;">';
         html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'approved\');showPendingRequests()">אישור ✓</button>';
         html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'rejected\');showPendingRequests()">דחייה ✕</button>';
@@ -4136,7 +4129,7 @@ function showPendingRequests() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⊡ חתימות ממתינות (' + pendingSigs.length + ')</strong>';
       pendingSigs.forEach(s => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[9])">';
-        html += (s.title || 'מסמך לחתימה') + (s.child ? ' · ' + s.child : '');
+        html += esc(s.title || 'מסמך לחתימה') + (s.child ? ' · ' + esc(s.child) : '');
         html += '<div style="font-size:0.72rem;color:var(--text-light);">לחצ/י לחתימה</div>';
         html += '</div>';
       });
@@ -4146,7 +4139,7 @@ function showPendingRequests() {
       html += '<div style="margin-bottom:0.75rem;"><strong>₪ הוצאות לאישור (' + pendingExpenses.length + ')</strong>';
       pendingExpenses.forEach(e => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += '<div>' + (e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0) + (e.forChild ? ' · ' + e.forChild : '') + '</div>';
+        html += '<div>' + esc(e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0) + (e.forChild ? ' · ' + esc(e.forChild) : '') + '</div>';
         html += '<div style="display:flex;gap:8px;margin-top:6px;">';
         html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="updateExpenseStatus(' + e.id + ',\'approved\');showPendingRequests()">אישור ✓</button>';
         html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="updateExpenseStatus(' + e.id + ',\'rejected\');showPendingRequests()">דחייה ✕</button>';
@@ -4173,7 +4166,7 @@ function showSentPending() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⇄ החלפת משמורת (' + sentCustody.length + ')</strong>';
       sentCustody.forEach(c => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += (c.date ? formatDate(c.date) : '') + ' · ' + (c.reason || 'בקשת החלפה');
+        html += (c.date ? formatDate(c.date) : '') + ' · ' + esc(c.reason || 'בקשת החלפה');
         html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
         html += '</div>';
       });
@@ -4183,7 +4176,7 @@ function showSentPending() {
       html += '<div style="margin-bottom:0.75rem;"><strong>₪ הוצאות (' + sentExpenses.length + ')</strong>';
       sentExpenses.forEach(e => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += (e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0);
+        html += esc(e.description || e.details || 'הוצאה') + ' · ₪' + (e.amount || 0);
         html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
         html += '</div>';
       });
@@ -4193,7 +4186,7 @@ function showSentPending() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⊡ חתימות (' + sentSigs.length + ')</strong>';
       sentSigs.forEach(s => {
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += (s.title || 'מסמך') + (s.child ? ' · ' + s.child : '');
+        html += esc(s.title || 'מסמך') + (s.child ? ' · ' + esc(s.child) : '');
         html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לחתימת הצד השני</div>';
         html += '</div>';
       });
@@ -4305,6 +4298,11 @@ function renderCustodyToday() {
 // ============ DASHBOARD ============
 function getMyRole() {
   return appData.user.role;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function isMyTask(t) {
@@ -4517,16 +4515,16 @@ function updateDashboard() {
     const taskItems = visibleTasks.map(t => {
       const isDone = t.status === 'done';
       const lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
-      const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.desc + '</div>' : '';
-      const stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + t.completedBy + '</span>' : '';
+      const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(t.desc) + '</div>' : '';
+      const stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + esc(t.completedBy) + '</span>' : '';
       return `
         <div class="list-item">
-          <div class="list-item-check ${isDone ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + t.completedBy + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
+          <div class="list-item-check ${isDone ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + esc(t.completedBy) + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
             ${isDone ? '✓' : ''}
           </div>
           <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
-            <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + t.recurringFreq : ''} ${stamp}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
-            <div class="list-item-meta">${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${t.category || ''}</div>
+            <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + esc(t.recurringFreq) : ''} ${stamp}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
+            <div class="list-item-meta">${esc(t.forChild) || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${esc(t.category) || ''}</div>
             ${desc}
           </div>
         </div>
@@ -4550,8 +4548,8 @@ function updateDashboard() {
     dashEvents.innerHTML = monthEvents.map(e => `
       <div class="list-item" style="cursor:pointer;" onclick="showPage('events', document.querySelectorAll('.nav-item')[3])">
         <div class="list-item-content">
-          <div class="list-item-title">${e.title}</div>
-          <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
+          <div class="list-item-title">${esc(e.title)}</div>
+          <div class="list-item-meta">${formatDate(e.date)} ${esc(e.time) || ''} ${e.forChild ? '·' + esc(e.forChild) : ''} ${e.location ? '·' + esc(e.location) : ''}</div>
         </div>
         <span style="color:var(--text-light);font-size:1rem;">←</span>
       </div>
@@ -4577,8 +4575,8 @@ function updateDashboard() {
         return `
           <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])">
             <div class="list-item-content">
-              <div class="list-item-title" style="font-size:0.88rem;">${s.title}</div>
-              <div class="list-item-meta">${s.child || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + whoSigned : ''}</div>
+              <div class="list-item-title" style="font-size:0.88rem;">${esc(s.title)}</div>
+              <div class="list-item-meta">${esc(s.child) || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + esc(whoSigned) : ''}</div>
             </div>
             <span style="color:var(--primary);font-size:1.1rem;">✎</span>
           </div>`;
@@ -4629,8 +4627,8 @@ function updateDashboard() {
         return `
           <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('activities', document.querySelectorAll('.nav-item')[7])">
             <div class="list-item-content">
-              <div class="list-item-title" style="font-size:0.88rem;">${a.name} · ${a.child}</div>
-              <div class="list-item-meta">יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}</div>
+              <div class="list-item-title" style="font-size:0.88rem;">${esc(a.name)} · ${esc(a.child)}</div>
+              <div class="list-item-meta">יום ${esc(a.day)}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + esc(a.location) : ''}</div>
             </div>
             <span style="color:var(--text-light);font-size:1rem;">←</span>
           </div>`;
@@ -4664,9 +4662,9 @@ function updateDashboard() {
       return `
         <div class="list-item" style="padding:8px 10px;cursor:pointer;${ended ? 'opacity:0.5;' : ''}" onclick="showPage('camps', document.querySelectorAll('.nav-item')[8])">
           <div class="list-item-content">
-            <div class="list-item-title" style="font-size:0.88rem;">${c.name} · ${c.child}</div>
+            <div class="list-item-title" style="font-size:0.88rem;">${esc(c.name)} · ${esc(c.child)}</div>
             <div class="list-item-meta">${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''} · ${statusLabel}</div>
-            ${c.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
+            ${c.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + esc(c.instructor) + (c.instructorPhone ? ' · <a href="tel:' + esc(c.instructorPhone) + '" style="color:var(--primary);text-decoration:none;">' + esc(c.instructorPhone) + '</a>' : '') + '</div>' : ''}
           </div>
           <span style="color:var(--text-light);font-size:1rem;">←</span>
         </div>`;
@@ -4689,7 +4687,7 @@ function updateDashboard() {
         <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
           <div>
             <div class="list-item-title">${typeLabel}</div>
-            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + esc(c.reason) : ''}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="respondCustodyChange(${c.id},'approved')">אישור</button>
@@ -4969,18 +4967,18 @@ function renderKids() {
     const genderClass = kid.gender === 'בן' ? 'boy' : 'girl';
     const initials = kid.name.charAt(0);
     const avatarContent = kid.photo
-      ? `<img src="${kid.photo}" alt="${kid.name}">`
+      ? `<img src="${kid.photo}" alt="${esc(kid.name)}">`
       : initials;
     return `
       <div class="kid-profile">
         <div class="kid-avatar ${genderClass}">${avatarContent}</div>
         <div class="kid-info">
-          <h4>${kid.name}</h4>
+          <h4>${esc(kid.name)}</h4>
           <div>
             <span class="kid-detail">גיל ${age}</span>
-            <span class="kid-detail">${kid.school}</span>
-            <span class="kid-detail">${(kid.class || '').includes('גן') ? kid.class : 'כיתה ' + (kid.class || '')}</span>
-            <span class="kid-detail">${kid.teacher}</span>
+            <span class="kid-detail">${esc(kid.school)}</span>
+            <span class="kid-detail">${(kid.class || '').includes('גן') ? esc(kid.class) : 'כיתה ' + esc(kid.class || '')}</span>
+            <span class="kid-detail">${esc(kid.teacher)}</span>
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${kid.tzaaron}</span></div>` : ''}
         </div>
@@ -5379,6 +5377,13 @@ function changeTaskStatus(id, newStatus) {
 }
 
 async function deleteTask(id) {
+  const task = appData.tasks.find(t => t.id === id);
+  if (!task) return;
+  const myRole = getMyRole();
+  if (task.responsibility !== myRole && task.responsibility !== 'משותפת') {
+    showToast('ניתן למחוק רק משימות שלך');
+    return;
+  }
   if (!await colinkConfirm('למחוק את המשימה?')) return;
   appData.tasks = appData.tasks.filter(t => t.id !== id);
   saveData(); renderTasks(); updateDashboard();
@@ -5480,16 +5485,16 @@ function renderTasks() {
     const isDone = t.status === 'done';
     const canEdit = t.responsibility === myRole || t.responsibility === 'משותפת';
     const lockedByOther = isDone && t.completedBy && t.completedBy !== myRole;
-    const completedStamp = t.completedBy ? `<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ ${t.completedBy}</span>` : '';
+    const completedStamp = t.completedBy ? `<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ ${esc(t.completedBy)}</span>` : '';
     return `
       <div class="list-item">
         <div class="list-item-content">
-          <div class="list-item-title ${isDone ? 'done' : ''}">${t.title}</div>
+          <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}</div>
           <div class="list-item-meta">
-            ${getCategoryIcon(t.category)} ${t.category || ''} · ${t.forChild || ''} · ${getPriorityLabel(t.priority)} · ${formatDate(t.date)}
-            ${t.recurring ? ' · ' + t.recurringFreq : ''}
+            ${getCategoryIcon(t.category)} ${esc(t.category) || ''} · ${esc(t.forChild) || ''} · ${getPriorityLabel(t.priority)} · ${formatDate(t.date)}
+            ${t.recurring ? ' · ' + esc(t.recurringFreq) : ''}
           </div>
-          <div class="list-item-meta">${t.responsibility || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}${t.attachment ? ' · <span onclick="viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);">📎 ' + t.attachment.name + '</span>' : ''}</div>
+          <div class="list-item-meta">${esc(t.responsibility) || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}${t.attachment ? ' · <span onclick="viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);">📎 ' + esc(t.attachment.name) + '</span>' : ''}</div>
         </div>
         <div class="list-item-actions">
           <select onchange="changeTaskStatus(${t.id}, this.value)" ${lockedByOther ? 'disabled' : ''} style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;${lockedByOther ? 'opacity:0.5;' : ''}">
@@ -5593,9 +5598,9 @@ function renderEvents() {
     return `
       <div class="list-item" style="${isPast ? 'opacity:0.5;' : ''}">
         <div class="list-item-content">
-          <div class="list-item-title">${e.title}</div>
-          <div class="list-item-meta">${formatDate(e.date)} ${e.time || ''} ${e.forChild ? '·' + e.forChild : ''} ${e.location ? '·' + e.location : ''}</div>
-          ${e.notes ? `<div class="list-item-meta">${e.notes}</div>` : ''}
+          <div class="list-item-title">${esc(e.title)}</div>
+          <div class="list-item-meta">${formatDate(e.date)} ${esc(e.time) || ''} ${e.forChild ? '·' + esc(e.forChild) : ''} ${e.location ? '·' + esc(e.location) : ''}</div>
+          ${e.notes ? `<div class="list-item-meta">${esc(e.notes)}</div>` : ''}
         </div>
         <div class="list-item-actions">
           ${canEdit ? `<button class="icon-btn" onclick="editEvent(${e.id})" title="עריכה">✎</button>` : ''}
@@ -5855,7 +5860,7 @@ function renderCustodyChanges() {
         </div>`;
     }
     if (isMine && c.status === 'info' && c.responseNote) {
-      actionsHtml = `<div style="margin-top:6px;padding:8px 12px;background:#FFF3E0;border-radius:8px;font-size:0.82rem;color:#E17055;">הערת ההורה השני: ${c.responseNote}</div>`;
+      actionsHtml = `<div style="margin-top:6px;padding:8px 12px;background:#FFF3E0;border-radius:8px;font-size:0.82rem;color:#E17055;">הערת ההורה השני: ${esc(c.responseNote)}</div>`;
     }
 
     return `
@@ -5863,7 +5868,7 @@ function renderCustodyChanges() {
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="list-item-content" style="flex:1;">
             <div class="list-item-title">${typeLabel}</div>
-            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + c.reason : ''}</div>
+            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + esc(c.reason) : ''}</div>
             <div class="list-item-meta" style="font-size:0.75rem;color:var(--text-light);">${requester}</div>
           </div>
           <span class="badge ${st.cls}">${st.label}</span>
@@ -6052,12 +6057,12 @@ function renderExpenses() {
     const canAct = !isMine && e.status === 'pending';
     return `
       <tr>
-        <td>${e.details}</td>
+        <td>${esc(e.details)}</td>
         <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
         <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
-        <td>${e.forChild || '-'}</td>
+        <td>${esc(e.forChild) || '-'}</td>
         <td>${formatDate(e.date)}</td>
-        <td>📎 ${e.invoiceName || 'קבלה'}</td>
+        <td>📎 ${esc(e.invoiceName) || 'קבלה'}</td>
         <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
@@ -6479,10 +6484,10 @@ function renderSignatures() {
       <div class="list-item" style="flex-direction:column;align-items:stretch;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;">
           <div class="list-item-content" style="flex:1;">
-            <div class="list-item-title">${s.title}</div>
+            <div class="list-item-title">${esc(s.title)}</div>
             <div class="list-item-meta">
-              ${s.category || ''} ${s.forChild ? '· ' + s.forChild : ''} ${s.deadline ? '· עד ' + formatDate(s.deadline) : ''}
-              ${s.fileName ? ' · 📎 ' + s.fileName : ''}
+              ${esc(s.category) || ''} ${s.forChild ? '· ' + esc(s.forChild) : ''} ${s.deadline ? '· עד ' + formatDate(s.deadline) : ''}
+              ${s.fileName ? ' · 📎 ' + esc(s.fileName) : ''}
             </div>
             ${progressHtml}
           </div>
@@ -6659,11 +6664,11 @@ function renderActivities() {
     return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;">
-          <div style="font-weight:600;font-size:0.95rem;">${a.name}</div>
+          <div style="font-weight:600;font-size:0.95rem;">${esc(a.name)}</div>
           <div style="font-size:0.8rem;color:var(--text-light);margin-top:4px;">
-            ${a.child} · יום ${a.day}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + a.location : ''}
+            ${esc(a.child)} · יום ${esc(a.day)}${timeStr ? ' · ' + timeStr : ''}${a.location ? ' · ' + esc(a.location) : ''}
           </div>
-          ${a.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + a.instructor + (a.instructorPhone ? ' · <a href="tel:' + a.instructorPhone + '" style="color:var(--primary);">' + a.instructorPhone + '</a>' : '') + '</div>' : ''}
+          ${a.instructor ? '<div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">מדריך: ' + esc(a.instructor) + (a.instructorPhone ? ' · <a href="tel:' + esc(a.instructorPhone) + '" style="color:var(--primary);">' + esc(a.instructorPhone) + '</a>' : '') + '</div>' : ''}
           <div style="font-size:0.75rem;color:var(--text-light);margin-top:2px;">
             ${a.cost ? '₪' + a.cost : ''}${a.cost && custodyParent ? ' · ' : ''}${custodyParent ? 'אחראי: ' + custodyParent : ''}
           </div>
@@ -6804,12 +6809,12 @@ function renderCamps() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div style="flex:1;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <strong style="font-size:1rem;">${c.name}</strong>
+              <strong style="font-size:1rem;">${esc(c.name)}</strong>
               <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem;">${statusText}</span>
             </div>
-            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">◉ ${c.child}</div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">◉ ${esc(c.child)}</div>
             <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▪ ${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''}</div>
-            ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + c.instructor + (c.instructorPhone ? ' · <a href="tel:' + c.instructorPhone + '" style="color:var(--primary);text-decoration:none;">' + c.instructorPhone + '</a>' : '') + '</div>' : ''}
+            ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + esc(c.instructor) + (c.instructorPhone ? ' · <a href="tel:' + esc(c.instructorPhone) + '" style="color:var(--primary);text-decoration:none;">' + esc(c.instructorPhone) + '</a>' : '') + '</div>' : ''}
             ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + c.location + '</div>' : ''}
             ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">▸ ₪' + c.cost + '</div>' : ''}
           </div>
@@ -7263,7 +7268,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '95';
+const APP_VERSION = '96';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
