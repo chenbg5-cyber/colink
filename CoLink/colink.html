@@ -4301,6 +4301,7 @@ function applyChildView() {
     document.querySelectorAll('.card-compact-header .btn-sm').forEach(b => {
       b.style.display = 'none';
     });
+    document.querySelectorAll('.stat-chip-plus').forEach(p => p.style.display = 'none');
     ['dashCustodyRequestsCard','dashPendingSigsCard','statSentPendingChip'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
