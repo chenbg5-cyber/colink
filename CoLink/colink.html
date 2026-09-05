@@ -2214,7 +2214,12 @@
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
         </div>
       </div>
-      <p id="versionDisplay" style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:16px;"></p>
+      <div style="text-align:center;margin-top:16px;">
+        <a href="#" onclick="event.preventDefault();openModal('privacyModal')" style="font-size:0.75rem;color:var(--primary);">מדיניות פרטיות</a>
+        <span style="color:var(--text-light);font-size:0.75rem;"> · </span>
+        <a href="#" onclick="event.preventDefault();openModal('termsModal')" style="font-size:0.75rem;color:var(--primary);">תנאי שימוש</a>
+      </div>
+      <p id="versionDisplay" style="text-align:center;font-size:0.7rem;color:var(--text-light);margin-top:8px;"></p>
     </div>
 
   </main>
@@ -2820,6 +2825,103 @@
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="saveKid()">שמירה</button>
       <button class="btn btn-secondary" onclick="closeModal('kidModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
+    <h2>מדיניות פרטיות</h2>
+    <div style="font-size:0.85rem;line-height:1.7;text-align:right;">
+      <p><strong>עדכון אחרון:</strong> ספטמבר 2026</p>
+
+      <h3 style="margin-top:16px;">מהי CoLink?</h3>
+      <p>CoLink היא אפליקציה לניהול משפחה משותף להורים גרושים/נפרדים. האפליקציה מאפשרת ניהול משמורת, משימות, אירועים, הוצאות ועוד.</p>
+
+      <h3 style="margin-top:16px;">איזה מידע אנחנו אוספים?</h3>
+      <ul style="padding-right:20px;">
+        <li><strong>פרטי חשבון:</strong> שם, אימייל וכתובת תמונה מחשבון Google בעת ההתחברות</li>
+        <li><strong>פרטי משפחה:</strong> שם משפחה, תפקיד (אמא/אבא), מספר טלפון</li>
+        <li><strong>פרטי ילדים:</strong> שם, תאריך לידה, מגדר, תעודת זהות, בית ספר, כיתה, מורה, תמונה</li>
+        <li><strong>נתונים משותפים:</strong> משימות, אירועים, הוצאות, פרטי משמורת, חוגים, קייטנות, חתימות, הקצאות חגים</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">איך המידע נשמר?</h3>
+      <p>המידע נשמר בשרתי <strong>Google Firebase</strong> (Firestore) בענן. הגישה מוגנת באמצעות כללי אבטחה (Security Rules) — רק הורים ששייכים למשפחה יכולים לצפות ולערוך את הנתונים המשותפים.</p>
+
+      <h3 style="margin-top:16px;">מי יכול לראות את המידע?</h3>
+      <ul style="padding-right:20px;">
+        <li>רק שני ההורים שמחוברים לאותו קוד משפחה</li>
+        <li>אנחנו <strong>לא</strong> משתפים מידע עם צדדים שלישיים</li>
+        <li>אנחנו <strong>לא</strong> משתמשים במידע לפרסום</li>
+        <li>אנחנו <strong>לא</strong> מוכרים מידע אישי</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">אבטחת מידע</h3>
+      <p>האפליקציה משתמשת בהתחברות מאובטחת דרך Google, תקשורת מוצפנת (HTTPS), וכללי גישה בצד השרת. כל הנתונים מועברים ונשמרים בצורה מוצפנת.</p>
+
+      <h3 style="margin-top:16px;">מחיקת מידע</h3>
+      <p>באפשרותך למחוק את הנתונים שלך בכל עת:</p>
+      <ul style="padding-right:20px;">
+        <li>מחיקת פרטי ילדים, משימות, אירועים והוצאות מתוך האפליקציה</li>
+        <li>עזיבת משפחה דרך דף הפרופיל</li>
+        <li>לבקשת מחיקה מלאה של כל המידע, ניתן לפנות אלינו</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">מידע על ילדים</h3>
+      <p>האפליקציה שומרת מידע על ילדים לצורך ניהול משפחתי בלבד. המידע נגיש אך ורק להורים המחוברים ואינו משותף עם גורם חיצוני כלשהו.</p>
+
+      <h3 style="margin-top:16px;">יצירת קשר</h3>
+      <p>לשאלות בנושא פרטיות: <strong>chenbg5@gmail.com</strong></p>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('privacyModal')">סגירה</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="termsModal">
+  <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
+    <h2>תנאי שימוש</h2>
+    <div style="font-size:0.85rem;line-height:1.7;text-align:right;">
+      <p><strong>עדכון אחרון:</strong> ספטמבר 2026</p>
+
+      <h3 style="margin-top:16px;">הסכמה</h3>
+      <p>בשימוש באפליקציית CoLink את/ה מסכימ/ה לתנאים המפורטים כאן.</p>
+
+      <h3 style="margin-top:16px;">תיאור השירות</h3>
+      <p>CoLink היא אפליקציה חינמית לניהול משפחה משותף. השירות מאפשר לשני הורים לנהל יחד משמורת, משימות, אירועים, הוצאות ומידע נוסף הקשור לילדיהם.</p>
+
+      <h3 style="margin-top:16px;">חשבון משתמש</h3>
+      <ul style="padding-right:20px;">
+        <li>ההתחברות מתבצעת דרך חשבון Google</li>
+        <li>את/ה אחראי/ת לשמירה על פרטי החשבון שלך</li>
+        <li>אין לשתף את קוד המשפחה עם מי שאינו הורה/אפוטרופוס של הילדים</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">שימוש מותר</h3>
+      <ul style="padding-right:20px;">
+        <li>האפליקציה מיועדת לשימוש אישי ומשפחתי בלבד</li>
+        <li>אין להשתמש באפליקציה למטרות בלתי חוקיות</li>
+        <li>אין להזין מידע כוזב או מטעה</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">אחריות</h3>
+      <ul style="padding-right:20px;">
+        <li>האפליקציה מסופקת "כמות שהיא" (as-is)</li>
+        <li>אנחנו עושים מאמץ לשמור על זמינות ואבטחת המידע, אך אין אנו מתחייבים לזמינות רציפה</li>
+        <li>מומלץ לגבות מידע חשוב באופן עצמאי</li>
+        <li>האפליקציה אינה תחליף לייעוץ משפטי בנושאי משמורת</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">שינויים בתנאים</h3>
+      <p>אנו רשאים לעדכן תנאים אלו מעת לעת. המשך השימוש באפליקציה לאחר עדכון מהווה הסכמה לתנאים המעודכנים.</p>
+
+      <h3 style="margin-top:16px;">יצירת קשר</h3>
+      <p>לשאלות: <strong>chenbg5@gmail.com</strong></p>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('termsModal')">סגירה</button>
     </div>
   </div>
 </div>
@@ -7268,7 +7370,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '98';
+const APP_VERSION = '99';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
