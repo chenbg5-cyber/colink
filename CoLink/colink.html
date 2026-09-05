@@ -722,7 +722,9 @@
 
     .cal-day.custody-me { background: rgba(108,92,231,0.1); }
     .cal-day.custody-partner { background: rgba(0,206,201,0.1); }
+    .cal-day.custody-split { background: linear-gradient(135deg, rgba(108,92,231,0.15) 50%, rgba(0,206,201,0.15) 50%); }
     .cal-day.today.custody-me { background: var(--primary); }
+    .cal-day.today.custody-split { background: linear-gradient(135deg, var(--primary) 50%, var(--secondary) 50%); color: white; }
 
     /* Events & tasks list */
     .list-item {
@@ -7077,6 +7079,7 @@ function renderHolidays() {
 function setHolidayAssignment(name, value) {
   appData.holidayAssignments[name] = value;
   saveData();
+  if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
 // ============ CALENDAR ============
@@ -7110,16 +7113,23 @@ function renderCalendar() {
       const end = h.endDate || h.date;
       return dateStr >= start && dateStr <= end;
     });
+    const holidayAssign = holiday ? (appData.holidayAssignments[holiday.name] || 'unset') : 'unset';
 
     let classes = 'cal-day';
-    if (isMyCustody) classes += ' custody-me';
-    else classes += ' custody-partner';
+    if (holiday && holidayAssign !== 'unset') {
+      if (holidayAssign === 'me') classes += ' custody-me';
+      else if (holidayAssign === 'partner') classes += ' custody-partner';
+      else if (holidayAssign === 'split') classes += ' custody-split';
+    } else {
+      if (isMyCustody) classes += ' custody-me';
+      else classes += ' custody-partner';
+    }
     if (isToday) classes += ' today';
     if (holiday) classes += ' holiday';
 
     const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr);
     const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
-    const hasItems = dayTasks.length > 0 || dayEvents.length > 0;
+    const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
     let dots = '';
     if (dayTasks.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#6C63FF;display:inline-block;"></span>';
     if (dayEvents.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>';
@@ -7143,6 +7153,16 @@ function showCalDayDetails(dateStr) {
   const d = new Date(dateStr);
   title.textContent = HEB_DAYS[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
   let html = '';
+  const holiday = HOLIDAYS_2026.find(h => dateStr >= h.date && dateStr <= (h.endDate || h.date));
+  if (holiday) {
+    const assign = appData.holidayAssignments[holiday.name] || 'unset';
+    const assignLabels = { me: 'אצלי', partner: 'אצל ההורה השני', split: 'חלוקה', unset: 'לא הוגדר' };
+    const assignColors = { me: 'var(--primary)', partner: 'var(--secondary)', split: '#E17055', unset: 'var(--text-muted)' };
+    html += `<div style="margin-bottom:10px;padding:8px 12px;background:#FFF8E1;border-radius:8px;border-right:3px solid var(--warning);">`;
+    html += `<strong style="color:var(--warning);">✡ ${esc(holiday.name)}</strong>`;
+    html += `<span style="margin-right:8px;font-size:0.8rem;color:${assignColors[assign]};">· ${assignLabels[assign]}</span>`;
+    html += `</div>`;
+  }
   if (tasks.length > 0) {
     html += '<div style="margin-bottom:8px;"><strong style="color:#6C63FF;">☐ משימות</strong>';
     tasks.forEach(t => {
@@ -7488,7 +7508,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '103';
+const APP_VERSION = '104';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
