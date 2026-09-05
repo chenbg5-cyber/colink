@@ -994,7 +994,7 @@
       display: flex;
       gap: 4px;
       flex: 1;
-      justify-content: space-evenly;
+      justify-content: flex-start;
       overflow-x: auto;
     }
     .bottom-bar-kid {
@@ -7268,7 +7268,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '97';
+const APP_VERSION = '98';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
