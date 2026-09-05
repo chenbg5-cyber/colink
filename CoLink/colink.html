@@ -1595,6 +1595,11 @@
           <div class="label">הצטרפות למשפחה</div>
           <div class="desc">קיבלתי קוד מההורה השני</div>
         </button>
+        <button class="ob-choice-btn" onclick="selectMode('child')">
+          <div class="icon" style="font-size:1.5rem;opacity:0.6">☆</div>
+          <div class="label">אני ילד/ה במשפחה</div>
+          <div class="desc">רוצה לראות את לוח הזמנים שלי</div>
+        </button>
       </div>
     </div>
 
@@ -1615,7 +1620,7 @@
         <label>אימייל <span class="required">*</span></label>
         <input type="email" id="obEmail" placeholder="email@example.com" dir="ltr">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="obPhoneGroup">
         <label>טלפון <span class="required">*</span></label>
         <input type="tel" id="obPhone" placeholder="05X-XXXXXXX" maxlength="10" dir="ltr">
       </div>
@@ -1626,6 +1631,7 @@
           <option value="אמא">אמא</option>
           <option value="אבא">אבא</option>
           <option value="אפוטרופוס">אפוטרופוס</option>
+          <option value="ילד/ה">ילד/ה</option>
         </select>
       </div>
       <div class="form-group">
@@ -1756,8 +1762,8 @@
         <h2>ההרשמה הושלמה!</h2>
         <p id="familyCodeMsg">הקוד המשפחתי שלכם:</p>
         <div class="code" id="familyCodeValue"></div>
-        <p>שלחו את הקוד להורה השני כדי שיוכל להצטרף</p>
-        <button class="copy-btn" onclick="copyFamilyCode()">העתקת הקוד</button>
+        <p id="familyCodeShareMsg">שלחו את הקוד להורה השני כדי שיוכל להצטרף</p>
+        <button class="copy-btn" id="familyCodeCopyBtn" onclick="copyFamilyCode()">העתקת הקוד</button>
         <div class="ob-actions" style="margin-top:30px;">
           <button class="btn btn-primary" onclick="enterApp()" style="width:100%;">כניסה לאפליקציה ←</button>
         </div>
@@ -1803,22 +1809,22 @@
       <button class="nav-item active" onclick="showPage('dashboard', this)">
         <span class="nav-icon">▦</span> דשבורד
       </button>
-      <button class="nav-item" onclick="showPage('kids', this)">
+      <button class="nav-item parent-only" onclick="showPage('kids', this)">
         <span class="nav-icon">◉</span> הילדים שלנו
       </button>
-      <button class="nav-item" onclick="showPage('assignments', this)">
+      <button class="nav-item parent-only" onclick="showPage('assignments', this)">
         <span class="nav-icon">☐</span> משימות
       </button>
-      <button class="nav-item" onclick="showPage('events', this)">
+      <button class="nav-item parent-only" onclick="showPage('events', this)">
         <span class="nav-icon">◆</span> אירועים
       </button>
-      <button class="nav-item" onclick="showPage('custody', this)">
+      <button class="nav-item parent-only" onclick="showPage('custody', this)">
         <span class="nav-icon">⇄</span> פרטי משמורת
       </button>
-      <button class="nav-item" onclick="showPage('expenses', this)">
+      <button class="nav-item parent-only" onclick="showPage('expenses', this)">
         <span class="nav-icon">₪</span> הוצאות
       </button>
-      <button class="nav-item" onclick="showPage('holidays', this)">
+      <button class="nav-item parent-only" onclick="showPage('holidays', this)">
         <span class="nav-icon">✡&#xFE0E;</span> חגים
       </button>
       <button class="nav-item" onclick="showPage('activities', this)">
@@ -1827,7 +1833,7 @@
       <button class="nav-item" onclick="showPage('camps', this)">
         <span class="nav-icon">◈</span> קייטנות
       </button>
-      <button class="nav-item" onclick="showPage('signatures', this)">
+      <button class="nav-item parent-only" onclick="showPage('signatures', this)">
         <span class="nav-icon">⊡</span> חתימות ואישורים
       </button>
       <button class="nav-item" onclick="showPage('calendar', this)">
@@ -3109,6 +3115,7 @@ async function onAuthSuccess() {
       const memberSnap = await db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).get();
       if (memberSnap.exists && memberSnap.data().role) {
         appData.user.role = memberSnap.data().role;
+        if (memberSnap.data().memberType) appData.user.memberType = memberSnap.data().memberType;
       }
     } catch (e) {
       console.warn('Member role recovery failed:', e);
@@ -3121,6 +3128,7 @@ async function onAuthSuccess() {
       db.collection('families').doc(appData.familyCode).set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }),
       db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
         role: appData.user.role || '', name: appData.user.name || appData.user.firstName || '',
+        memberType: appData.user.memberType || 'parent',
         joinedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true })
     ]).catch(e => console.warn('Member registration failed:', e));
@@ -3171,6 +3179,11 @@ async function onAuthSuccess() {
           });
           if (merged) saveData();
         }
+      }
+      if (shared.custodySync && shared.custodySync.setBy && isChildView()) {
+        const sync = shared.custodySync;
+        appData.custodySetBy = sync.setBy;
+        CUSTODY_FIELDS.forEach(f => { if (sync[f] !== undefined) appData[f] = sync[f]; });
       }
     }
     if (!sharedHasData) {
@@ -3292,6 +3305,7 @@ function saveToCloud() {
   CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) personalData[f] = appData[f]; });
   db.collection('users').doc(currentFirebaseUser.uid).set({ appData: personalData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(err => showToast('שגיאת שמירה: ' + err.message));
   if (!appData.familyCode) { console.warn('saveToCloud: no familyCode — shared data not synced'); return; }
+  if (appData.user.memberType === 'child') return;
   const shared = {};
   SHARED_FIELDS.forEach(f => {
     if (appData[f] != null) {
@@ -3367,7 +3381,12 @@ function listenToSharedData() {
       if (changed && appData.kids) {
         appData.kids.forEach(k => { if (!k.photo && localPhotos[k.name]) k.photo = localPhotos[k.name]; });
       }
-      if (shared.custodySync && shared.custodySync.setBy && shared.custodySync.setBy !== getMyRole()) {
+      if (shared.custodySync && shared.custodySync.setBy && isChildView()) {
+        const sync = shared.custodySync;
+        appData.custodySetBy = sync.setBy;
+        CUSTODY_FIELDS.forEach(f => { if (sync[f] !== undefined) appData[f] = sync[f]; });
+        changed = true;
+      } else if (shared.custodySync && shared.custodySync.setBy && shared.custodySync.setBy !== getMyRole()) {
         const sync = shared.custodySync;
         const allWeekdays = [0, 1, 2, 3, 4];
         appData.custodyDays = allWeekdays.filter(d => !(sync.custodyDays || []).includes(d));
@@ -3493,6 +3512,7 @@ function migrateData() {
   if (!appData.weekendDays || !appData.weekendDays.length) appData.weekendDays = [5, 6];
   if (!appData.alternatingDays) appData.alternatingDays = [];
   if (!appData.followWeekendDays) appData.followWeekendDays = [];
+  if (!appData.user.memberType) appData.user.memberType = appData.user.role === 'ילד/ה' ? 'child' : 'parent';
 
   // Repair orphaned child names in activities/tasks/events/camps
   const kidNames = appData.kids.map(k => k.name);
@@ -3640,12 +3660,25 @@ function selectMode(mode) {
   document.querySelectorAll('.ob-choice-btn').forEach(b => b.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
   setTimeout(() => {
-    if (mode === 'join') {
+    if (mode === 'join' || mode === 'child') {
       document.getElementById('obPartnerEmailGroup').style.display = 'none';
       document.getElementById('obFamilyCodeGroup').style.display = 'block';
     } else {
       document.getElementById('obPartnerEmailGroup').style.display = 'block';
       document.getElementById('obFamilyCodeGroup').style.display = 'none';
+    }
+    if (mode === 'child') {
+      document.getElementById('obRole').value = 'ילד/ה';
+      document.getElementById('obRole').closest('.form-group').style.display = 'none';
+      document.getElementById('obFamilyName').closest('.form-group').style.display = 'none';
+      document.getElementById('obPhoneGroup').style.display = 'none';
+      document.getElementById('obEmail').closest('.form-group').style.display = 'none';
+    } else {
+      document.getElementById('obRole').value = '';
+      document.getElementById('obRole').closest('.form-group').style.display = '';
+      document.getElementById('obFamilyName').closest('.form-group').style.display = '';
+      document.getElementById('obPhoneGroup').style.display = '';
+      document.getElementById('obEmail').closest('.form-group').style.display = '';
     }
     goToObStep(2);
   }, 300);
@@ -3669,15 +3702,24 @@ async function obNext(fromStep) {
     const firstName = document.getElementById('obFirstName').value.trim();
     const lastName = document.getElementById('obLastName').value.trim();
     const familyName = document.getElementById('obFamilyName').value.trim();
-    const email = document.getElementById('obEmail').value.trim();
+    const isChild = appData.mode === 'child';
+    const email = isChild ? (currentFirebaseUser && currentFirebaseUser.email || '') : document.getElementById('obEmail').value.trim();
     const phone = document.getElementById('obPhone').value.trim();
-    const role = document.getElementById('obRole').value;
+    const role = isChild ? 'ילד/ה' : document.getElementById('obRole').value;
 
-    if (!firstName || !lastName || !familyName || !email || !phone || !role) {
+    if (!firstName || !lastName) {
+      showToast('נא למלא שם פרטי ושם משפחה');
+      return;
+    }
+    if (!isChild && !email) {
+      showToast('נא למלא אימייל');
+      return;
+    }
+    if (!isChild && (!familyName || !phone || !role)) {
       showToast('נא למלא את כל השדות הנדרשים');
       return;
     }
-    if (phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+    if (!isChild && (phone.length !== 10 || !/^\d{10}$/.test(phone))) {
       showToast('מספר טלפון חייב להכיל 10 ספרות');
       return;
     }
@@ -3688,7 +3730,8 @@ async function obNext(fromStep) {
     appData.user.email = email;
     appData.user.phone = phone;
     appData.user.role = role;
-    appData.familyName = familyName;
+    appData.user.memberType = isChild ? 'child' : 'parent';
+    if (!isChild) appData.familyName = familyName;
 
     if (appData.mode === 'new') {
       const partnerEmail = document.getElementById('obPartnerEmail').value.trim();
@@ -3702,6 +3745,26 @@ async function obNext(fromStep) {
         if (!famSnap.exists) { showToast('קוד משפחה לא נמצא — בדוק/י שהקוד נכון'); return; }
       }
       appData.familyCode = code.toUpperCase();
+    }
+
+    if (isChild) {
+      if (!appData.familyCode) { showToast('נא להזין קוד משפחה'); return; }
+      if (currentFirebaseUser) {
+        await db.collection('families').doc(appData.familyCode).set({
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(() => {});
+        await db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
+          role: 'ילד/ה', memberType: 'child', name: appData.user.name,
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(() => {});
+      }
+      document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה! 🎉';
+      document.getElementById('familyCodeValue').textContent = '';
+      document.getElementById('familyCodeShareMsg').textContent = 'עכשיו תוכל/י לראות את לוח הזמנים שלך';
+      document.getElementById('familyCodeCopyBtn').style.display = 'none';
+      saveData();
+      goToObStep(5);
+      return;
     }
     goToObStep(3);
   } else if (fromStep === 3) {
@@ -4210,6 +4273,34 @@ function filterEvents(filter, btn) {
   renderEvents();
 }
 
+function isChildView() {
+  return appData.user.memberType === 'child';
+}
+
+function applyChildView() {
+  const hide = isChildView();
+  document.querySelectorAll('.parent-only').forEach(el => el.style.display = hide ? 'none' : '');
+  const wa = document.getElementById('waFloat');
+  if (wa) wa.style.display = hide ? 'none' : '';
+  const actionsBtn = document.querySelector('.bottom-bar-actions-btn[aria-label="פעולות מהירות"]');
+  if (actionsBtn) actionsBtn.style.display = hide ? 'none' : '';
+  const pendingBtn = document.getElementById('headerPendingBtn');
+  if (pendingBtn) pendingBtn.style.display = hide ? 'none' : '';
+  if (hide) {
+    document.querySelectorAll('.btn-sm').forEach(b => {
+      if (b.textContent.trim() === '+') b.style.display = 'none';
+    });
+    ['dashCustodyRequestsCard','dashPendingSigsCard','statSentPendingChip'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const dashGreeting = document.getElementById('dashGreeting');
+    if (dashGreeting && !dashGreeting.dataset.childSet) {
+      dashGreeting.dataset.childSet = '1';
+    }
+  }
+}
+
 function updateApp() {
   try {
   const vd = document.getElementById('versionDisplay');
@@ -4233,6 +4324,7 @@ function updateApp() {
   renderHolidays();
   renderCalendar();
   renderProfile();
+  applyChildView();
   } catch(e) { console.warn('updateApp error:', e); }
 }
 
@@ -4460,7 +4552,11 @@ function renderCustodyToday() {
   const role = appData.user.role;
 
   let parentLabel;
-  if (isMyCustody) {
+  if (isChildView()) {
+    const setBy = appData.custodySetBy || 'אמא';
+    const otherParent = setBy === 'אמא' ? 'אבא' : 'אמא';
+    parentLabel = isMyCustody ? 'אצל ' + setBy : 'אצל ' + otherParent;
+  } else if (isMyCustody) {
     parentLabel = role === 'אמא' ? 'אצל אמא' : role === 'אבא' ? 'אצל אבא' : 'אצלי';
   } else {
     if (role === 'אמא') parentLabel = 'אצל אבא';
@@ -4545,6 +4641,12 @@ function updateDashboard() {
   if (appData.weekendMode === 'other') {
     weekendLabel = 'לא הוגדר';
     weekendIcon = '?'; weekendClass = 'split';
+  } else if (isChildView()) {
+    const setBy = appData.custodySetBy || 'אמא';
+    const otherP = setBy === 'אמא' ? 'אבא' : 'אמא';
+    weekendLabel = weekendMine ? 'אצל ' + setBy : 'אצל ' + otherP;
+    weekendIcon = weekendMine ? '⌂' : '⇄';
+    weekendClass = weekendMine ? 'with-me' : 'with-partner';
   } else if (weekendMine) {
     weekendLabel = role === 'אמא' ? 'אצל אמא' : role === 'אבא' ? 'אצל אבא' : 'אצלי';
     weekendIcon = '⌂'; weekendClass = 'with-me';
@@ -4634,6 +4736,19 @@ function updateDashboard() {
       if (daysLeft <= 7 && assignment === 'unset') {
         statHolidaySummary.textContent = daysText + ' · לא הוגדר';
         statHolidaySummary.style.color = '#D63031';
+      } else if (assignment !== 'unset' && assignment !== 'regular') {
+        let assignLabel = '';
+        if (isChildView()) {
+          const setBy = appData.custodySetBy || 'אמא';
+          const otherP = setBy === 'אמא' ? 'אבא' : 'אמא';
+          assignLabel = assignment === 'me' ? setBy : assignment === 'partner' ? otherP : 'חלוקה';
+        } else {
+          const myRole = getMyRole();
+          const otherRole = myRole === 'אמא' ? 'אבא' : 'אמא';
+          assignLabel = assignment === 'me' ? myRole : assignment === 'partner' ? otherRole : 'חלוקה';
+        }
+        statHolidaySummary.textContent = daysText + ' · אצל ' + assignLabel;
+        statHolidaySummary.style.color = '';
       } else {
         statHolidaySummary.style.color = '';
       }
@@ -4693,7 +4808,10 @@ function updateDashboard() {
 
   // Card 7: My assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
-  const myTodayTasks = appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
+  const childMode = isChildView();
+  const myTodayTasks = childMode
+    ? appData.tasks.filter(t => t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'))
+    : appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
   if (myTodayTasks.length === 0) {
     dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
   } else {
@@ -4705,6 +4823,17 @@ function updateDashboard() {
       const lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
       const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(t.desc) + '</div>' : '';
       const stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + esc(t.completedBy) + '</span>' : '';
+      if (childMode) {
+        return `
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}${t.date ? ' · ' + formatDate(t.date) : ''} ${stamp}</div>
+            <div class="list-item-meta">${esc(t.forChild) || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${esc(t.category) || ''}</div>
+            ${desc}
+          </div>
+        </div>
+        `;
+      }
       return `
         <div class="list-item">
           <div class="list-item-check ${isDone ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + esc(t.completedBy) + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
@@ -7509,7 +7638,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '105';
+const APP_VERSION = '107';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
