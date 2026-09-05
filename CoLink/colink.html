@@ -7292,7 +7292,7 @@ function renderCalendar() {
     const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
     const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
     let labels = '';
-    if (holiday) labels += `<div class="cal-day-label holiday-label">${esc(holiday.heb || holiday.name)}</div>`;
+    if (holiday) labels += `<div class="cal-day-label holiday-label">${esc(holiday.name)}</div>`;
     if (dayEvents.length > 0) labels += dayEvents.slice(0, 1).map(e => `<div class="cal-day-label event-label">${esc(e.title)}</div>`).join('');
     let dots = '';
     if (dayTasks.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#6C63FF;display:inline-block;"></span>';
