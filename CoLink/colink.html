@@ -3471,9 +3471,9 @@ const HOLIDAYS_2026 = [
   { name: 'ל״ג בעומר', date: '2026-05-12', heb: 'י״ח אייר תשפ״ו' },
   { name: 'שבועות', date: '2026-05-21', heb: 'ו׳ סיוון תשפ״ו' },
   { name: 'תשעה באב', date: '2026-07-12', heb: 'ט׳ באב תשפ״ו' },
-  { name: 'ראש השנה תשפ״ז', date: '2026-09-11', endDate: '2026-09-13', heb: 'א׳-ג׳ תשרי תשפ״ז' },
-  { name: 'יום כיפור תשפ״ז', date: '2026-09-20', heb: 'י׳ תשרי תשפ״ז' },
-  { name: 'סוכות תשפ״ז', date: '2026-09-25', endDate: '2026-10-01', heb: 'ט״ו-כ״א תשרי תשפ״ז' }
+  { name: 'ראש השנה', date: '2026-09-11', endDate: '2026-09-13', heb: 'א׳-ג׳ תשרי תשפ״ז' },
+  { name: 'יום כיפור', date: '2026-09-20', heb: 'י׳ תשרי תשפ״ז' },
+  { name: 'סוכות', date: '2026-09-25', endDate: '2026-10-01', heb: 'ט״ו-כ״א תשרי תשפ״ז' }
 ];
 
 let currentObStep = 1;
@@ -3527,6 +3527,13 @@ function migrateData() {
   if (!appData.alternatingDays) appData.alternatingDays = [];
   if (!appData.followWeekendDays) appData.followWeekendDays = [];
   if (!appData.user.memberType) appData.user.memberType = appData.user.role === 'ילד/ה' ? 'child' : 'parent';
+  const oldNames = { 'ראש השנה תשפ״ז': 'ראש השנה', 'יום כיפור תשפ״ז': 'יום כיפור', 'סוכות תשפ״ז': 'סוכות' };
+  Object.entries(oldNames).forEach(([old, nw]) => {
+    if (appData.holidayAssignments[old] && !appData.holidayAssignments[nw]) {
+      appData.holidayAssignments[nw] = appData.holidayAssignments[old];
+      delete appData.holidayAssignments[old];
+    }
+  });
 
   // Repair orphaned child names in activities/tasks/events/camps
   const kidNames = appData.kids.map(k => k.name);
