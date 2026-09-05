@@ -2834,7 +2834,7 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="privacyModal">
+<div class="modal-overlay" id="privacyModal" style="z-index:10002;">
   <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
     <h2>מדיניות פרטיות</h2>
     <div style="font-size:0.85rem;line-height:1.7;text-align:right;">
@@ -2885,7 +2885,7 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="termsModal">
+<div class="modal-overlay" id="termsModal" style="z-index:10002;">
   <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
     <h2>תנאי שימוש</h2>
     <div style="font-size:0.85rem;line-height:1.7;text-align:right;">
@@ -7375,7 +7375,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '100';
+const APP_VERSION = '101';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
