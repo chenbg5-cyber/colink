@@ -2122,8 +2122,8 @@
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
         <div class="custody-legend" style="margin-top:16px;">
-          <span class="me">אצלי</span>
-          <span class="other">אצל ההורה השני</span>
+          <span class="me" id="calLegendMe">אצלי</span>
+          <span class="other" id="calLegendOther">אצל ההורה השני</span>
           <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#6C63FF;display:inline-block;"></span> משימה</span>
           <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> אירוע</span>
         </div>
@@ -4277,6 +4277,17 @@ function isChildView() {
   return appData.user.memberType === 'child';
 }
 
+function getCustodyRoleLabels() {
+  if (isChildView()) {
+    const setBy = appData.custodySetBy || 'אמא';
+    const other = setBy === 'אמא' ? 'אבא' : 'אמא';
+    return { me: setBy, other: other };
+  }
+  const role = getMyRole();
+  const other = role === 'אמא' ? 'אבא' : role === 'אבא' ? 'אמא' : 'ההורה השני';
+  return { me: role || 'אצלי', other: other };
+}
+
 function applyChildView() {
   const hide = isChildView();
   document.querySelectorAll('.parent-only').forEach(el => el.style.display = hide ? 'none' : '');
@@ -4324,6 +4335,11 @@ function updateApp() {
   renderHolidays();
   renderCalendar();
   renderProfile();
+  const rl = getCustodyRoleLabels();
+  const calMe = document.getElementById('calLegendMe');
+  const calOther = document.getElementById('calLegendOther');
+  if (calMe) calMe.textContent = rl.me;
+  if (calOther) calOther.textContent = rl.other;
   applyChildView();
   } catch(e) { console.warn('updateApp error:', e); }
 }
@@ -7196,8 +7212,8 @@ function renderHolidays() {
         <select onchange="setHolidayAssignment('${h.name}', this.value)"
           style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
           <option value="unset" ${assignment === 'unset' ? 'selected' : ''}>לא הוגדר</option>
-          <option value="me" ${assignment === 'me' ? 'selected' : ''}>אצלי</option>
-          <option value="partner" ${assignment === 'partner' ? 'selected' : ''}>אצל ההורה השני</option>
+          <option value="me" ${assignment === 'me' ? 'selected' : ''}>אצל ${getCustodyRoleLabels().me}</option>
+          <option value="partner" ${assignment === 'partner' ? 'selected' : ''}>אצל ${getCustodyRoleLabels().other}</option>
           <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
           <option value="regular" ${assignment === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
         </select>
@@ -7286,7 +7302,8 @@ function showCalDayDetails(dateStr) {
   const holiday = HOLIDAYS_2026.find(h => dateStr >= h.date && dateStr <= (h.endDate || h.date));
   if (holiday) {
     const assign = appData.holidayAssignments[holiday.name] || 'unset';
-    const assignLabels = { me: 'אצלי', partner: 'אצל ההורה השני', split: 'חלוקה', regular: 'לפי שהות רגילה', unset: 'לא הוגדר' };
+    const rl = getCustodyRoleLabels();
+    const assignLabels = { me: 'אצל ' + rl.me, partner: 'אצל ' + rl.other, split: 'חלוקה', regular: 'לפי שהות רגילה', unset: 'לא הוגדר' };
     const assignColors = { me: 'var(--primary)', partner: 'var(--secondary)', split: '#E17055', regular: 'var(--success)', unset: 'var(--text-muted)' };
     html += `<div style="margin-bottom:10px;padding:8px 12px;background:#FFF8E1;border-radius:8px;border-right:3px solid var(--warning);">`;
     html += `<strong style="color:var(--warning);">✡ ${esc(holiday.name)}</strong>`;
