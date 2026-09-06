@@ -2883,6 +2883,10 @@
         <input type="text" id="kidModalEduPass" placeholder="סיסמה" dir="ltr">
       </div>
     </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="kidModalNotes" placeholder="הערות נוספות..." rows="3" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="saveKid()">שמירה</button>
       <button class="btn btn-secondary" onclick="closeModal('kidModal')">ביטול</button>
@@ -5369,6 +5373,7 @@ function renderKids() {
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${esc(kid.tzaaron)}</span></div>` : ''}
           ${kid.eduCode ? `<div style="margin-top:4px;"><span class="kid-detail">משרד החינוך: ${esc(kid.eduCode)}${kid.eduPass ? ' · סיסמה: ' + esc(kid.eduPass) : ''}</span></div>` : ''}
+          ${kid.notes ? `<div style="margin-top:4px;"><span class="kid-detail" style="white-space:pre-wrap;">${esc(kid.notes)}</span></div>` : ''}
         </div>
         <div class="kid-actions parent-only" style="display:flex;gap:6px;align-self:flex-start;">
           <button class="icon-btn" onclick="openKidModal(${idx})" title="עריכה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;">✎</button>
@@ -5384,8 +5389,8 @@ function openKidModal(idx) {
   const isEdit = idx !== undefined && idx >= 0;
   document.getElementById('kidModalTitle').textContent = isEdit ? 'עריכת פרטי ילד/ה' : 'הוספת ילד/ה';
   document.getElementById('kidEditIndex').value = isEdit ? idx : -1;
-  const fields = ['Name','Id','Dob','Gender','School','Class','Teacher','TeacherPhone','TeacherEmail','Tzaaron','TzaaronLead','TzaaronLeadPhone','TzaaronLeadEmail','EduCode','EduPass'];
-  const keys = ['name','id','dob','gender','school','class','teacher','teacherPhone','teacherEmail','tzaaron','tzaaronLead','tzaaronLeadPhone','tzaaronLeadEmail','eduCode','eduPass'];
+  const fields = ['Name','Id','Dob','Gender','School','Class','Teacher','TeacherPhone','TeacherEmail','Tzaaron','TzaaronLead','TzaaronLeadPhone','TzaaronLeadEmail','EduCode','EduPass','Notes'];
+  const keys = ['name','id','dob','gender','school','class','teacher','teacherPhone','teacherEmail','tzaaron','tzaaronLead','tzaaronLeadPhone','tzaaronLeadEmail','eduCode','eduPass','notes'];
   if (isEdit) {
     const kid = appData.kids[idx];
     fields.forEach((f, i) => { document.getElementById('kidModal' + f).value = kid[keys[i]] || ''; });
@@ -5486,7 +5491,8 @@ function saveKid() {
     tzaaronLeadPhone: document.getElementById('kidModalTzaaronLeadPhone').value.trim(),
     tzaaronLeadEmail: document.getElementById('kidModalTzaaronLeadEmail').value.trim(),
     eduCode: document.getElementById('kidModalEduCode').value.trim(),
-    eduPass: document.getElementById('kidModalEduPass').value.trim()
+    eduPass: document.getElementById('kidModalEduPass').value.trim(),
+    notes: document.getElementById('kidModalNotes').value.trim()
   };
   if (editIdx >= 0) {
     const oldName = appData.kids[editIdx].name;
