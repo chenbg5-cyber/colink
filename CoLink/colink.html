@@ -1878,8 +1878,8 @@
         </div>
         <div style="font-size:0.72rem;line-height:1.45;color:var(--text-light);">
           <b style="color:var(--text);">התקנה:</b> ספארי — שיתוף ← הוסף למסך הבית. כרום — תפריט ← הוספה למסך הבית.<br>
-          <b style="color:var(--text);">ילד/ה:</b> מתחבר/ת עם קוד המשפחה, רואה הכל בלי אפשרות עריכה.<br>
-          <b style="color:var(--text);">הורה שני:</b> בפרופיל — שיתוף הזמנה או העתקת קוד המשפחה.
+          <b style="color:var(--text);">הורה שני:</b> בפרופיל — שיתוף הזמנה או העתקת קוד המשפחה.<br>
+          <b style="color:var(--text);">הזמנת ילד/ה:</b> שלחו את קוד המשפחה לילד/ה — יתחבר/תתחבר ויראה הכל בגישת צפייה בלבד.
         </div>
       </div>
 
@@ -2251,7 +2251,7 @@
           <div class="code" id="profileFamilyCode" style="font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:8px;background:#F0EEFF;padding:16px 24px;border-radius:12px;display:inline-block;direction:ltr;"></div>
           <br>
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
-          <button class="copy-btn" onclick="shareInvite()" style="margin-top:8px;background:var(--success);color:white;">שיתוף הזמנה</button>
+          <button class="copy-btn parent-only" onclick="shareInvite()" style="margin-top:8px;background:var(--success);color:white;">שיתוף הזמנה</button>
         </div>
       </div>
       <div class="card parent-only" id="familyMembersCard">
@@ -2918,8 +2918,8 @@
       <p><b>אייפון (ספארי):</b><br>פתחו את האתר בספארי ← לחצו על כפתור השיתוף בתחתית המסך ← גללו ולחצו ״הוסף למסך הבית״ ← אשרו.</p>
       <p><b>אנדרואיד (כרום):</b><br>פתחו את האתר בכרום ← לחצו על תפריט שלוש הנקודות בפינה ← ״הוספה למסך הבית״ ← אשרו.</p>
 
-      <h3 style="margin-top:16px;">הוספת ילד/ה עם גישת צפייה</h3>
-      <p>בדף ״ילדים״ לחצו ״+ הוספת ילד/ה״ והזינו את פרטי הילד/ה. אחרי ההוספה, הילד/ה יוכל/תוכל להתחבר לאפליקציה עם קוד המשפחה.</p>
+      <h3 style="margin-top:16px;">הזמנת ילד/ה לאפליקציה</h3>
+      <p>כדי שילד/ה יצטרפו לאפליקציה, שלחו להם את <b>קוד המשפחה</b> (נמצא בדף הפרופיל). הילד/ה יתקין/תתקין את האפליקציה, יירשם/תירשם ויזין/תזין את הקוד.</p>
       <p>ילדים מקבלים <b>גישת צפייה בלבד</b> — הם יכולים לראות את המשימות, האירועים, סידורי המשמורת ועוד, אבל לא יכולים לערוך או לשנות דברים.</p>
 
       <h3 style="margin-top:16px;">הזמנת ההורה השני</h3>
