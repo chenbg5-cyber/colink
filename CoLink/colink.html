@@ -3103,16 +3103,14 @@ async function onAuthSuccess() {
     CUSTODY_FIELDS.forEach(f => { if (localData[f] !== undefined) appData[f] = localData[f]; });
   }
 
-  // Recover familyCode by searching member docs if missing
+  // Recover familyCode from personal user doc if missing
   if (!appData.familyCode && currentFirebaseUser) {
     try {
-      const familiesSnap = await db.collection('families').get();
-      for (const famDoc of familiesSnap.docs) {
-        const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(currentFirebaseUser.uid).get();
-        if (memSnap.exists) {
-          appData.familyCode = famDoc.id;
-          if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
-          break;
+      const userSnap = await db.collection('users').doc(currentFirebaseUser.uid).get();
+      if (userSnap.exists && userSnap.data().appData && userSnap.data().appData.familyCode) {
+        appData.familyCode = userSnap.data().appData.familyCode;
+        if (userSnap.data().appData.user && userSnap.data().appData.user.role && !appData.user.role) {
+          appData.user.role = userSnap.data().appData.user.role;
         }
       }
     } catch (e) { console.warn('Family code recovery failed:', e); }
@@ -7512,24 +7510,9 @@ async function recoverData() {
       log.push('⚠ מסמך אישי לא נמצא');
     }
 
-    // Source 1b: search member docs for familyCode
+    // familyCode not found in personal doc - user can use manual recovery with code
     if (!appData.familyCode) {
-      try {
-        const familiesSnap = await db.collection('families').get();
-        log.push('🔍 חיפוש ב-' + familiesSnap.size + ' משפחות...');
-        for (const famDoc of familiesSnap.docs) {
-          try {
-            const memSnap = await db.collection('families').doc(famDoc.id).collection('members').doc(uid).get();
-            if (memSnap.exists) {
-              appData.familyCode = famDoc.id;
-              if (memSnap.data().role && !appData.user.role) appData.user.role = memSnap.data().role;
-              log.push('✅ נמצא חבר במשפחה: ' + famDoc.id);
-              break;
-            }
-          } catch (e) { continue; }
-        }
-        if (!appData.familyCode) log.push('⚠ לא נמצא חבר באף משפחה');
-      } catch (e) { log.push('❌ חיפוש משפחות: ' + (e.code || e.message)); }
+      log.push('⚠ לא נמצא קוד משפחה — נסי שחזור עם קוד');
     }
 
     // Re-register member doc + wait
@@ -7716,7 +7699,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '108';
+const APP_VERSION = '109';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
