@@ -2238,6 +2238,12 @@
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
         </div>
       </div>
+      <div class="card parent-only" id="familyMembersCard">
+        <h3>בני משפחה מחוברים</h3>
+        <div id="familyMembersList" style="display:flex;flex-direction:column;gap:8px;">
+          <p style="font-size:0.8rem;color:var(--text-light);">טוען...</p>
+        </div>
+      </div>
       <div class="card" style="border:1px solid #f59e0b44;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
@@ -2806,8 +2812,8 @@
         <input type="text" id="kidModalName" placeholder="שם">
       </div>
       <div class="form-group">
-        <label>ת.ז <span class="required">*</span></label>
-        <input type="text" id="kidModalId" placeholder="מספר ת.ז" maxlength="9" dir="ltr">
+        <label>ת.ז</label>
+        <input type="text" id="kidModalId" placeholder="מספר ת.ז (לא חובה)" maxlength="9" dir="ltr">
       </div>
     </div>
     <div class="form-row">
@@ -4091,8 +4097,8 @@ function addKidCard() {
         <input type="text" class="kid-name" placeholder="שם">
       </div>
       <div class="form-group">
-        <label>ת.ז <span class="required">*</span></label>
-        <input type="text" class="kid-id" placeholder="מספר ת.ז" maxlength="9" dir="ltr">
+        <label>ת.ז</label>
+        <input type="text" class="kid-id" placeholder="מספר ת.ז (לא חובה)" maxlength="9" dir="ltr">
       </div>
     </div>
     <div class="form-row">
@@ -4197,14 +4203,14 @@ function collectKidsData() {
     }
 
     const id = fields[1].val;
-    if (!/^\d{9}$/.test(id)) {
+    if (id && !/^\d{9}$/.test(id)) {
       fields[1].el.classList.add('error');
       showToast('ת.ז חייב להכיל 9 ספרות');
       fields[1].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return null;
     }
 
-    if (kids.some(k => k.id === id)) {
+    if (id && kids.some(k => k.id === id)) {
       fields[1].el.classList.add('error');
       showToast('ת.ז כבר קיימת עבור ילד/ה אחר/ת');
       fields[1].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5426,19 +5432,21 @@ function saveKid() {
   const school = document.getElementById('kidModalSchool').value.trim();
   const cls = document.getElementById('kidModalClass').value.trim();
   const teacher = document.getElementById('kidModalTeacher').value.trim();
-  if (!name || !id || !dob || !gender || !cls || !teacher) {
+  if (!name || !dob || !gender || !cls || !teacher) {
     showToast('נא למלא את כל השדות המסומנים');
     return;
   }
-  if (!/^\d{9}$/.test(id)) {
+  if (id && !/^\d{9}$/.test(id)) {
     showToast('ת.ז חייבת להכיל 9 ספרות');
     return;
   }
   const editIdx = parseInt(document.getElementById('kidEditIndex').value);
-  const duplicate = appData.kids.some((k, i) => k.id === id && i !== editIdx);
-  if (duplicate) {
-    showToast('ת.ז כבר קיימת עבור ילד/ה אחר/ת');
-    return;
+  if (id) {
+    const duplicate = appData.kids.some((k, i) => k.id === id && i !== editIdx);
+    if (duplicate) {
+      showToast('ת.ז כבר קיימת עבור ילד/ה אחר/ת');
+      return;
+    }
   }
   const kidData = {
     name, id, dob, gender, school, class: cls, teacher,
@@ -7375,6 +7383,34 @@ function renderProfile() {
   document.getElementById('profileFamilyName').value = appData.familyName || '';
   document.getElementById('profileRole').value = appData.user.role;
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
+  if (!isChildView()) renderFamilyMembers();
+}
+
+async function renderFamilyMembers() {
+  const list = document.getElementById('familyMembersList');
+  if (!list || !appData.familyCode) return;
+  try {
+    const snap = await db.collection('families').doc(appData.familyCode).collection('members').get();
+    if (snap.empty) { list.innerHTML = '<p style="font-size:0.8rem;color:var(--text-light);">אין בני משפחה מחוברים</p>'; return; }
+    const icons = { 'אמא': '👩', 'אבא': '👨', 'child': '☆' };
+    let html = '';
+    snap.forEach(doc => {
+      const m = doc.data();
+      const isMe = currentFirebaseUser && doc.id === currentFirebaseUser.uid;
+      const icon = m.memberType === 'child' ? icons.child : (icons[m.role] || '👤');
+      const roleLabel = m.memberType === 'child' ? 'ילד/ה' : (m.role || 'הורה');
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:10px;">
+        <span style="font-size:1.2rem;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.9rem;">${esc(m.name || 'ללא שם')}${isMe ? ' <span style="color:var(--primary);font-size:0.75rem;">(אני)</span>' : ''}</div>
+          <div style="font-size:0.75rem;color:var(--text-light);">${roleLabel}</div>
+        </div>
+      </div>`;
+    });
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = '<p style="font-size:0.8rem;color:var(--text-light);">לא ניתן לטעון בני משפחה</p>';
+  }
 }
 
 function saveProfile() {
@@ -7680,7 +7716,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '107';
+const APP_VERSION = '108';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
