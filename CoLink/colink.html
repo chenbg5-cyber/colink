@@ -3533,8 +3533,8 @@ function migrateData() {
   if (!appData.user.memberType) appData.user.memberType = appData.user.role === 'ילד/ה' ? 'child' : 'parent';
   const oldNames = { 'ראש השנה תשפ״ז': 'ראש השנה', 'יום כיפור תשפ״ז': 'יום כיפור', 'סוכות תשפ״ז': 'סוכות' };
   Object.entries(oldNames).forEach(([old, nw]) => {
-    if (appData.holidayAssignments[old] && !appData.holidayAssignments[nw]) {
-      appData.holidayAssignments[nw] = appData.holidayAssignments[old];
+    if (appData.holidayAssignments[old]) {
+      if (!appData.holidayAssignments[nw]) appData.holidayAssignments[nw] = appData.holidayAssignments[old];
       delete appData.holidayAssignments[old];
     }
   });
