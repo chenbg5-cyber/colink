@@ -2389,7 +2389,7 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>קטגוריה <span class="required">*</span></label>
+        <label>קטגוריה</label>
         <select id="taskCategory" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
           <option value="">בחר/י</option>
           <option value="כללי">כללי</option>
@@ -3919,6 +3919,12 @@ async function obNext(fromStep) {
           email: appData.user.email,
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(() => {});
+        try {
+          const sharedSnap = await db.collection('families').doc(appData.familyCode).collection('sharedData').doc('main').get();
+          if (sharedSnap.exists && sharedSnap.data().familyName) {
+            appData.familyName = sharedSnap.data().familyName;
+          }
+        } catch(e) {}
       }
       document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
       document.getElementById('familyCodeValue').textContent = '';
@@ -5944,7 +5950,6 @@ function addTask() {
   if (!forChild && (!appData.kids || appData.kids.length === 0)) { forChild = 'כללי'; }
   if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
   if (!date && !recurring) { showToast('נא לבחור תאריך או לסמן משימה חוזרת'); return; }
-  if (!category) { showToast('נא לבחור קטגוריה'); return; }
   if (recurring && !recurringFreq) {
     showToast('נא לבחור תדירות למשימה חוזרת');
     return;
