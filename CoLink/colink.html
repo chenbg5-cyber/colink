@@ -3300,6 +3300,25 @@ function syncLocalAttachmentsToFirestore() {
       });
     }
   });
+  (appData.expenses || []).forEach(e => {
+    if (e.invoiceData && !e.invoiceCloudSaved) {
+      uploadExpenseInvoice(e.id, e.invoiceData, e.invoiceName).then(() => {
+        e.invoiceCloudSaved = true; saveData();
+      }).catch(() => {});
+    }
+  });
+  (appData.signatures || []).forEach(s => {
+    if (s.fileData && !s.fileCloudSaved) {
+      uploadSignatureFile(s.id, s.fileData, s.fileName).then(() => {
+        s.fileCloudSaved = true; saveData();
+      }).catch(() => {});
+    }
+    if (s.pdfData && !s.pdfCloudSaved) {
+      uploadSignaturePDF(s.id, s.pdfData).then(() => {
+        s.pdfCloudSaved = true; saveData();
+      }).catch(() => {});
+    }
+  });
 }
 
 function listenToFamilyNotifications() {
@@ -3627,9 +3646,21 @@ function migrateData() {
 function init() {
   addKidCard();
   document.getElementById('expenseInvoice').addEventListener('change', function() {
+    if (this.files[0] && this.files[0].size > 700 * 1024) {
+      showToast('הקובץ גדול מדי — מקסימום 700KB');
+      this.value = '';
+      document.getElementById('invoiceFileName').textContent = '';
+      return;
+    }
     document.getElementById('invoiceFileName').textContent = this.files[0] ? this.files[0].name : '';
   });
   document.getElementById('sigFile').addEventListener('change', function() {
+    if (this.files[0] && this.files[0].size > 700 * 1024) {
+      showToast('הקובץ גדול מדי — מקסימום 700KB');
+      this.value = '';
+      document.getElementById('sigFileName').textContent = '';
+      return;
+    }
     document.getElementById('sigFileName').textContent = this.files[0] ? this.files[0].name : '';
   });
 
@@ -4752,7 +4783,7 @@ function updateDashboard() {
   if (tipsCard) {
     let dismissed = false;
     try { dismissed = localStorage.getItem('colink_tips_dismissed') === '1'; } catch(e) {}
-    tipsCard.style.display = dismissed ? 'none' : 'block';
+    tipsCard.style.display = (dismissed || isChildView()) ? 'none' : 'block';
   }
 
   // Greeting
@@ -5706,7 +5737,7 @@ async function uploadAttachmentToFirestore(taskId, attachment) {
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     return true;
-  } catch (e) { console.warn('Attachment upload failed:', e); return false; }
+  } catch (e) { console.warn('Attachment upload failed:', e); showToast('שגיאה בהעלאת קובץ לענן'); return false; }
 }
 
 async function loadAttachmentFromFirestore(taskId) {
@@ -5728,7 +5759,7 @@ async function uploadSignatureFile(sigId, fileData, fileName) {
         data: fileData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e) { console.warn('Sig file upload failed:', e); }
+  } catch (e) { console.warn('Sig file upload failed:', e); showToast('שגיאה בהעלאת קובץ לענן'); }
 }
 
 async function uploadSignaturePDF(sigId, pdfData) {
@@ -5739,7 +5770,7 @@ async function uploadSignaturePDF(sigId, pdfData) {
         data: pdfData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e) { console.warn('Sig PDF upload failed:', e); }
+  } catch (e) { console.warn('Sig PDF upload failed:', e); showToast('שגיאה בהעלאת PDF לענן'); }
 }
 
 async function loadSignatureFile(sigId) {
@@ -5771,7 +5802,7 @@ async function uploadExpenseInvoice(expId, invoiceData, invoiceName) {
         data: invoiceData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e) { console.warn('Invoice upload failed:', e); }
+  } catch (e) { console.warn('Invoice upload failed:', e); showToast('שגיאה בהעלאת קבלה לענן'); }
 }
 
 async function viewExpenseInvoice(id) {
@@ -6588,7 +6619,7 @@ function addExpense() {
     if (invoiceName) { expObj.invoiceName = invoiceName; expObj.invoiceData = invoiceData; }
     appData.expenses.push(expObj);
     saveData();
-    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName);
+    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName).then(() => { expObj.invoiceCloudSaved = true; saveData(); }).catch(() => {});
     closeModal('expenseModal');
     showToast('בקשת קיזוז נשלחה');
     document.getElementById('expenseDetails').value = '';
@@ -6801,7 +6832,7 @@ function addSignature() {
   function finishAdd() {
     appData.signatures.push(sigObj);
     saveData();
-    if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName);
+    if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName).then(() => { sigObj.fileCloudSaved = true; saveData(); }).catch(() => {});
     closeModal('signatureModal');
     document.getElementById('sigTitle').value = '';
     document.getElementById('sigCategory').value = 'בית ספר';
@@ -6992,7 +7023,7 @@ async function generateSignedPDF(doc) {
       reader.onload = function() {
         doc.pdfData = reader.result;
         saveData();
-        uploadSignaturePDF(doc.id, reader.result);
+        uploadSignaturePDF(doc.id, reader.result).then(() => { doc.pdfCloudSaved = true; saveData(); }).catch(() => {});
         renderSignatures();
         resolve();
       };
