@@ -1,43 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isMember(familyCode) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+    }
+    function isParent(familyCode) {
+      return isMember(familyCode) &&
+        get(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid)).data.memberType != 'child';
+    }
+
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     match /families/{familyCode} {
       allow get: if request.auth != null;
-      allow list: if request.auth != null &&
-        exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+      allow list: if isMember(familyCode);
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+      allow update, delete: if isParent(familyCode);
 
       match /members/{memberId} {
         allow get: if request.auth != null && request.auth.uid == memberId;
-        allow list: if request.auth != null &&
-          exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+        allow list: if isMember(familyCode);
         allow write: if request.auth != null && request.auth.uid == memberId;
       }
 
       match /sharedData/{docId} {
-        allow read, write: if request.auth != null &&
-          exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+        allow read: if isMember(familyCode);
+        allow write: if isParent(familyCode);
       }
 
       match /notifications/{docId} {
-        allow read, write: if request.auth != null &&
-          exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+        allow read: if isMember(familyCode);
+        allow write: if isParent(familyCode);
       }
 
       match /pushTokens/{tokenId} {
-        allow read: if request.auth != null &&
-          exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+        allow read: if isMember(familyCode);
         allow write: if request.auth != null && request.auth.uid == tokenId;
       }
 
       match /attachments/{taskId} {
-        allow read, write: if request.auth != null &&
-          exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
+        allow read: if isMember(familyCode);
+        allow write: if isParent(familyCode);
       }
     }
   }
