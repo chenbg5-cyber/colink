@@ -4994,15 +4994,30 @@ function updateDashboard() {
   }
 
   // Holiday assignment alert (once per session, 7 days before)
-  if (!window._holidayAlertShown && !isChildView()) {
+  let _holidayAlertOff = false;
+  try { _holidayAlertOff = localStorage.getItem('colink_holiday_alert_off') === '1'; } catch(e) {}
+  if (!window._holidayAlertShown && !isChildView() && !_holidayAlertOff) {
     const unassigned = soonHolidays.filter(h => (appData.holidayAssignments[h.name] || 'unset') === 'unset');
     if (unassigned.length > 0) {
       window._holidayAlertShown = true;
       const names = unassigned.map(h => h.name).join(', ');
       setTimeout(() => {
-        if (confirm('תזכורת: ' + names + ' מתקרב/ים ולא הוגדר אצל מי הילדים.\n\nלהגדיר עכשיו?')) {
-          showPage('holidays', document.querySelectorAll('.nav-item')[6]);
-        }
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.cssText = 'display:flex;z-index:10002;';
+        overlay.innerHTML = `<div class="modal" style="max-width:360px;text-align:center;padding:24px;">
+          <h3 style="margin-bottom:12px;">תזכורת חגים</h3>
+          <p style="margin:0 0 20px;font-size:0.9rem;line-height:1.6;">${esc(names)} מתקרב/ים ולא הוגדר אצל מי הילדים.</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-primary" id="_holidayDefine" style="width:100%;padding:10px;border-radius:10px;">הגדר עכשיו</button>
+            <button class="btn" id="_holidayLater" style="width:100%;padding:10px;border-radius:10px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);">אחר כך</button>
+            <button id="_holidayNever" style="background:none;border:none;color:var(--text-muted);font-size:0.78rem;cursor:pointer;padding:6px;font-family:inherit;">אל תציג יותר</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('_holidayDefine').onclick = () => { overlay.remove(); showPage('holidays', document.querySelectorAll('.nav-item')[6]); };
+        document.getElementById('_holidayLater').onclick = () => overlay.remove();
+        document.getElementById('_holidayNever').onclick = () => { try { localStorage.setItem('colink_holiday_alert_off', '1'); } catch(e) {} overlay.remove(); };
       }, 1500);
     }
   }
@@ -8076,7 +8091,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '117';
+const APP_VERSION = '118';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
