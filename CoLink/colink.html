@@ -2542,7 +2542,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label>קבלה <span class="required">*</span></label>
+      <label>קבלה (אופציונלי)</label>
       <label class="file-input-label">
         📎 צירוף קבלה
         <input type="file" id="expenseInvoice" accept="image/*,.pdf">
@@ -6576,33 +6576,21 @@ function addExpense() {
 
   if (!details || !amount) { showToast('נא למלא פירוט וסכום'); return; }
   if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
-  if (!invoice) { showToast('נא לצרף קבלה'); return; }
 
   const splitAmount = Math.round(amount * splitPercent / 100);
   const expId = Date.now();
 
-  const reader = new FileReader();
-  reader.onload = function() {
-    const invoiceData = reader.result;
-    appData.expenses.push({
-      id: expId,
-      details,
-      amount,
-      splitPercent,
-      splitAmount,
-      forChild,
-      date,
-      invoiceName: invoice.name,
-      invoiceData: invoiceData,
-      requestedBy: getMyRole(),
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    });
-
+  function finishExpense(invoiceData, invoiceName) {
+    const expObj = {
+      id: expId, details, amount, splitPercent, splitAmount, forChild, date,
+      requestedBy: getMyRole(), status: 'pending', createdAt: new Date().toISOString()
+    };
+    if (invoiceName) { expObj.invoiceName = invoiceName; expObj.invoiceData = invoiceData; }
+    appData.expenses.push(expObj);
     saveData();
-    uploadExpenseInvoice(expId, invoiceData, invoice.name);
+    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName);
     closeModal('expenseModal');
-    showToast('בקשת קיזוז נשלחה ✅');
+    showToast('בקשת קיזוז נשלחה');
     document.getElementById('expenseDetails').value = '';
     document.getElementById('expenseAmount').value = '';
     document.getElementById('expenseDate').value = '';
@@ -6614,8 +6602,15 @@ function addExpense() {
     renderExpenses();
     updateDashboard();
     notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
-  };
-  reader.readAsDataURL(invoice);
+  }
+
+  if (invoice) {
+    const reader = new FileReader();
+    reader.onload = function() { finishExpense(reader.result, invoice.name); };
+    reader.readAsDataURL(invoice);
+  } else {
+    finishExpense(null, null);
+  }
 }
 
 function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild) {
@@ -6676,7 +6671,7 @@ function renderExpenses() {
         <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
         <td>${esc(e.forChild) || '-'}</td>
         <td>${formatDate(e.date)}</td>
-        <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="viewExpenseInvoice(${e.id})">📎 ${esc(e.invoiceName) || 'קבלה'}</span></td>
+        <td>${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="viewExpenseInvoice(${e.id})">📎 ${esc(e.invoiceName)}</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
         <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
