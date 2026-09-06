@@ -304,6 +304,8 @@
 
     .custody-legend .me::before { background: var(--primary); }
     .custody-legend .other::before { background: var(--secondary); }
+    .custody-legend .mom::before { background: rgba(108,92,231,1); }
+    .custody-legend .dad::before { background: rgba(39,174,96,1); }
 
     /* Kids form */
     .kid-card {
@@ -735,11 +737,12 @@
       bottom: 4px;
     }
 
-    .cal-day.custody-me { background: rgba(108,92,231,0.1); }
-    .cal-day.custody-partner { background: rgba(0,206,201,0.1); }
-    .cal-day.custody-split { background: linear-gradient(135deg, rgba(108,92,231,0.15) 50%, rgba(0,206,201,0.15) 50%); }
-    .cal-day.today.custody-me { background: var(--primary); }
-    .cal-day.today.custody-split { background: linear-gradient(135deg, var(--primary) 50%, var(--secondary) 50%); color: white; }
+    .cal-day.custody-mom { background: rgba(108,92,231,0.1); }
+    .cal-day.custody-dad { background: rgba(39,174,96,0.1); }
+    .cal-day.custody-split { background: linear-gradient(135deg, rgba(108,92,231,0.15) 50%, rgba(39,174,96,0.15) 50%); }
+    .cal-day.today.custody-mom { background: rgba(108,92,231,1); color: white; }
+    .cal-day.today.custody-dad { background: rgba(39,174,96,1); color: white; }
+    .cal-day.today.custody-split { background: linear-gradient(135deg, rgba(108,92,231,1) 50%, rgba(39,174,96,1) 50%); color: white; }
 
     /* Events & tasks list */
     .list-item {
@@ -1985,6 +1988,15 @@
         <div id="dashCustodyRequests"></div>
       </div>
 
+      <!-- Pending expenses -->
+      <div class="card card-compact" id="dashExpenseRequestsCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>הוצאות ממתינות לאישור</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('expenses', document.querySelectorAll('.nav-item')[5])" style="padding:4px 10px;font-size:1rem;line-height:1;">&#8592;</button>
+        </div>
+        <div id="dashExpenseRequests"></div>
+      </div>
+
       <!-- Pending signatures -->
       <div class="card card-compact" id="dashPendingSigsCard" style="display:none;">
         <div class="card-compact-header">
@@ -2151,8 +2163,8 @@
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
         <div class="custody-legend" style="margin-top:16px;">
-          <span class="me" id="calLegendMe">אצלי</span>
-          <span class="other" id="calLegendOther">אצל ההורה השני</span>
+          <span class="mom" id="calLegendMom">אמא</span>
+          <span class="dad" id="calLegendDad">אבא</span>
           <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#6C63FF;display:inline-block;"></span> משימה</span>
           <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> אירוע</span>
         </div>
@@ -3867,7 +3879,7 @@ async function obNext(fromStep) {
     appData.user.phone = phone;
     appData.user.role = role;
     appData.user.memberType = isChild ? 'child' : 'parent';
-    if (!isChild) appData.familyName = familyName;
+    if (!isChild && appData.mode === 'new') appData.familyName = familyName;
 
     if (appData.mode === 'new') {
       const partnerEmail = document.getElementById('obPartnerEmail').value.trim();
@@ -4488,7 +4500,7 @@ function applyChildView() {
       b.style.display = 'none';
     });
     document.querySelectorAll('.stat-chip-plus').forEach(p => p.style.display = 'none');
-    ['dashCustodyRequestsCard','dashPendingSigsCard','statSentPendingChip'].forEach(id => {
+    ['dashCustodyRequestsCard','dashExpenseRequestsCard','dashPendingSigsCard','statSentPendingChip'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -4522,11 +4534,10 @@ function updateApp() {
   renderHolidays();
   renderCalendar();
   renderProfile();
-  const rl = getCustodyRoleLabels();
-  const calMe = document.getElementById('calLegendMe');
-  const calOther = document.getElementById('calLegendOther');
-  if (calMe) calMe.textContent = rl.me;
-  if (calOther) calOther.textContent = rl.other;
+  const calMom = document.getElementById('calLegendMom');
+  const calDad = document.getElementById('calLegendDad');
+  if (calMom) calMom.textContent = 'אמא';
+  if (calDad) calDad.textContent = 'אבא';
   applyChildView();
   } catch(e) { console.warn('updateApp error:', e); }
 }
@@ -5238,6 +5249,32 @@ function updateDashboard() {
       `;
     }).join('');
   }
+  }
+
+  // Pending expenses dashboard card
+  const expenseCard = document.getElementById('dashExpenseRequestsCard');
+  const expenseContainer = document.getElementById('dashExpenseRequests');
+  if (expenseCard) {
+    const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole);
+    if (pendingExpenses.length === 0 || isChildView()) {
+      expenseCard.style.display = 'none';
+    } else {
+      expenseCard.style.display = '';
+      expenseContainer.innerHTML = pendingExpenses.map(e => {
+        return `
+          <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <div>
+              <div class="list-item-title">${esc(e.details || 'הוצאה')}</div>
+              <div class="list-item-meta">${e.date ? formatDate(e.date) : ''} · ₪${(e.amount || 0).toLocaleString()}${e.forChild ? ' · ' + esc(e.forChild) : ''}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="updateExpenseStatus(${e.id},'approved')">אישור</button>
+              <button class="btn btn-sm" style="background:#D63031;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="updateExpenseStatus(${e.id},'rejected')">דחייה</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 }
 
@@ -7625,6 +7662,9 @@ function renderCalendar() {
   }
 
   // Days
+  const _calRole = getMyRole();
+  const _calClassMine = _calRole === 'אמא' ? 'custody-mom' : 'custody-dad';
+  const _calClassPartner = _calRole === 'אמא' ? 'custody-dad' : 'custody-mom';
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const date = new Date(currentCalYear, currentCalMonth, d);
     const dayOfWeek = date.getDay();
@@ -7640,12 +7680,12 @@ function renderCalendar() {
 
     let classes = 'cal-day';
     if (holiday && holidayAssign !== 'unset' && holidayAssign !== 'regular') {
-      if (holidayAssign === 'me') classes += ' custody-me';
-      else if (holidayAssign === 'partner') classes += ' custody-partner';
+      if (holidayAssign === 'me') classes += ' ' + _calClassMine;
+      else if (holidayAssign === 'partner') classes += ' ' + _calClassPartner;
       else if (holidayAssign === 'split') classes += ' custody-split';
     } else {
-      if (isMyCustody) classes += ' custody-me';
-      else classes += ' custody-partner';
+      if (isMyCustody) classes += ' ' + _calClassMine;
+      else classes += ' ' + _calClassPartner;
     }
     if (isToday) classes += ' today';
     if (holiday) classes += ' holiday';
@@ -8036,7 +8076,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '116';
+const APP_VERSION = '117';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
