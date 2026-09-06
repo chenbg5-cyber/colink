@@ -5913,17 +5913,15 @@ function addTask() {
     }
   } else {
     if (!appData.tasks) appData.tasks = [];
-    const children = forChild === '__all__' ? (appData.kids || []).map(k => k.name) : [forChild];
-    children.forEach((child, i) => {
-      const newTask = {
-        id: Date.now() + i,
-        title, desc, responsibility: res, forChild: child, priority, date: recurring ? '' : date, category, status,
-        recurring, recurringFreq: recurring ? recurringDetail : '',
-        createdAt: new Date().toISOString()
-      };
-      if (pendingTaskAttachment) newTask.attachment = pendingTaskAttachment;
-      appData.tasks.push(newTask);
-    });
+    const childName = forChild === '__all__' ? 'כל הילדים' : forChild;
+    const newTask = {
+      id: Date.now(),
+      title, desc, responsibility: res, forChild: childName, priority, date: recurring ? '' : date, category, status,
+      recurring, recurringFreq: recurring ? recurringDetail : '',
+      createdAt: new Date().toISOString()
+    };
+    if (pendingTaskAttachment) newTask.attachment = pendingTaskAttachment;
+    appData.tasks.push(newTask);
     sendTaskNotification(title, res);
   }
 
