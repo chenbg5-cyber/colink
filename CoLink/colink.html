@@ -6535,7 +6535,6 @@ function addCustodyChange() {
   renderCustodyChanges();
   updateDashboard();
   showToast('בקשת שינוי נשלחה');
-  notifyPartnerCustodyChange(type, from, to, reason);
 }
 
 function renderCustodyChanges() {
@@ -6622,7 +6621,6 @@ function sendCustodyInfoRequest() {
   renderCustodyChanges();
   updateDashboard();
   showToast('בקשה לפרטים נוספים נשלחה');
-  notifyPartnerCustodyResponse(change, 'info', note);
 }
 
 function notifyPartnerCustodyChange(type, from, to, reason) {
@@ -6704,7 +6702,6 @@ function addExpense() {
     document.getElementById('invoiceFileName').textContent = '';
     renderExpenses();
     updateDashboard();
-    notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
   }
 
   if (invoice) {
@@ -6918,7 +6915,6 @@ function addSignature() {
     document.getElementById('sigFileName').textContent = '';
     renderSignatures();
     showToast('מסמך נשלח לחתימה');
-    notifyPartnerSignature(title, category, forChild);
   }
 
   if (file) {
