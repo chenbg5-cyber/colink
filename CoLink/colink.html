@@ -2894,7 +2894,7 @@
         <input type="text" id="kidModalEduCode" placeholder="קוד התחברות" dir="ltr">
       </div>
       <div class="form-group">
-        <label>סיסמה</label>
+        <label>סיסמה משרד החינוך</label>
         <input type="text" id="kidModalEduPass" placeholder="סיסמה" dir="ltr">
       </div>
     </div>
@@ -5466,7 +5466,7 @@ function renderKids() {
             <span class="kid-detail">${esc(kid.teacher)}</span>
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${esc(kid.tzaaron)}</span></div>` : ''}
-          ${kid.eduCode ? `<div style="margin-top:4px;"><span class="kid-detail">משרד החינוך: ${esc(kid.eduCode)}${kid.eduPass ? ' · סיסמה: ' + esc(kid.eduPass) : ''}</span></div>` : ''}
+          ${kid.eduCode ? `<div style="margin-top:4px;"><span class="kid-detail">קוד משרד החינוך: ${esc(kid.eduCode)}${kid.eduPass ? ' · סיסמה משרד החינוך: ' + esc(kid.eduPass) : ''}</span></div>` : ''}
           ${kid.notes ? `<div style="margin-top:4px;"><span class="kid-detail" style="white-space:pre-wrap;">${esc(kid.notes)}</span></div>` : ''}
         </div>
         <div class="kid-actions parent-only" style="display:flex;gap:6px;align-self:flex-start;">
