@@ -3793,6 +3793,12 @@ function selectMode(mode) {
       document.getElementById('obFamilyName').closest('.form-group').style.display = 'none';
       document.getElementById('obPhoneGroup').style.display = 'none';
       document.getElementById('obEmail').closest('.form-group').style.display = 'none';
+    } else if (mode === 'join') {
+      document.getElementById('obRole').value = '';
+      document.getElementById('obRole').closest('.form-group').style.display = '';
+      document.getElementById('obFamilyName').closest('.form-group').style.display = 'none';
+      document.getElementById('obPhoneGroup').style.display = '';
+      document.getElementById('obEmail').closest('.form-group').style.display = '';
     } else {
       document.getElementById('obRole').value = '';
       document.getElementById('obRole').closest('.form-group').style.display = '';
@@ -3835,7 +3841,11 @@ async function obNext(fromStep) {
       showToast('נא למלא אימייל');
       return;
     }
-    if (!isChild && (!familyName || !phone || !role)) {
+    if (!isChild && appData.mode === 'new' && (!familyName || !phone || !role)) {
+      showToast('נא למלא את כל השדות הנדרשים');
+      return;
+    }
+    if (!isChild && appData.mode === 'join' && (!phone || !role)) {
       showToast('נא למלא את כל השדות הנדרשים');
       return;
     }
@@ -3888,10 +3898,25 @@ async function obNext(fromStep) {
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(() => {});
       }
-      document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה! 🎉';
+      document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
       document.getElementById('familyCodeValue').textContent = '';
       document.getElementById('familyCodeShareMsg').textContent = 'עכשיו תוכל/י לראות את לוח הזמנים שלך';
       document.getElementById('familyCodeCopyBtn').style.display = 'none';
+      saveData();
+      goToObStep(5);
+      return;
+    }
+    if (appData.mode === 'join') {
+      if (currentFirebaseUser) {
+        await db.collection('families').doc(appData.familyCode).collection('members').doc(currentFirebaseUser.uid).set({
+          role: appData.user.role, memberType: 'parent', name: appData.user.name,
+          email: appData.user.email,
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(() => {});
+      }
+      document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
+      document.getElementById('familyCodeValue').textContent = appData.familyCode;
+      document.getElementById('familyCodeShareMsg').textContent = '';
       saveData();
       goToObStep(5);
       return;
