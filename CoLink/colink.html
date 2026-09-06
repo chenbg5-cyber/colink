@@ -1870,6 +1870,29 @@
     <div class="page active" id="page-dashboard">
       <div class="dash-greeting" id="dashGreeting"></div>
 
+      <!-- Tips card for new users -->
+      <div class="card" id="dashTipsCard" style="display:none;background:linear-gradient(135deg,#F0EEFF 0%,#E8F5FE 100%);border:1px solid #7C4DFF33;position:relative;">
+        <button onclick="dismissTips()" style="position:absolute;top:8px;left:8px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-light);padding:4px;">✕</button>
+        <h3 style="margin:0 0 12px 0;font-size:1rem;color:var(--primary);">💡 טיפים להתחלה מהירה</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:0.82rem;line-height:1.6;">
+          <div>
+            <strong>📲 התקנה כאפליקציה:</strong><br>
+            <span style="color:var(--text-light);">
+              <b>אייפון:</b> בספארי לחצו על כפתור השיתוף ⬆ ← ״הוסף למסך הבית״<br>
+              <b>אנדרואיד:</b> בכרום לחצו על ⋮ ← ״הוספה למסך הבית״
+            </span>
+          </div>
+          <div>
+            <strong>👧 הוספת ילד/ה עם גישת צפייה:</strong><br>
+            <span style="color:var(--text-light);">בדף הילדים, לחצו ״+ הוספת ילד/ה״. הילד/ה יוכל/תוכל להתחבר עם קוד המשפחה ולראות את המידע — בלי אפשרות לערוך.</span>
+          </div>
+          <div>
+            <strong>👨‍👩‍👧 הזמנת ההורה השני:</strong><br>
+            <span style="color:var(--text-light);">בפרופיל, העתיקו את קוד המשפחה או לחצו ״שיתוף הזמנה״ כדי לשלוח בוואטסאפ.</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Top row: custody today + next weekend -->
       <div class="dash-top-row" style="display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;gap:6px;">
         <div class="card dash-mini-card custody-today-card" id="custodyTodayCard" style="flex:1 1 0% !important;max-width:50% !important;width:auto !important;min-width:0 !important;">
@@ -2194,8 +2217,9 @@
 
     <!-- Profile -->
     <div class="page" id="page-profile">
-      <div class="page-header">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
         <h1>הפרופיל שלי</h1>
+        <button onclick="showTipsModal()" style="background:var(--primary);color:white;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="טיפים ועזרה">?</button>
       </div>
       <div class="card">
         <h3>פרטי התחברות</h3>
@@ -2892,6 +2916,30 @@
       <button class="btn btn-primary" onclick="saveKid()">שמירה</button>
       <button class="btn btn-secondary" onclick="closeModal('kidModal')">ביטול</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tipsModal" style="z-index:10002;" role="dialog" aria-modal="true" aria-label="טיפים ועזרה">
+  <div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto;">
+    <h2>💡 טיפים ועזרה</h2>
+    <div style="font-size:0.85rem;line-height:1.7;text-align:right;">
+      <h3 style="margin-top:8px;">📲 התקנה כאפליקציה</h3>
+      <p>CoLink עובדת כאפליקציה מלאה ישירות מהדפדפן! כדי להתקין:</p>
+      <p><b>אייפון (ספארי):</b><br>פתחו את האתר בספארי ← לחצו על כפתור השיתוף ⬆ בתחתית המסך ← גללו ולחצו ״הוסף למסך הבית״ ← אשרו.</p>
+      <p><b>אנדרואיד (כרום):</b><br>פתחו את האתר בכרום ← לחצו על ⋮ (שלוש נקודות) בפינה ← ״הוספה למסך הבית״ ← אשרו.</p>
+
+      <h3 style="margin-top:16px;">👧 הוספת ילד/ה עם גישת צפייה</h3>
+      <p>בדף ״ילדים״ לחצו ״+ הוספת ילד/ה״ והזינו את פרטי הילד/ה. אחרי ההוספה, הילד/ה יוכל/תוכל להתחבר לאפליקציה עם קוד המשפחה.</p>
+      <p>ילדים מקבלים <b>גישת צפייה בלבד</b> — הם יכולים לראות את המשימות, האירועים, סידורי המשמורת ועוד, אבל לא יכולים לערוך או לשנות דברים.</p>
+
+      <h3 style="margin-top:16px;">👨‍👩‍👧 הזמנת ההורה השני</h3>
+      <p>בדף הפרופיל תמצאו את <b>קוד המשפחה</b>. שלחו אותו להורה השני, או לחצו ״📤 שיתוף הזמנה״ לשליחה ישירה בוואטסאפ.</p>
+      <p>ההורה השני יתקין את האפליקציה, יירשם ויזין את הקוד — וכל המידע יסונכרן אוטומטית בין שניכם.</p>
+
+      <h3 style="margin-top:16px;">📄 מסמכים וקבצים</h3>
+      <p>כל הקבצים שמעלים לאפליקציה (חשבוניות, מסמכים לחתימה, קבצים מצורפים למשימות) נשמרים בענן ומסונכרנים בין שני ההורים.</p>
+    </div>
+    <button class="btn btn-primary" onclick="closeModal('tipsModal')" style="width:100%;margin-top:16px;">סגירה</button>
   </div>
 </div>
 
@@ -4696,9 +4744,26 @@ function openBirthdayTask() {
   openModal('taskModal');
 }
 
+function dismissTips() {
+  try { localStorage.setItem('colink_tips_dismissed', '1'); } catch(e) {}
+  const el = document.getElementById('dashTipsCard');
+  if (el) el.style.display = 'none';
+}
+
+function showTipsModal() {
+  openModal('tipsModal');
+}
+
 function updateDashboard() {
   if (!document.getElementById('dashGreeting')) return;
   renderCustodyToday();
+
+  const tipsCard = document.getElementById('dashTipsCard');
+  if (tipsCard) {
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('colink_tips_dismissed') === '1'; } catch(e) {}
+    tipsCard.style.display = dismissed ? 'none' : 'block';
+  }
 
   // Greeting
   const firstName = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
@@ -7861,7 +7926,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '111';
+const APP_VERSION = '112';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
