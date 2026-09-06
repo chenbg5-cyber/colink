@@ -5657,6 +5657,69 @@ async function loadAttachmentFromFirestore(taskId) {
   } catch (e) { console.warn('Attachment load failed:', e); return null; }
 }
 
+async function uploadSignatureFile(sigId, fileData, fileName) {
+  if (!appData.familyCode || !currentFirebaseUser || !fileData) return;
+  try {
+    await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sig_' + sigId).set({
+        name: fileName,
+        data: fileData,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  } catch (e) { console.warn('Sig file upload failed:', e); }
+}
+
+async function uploadSignaturePDF(sigId, pdfData) {
+  if (!appData.familyCode || !currentFirebaseUser || !pdfData) return;
+  try {
+    await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sigpdf_' + sigId).set({
+        data: pdfData,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  } catch (e) { console.warn('Sig PDF upload failed:', e); }
+}
+
+async function loadSignatureFile(sigId) {
+  if (!appData.familyCode || !currentFirebaseUser) return null;
+  try {
+    const d = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sig_' + sigId).get();
+    if (d.exists) return d.data();
+    return null;
+  } catch (e) { return null; }
+}
+
+async function loadSignaturePDF(sigId) {
+  if (!appData.familyCode || !currentFirebaseUser) return null;
+  try {
+    const d = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sigpdf_' + sigId).get();
+    if (d.exists) return d.data();
+    return null;
+  } catch (e) { return null; }
+}
+
+async function viewSignatureFile(id) {
+  const s = appData.signatures.find(x => x.id === id);
+  if (!s) return;
+  if (s.fileData) {
+    const w = window.open('', '_blank');
+    if (w) { w.document.write('<img src="' + s.fileData + '" style="max-width:100%;">'); w.document.title = s.fileName || 'קובץ'; }
+    return;
+  }
+  showToast('טוען קובץ מהענן...');
+  const cloud = await loadSignatureFile(id);
+  if (cloud && cloud.data) {
+    s.fileData = cloud.data;
+    localStorage.setItem('colink_data', JSON.stringify(appData));
+    const w = window.open('', '_blank');
+    if (w) { w.document.write('<img src="' + cloud.data + '" style="max-width:100%;">'); w.document.title = s.fileName || 'קובץ'; }
+  } else {
+    showToast('הקובץ לא זמין');
+  }
+}
+
 function addTask() {
   try {
   const title = document.getElementById('taskTitle').value.trim();
@@ -6626,6 +6689,7 @@ function addSignature() {
   function finishAdd() {
     appData.signatures.push(sigObj);
     saveData();
+    if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName);
     closeModal('signatureModal');
     document.getElementById('sigTitle').value = '';
     document.getElementById('sigCategory').value = 'בית ספר';
@@ -6775,6 +6839,10 @@ async function generateSignedPDF(doc) {
     let pdfDoc;
     let hasOriginal = false;
 
+    if (!doc.fileData && doc.fileName) {
+      const cloud = await loadSignatureFile(doc.id);
+      if (cloud && cloud.data) doc.fileData = cloud.data;
+    }
     if (doc.fileData && doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')) {
       const fileBase64 = doc.fileData.split(',')[1] || doc.fileData;
       const fileBytes = Uint8Array.from(atob(fileBase64), c => c.charCodeAt(0));
@@ -6812,6 +6880,7 @@ async function generateSignedPDF(doc) {
       reader.onload = function() {
         doc.pdfData = reader.result;
         saveData();
+        uploadSignaturePDF(doc.id, reader.result);
         renderSignatures();
         resolve();
       };
@@ -6822,9 +6891,21 @@ async function generateSignedPDF(doc) {
   }
 }
 
-function downloadSignedPDF(id) {
+async function downloadSignedPDF(id) {
   const doc = appData.signatures.find(s => s.id === id);
-  if (!doc || !doc.pdfData) { showToast('אין PDF זמין'); return; }
+  if (!doc) return;
+  if (!doc.pdfData) {
+    showToast('טוען PDF מהענן...');
+    const cloud = await loadSignaturePDF(id);
+    if (cloud && cloud.data) {
+      doc.pdfData = cloud.data;
+      localStorage.setItem('colink_data', JSON.stringify(appData));
+    } else {
+      showToast('מפיק PDF מחדש...');
+      await generateSignedPDF(doc);
+      if (!doc.pdfData) { showToast('לא ניתן להפיק PDF'); return; }
+    }
+  }
   const link = document.createElement('a');
   link.href = doc.pdfData;
   link.download = (doc.title || 'document') + '_signed.pdf';
@@ -6921,7 +7002,7 @@ function renderSignatures() {
             <div class="list-item-title">${esc(s.title)}</div>
             <div class="list-item-meta">
               ${esc(s.category) || ''} ${s.forChild ? '· ' + esc(s.forChild) : ''} ${s.deadline ? '· עד ' + formatDate(s.deadline) : ''}
-              ${s.fileName ? ' · 📎 ' + esc(s.fileName) : ''}
+              ${s.fileName ? ` · <span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="event.stopPropagation();viewSignatureFile(${s.id})">📎 ${esc(s.fileName)}</span>` : ''}
             </div>
             ${progressHtml}
           </div>
@@ -7718,7 +7799,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '110';
+const APP_VERSION = '111';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
