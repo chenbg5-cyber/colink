@@ -5,20 +5,17 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     match /families/{familyCode} {
-      // Any auth user can GET a specific family doc (for join with known code)
-      // Only members can LIST families
       allow get: if request.auth != null;
       allow list: if request.auth != null &&
         exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
-      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
 
       match /members/{memberId} {
-        // User can always get their own member doc (needed for join/recovery)
         allow get: if request.auth != null && request.auth.uid == memberId;
-        // Only family members can list/read all members
         allow list: if request.auth != null &&
           exists(/databases/$(database)/documents/families/$(familyCode)/members/$(request.auth.uid));
-        // Only the member themselves can write their own doc
         allow write: if request.auth != null && request.auth.uid == memberId;
       }
 

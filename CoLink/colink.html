@@ -4245,7 +4245,7 @@ function populateKidSelects() {
     const val = el.value;
     el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
       (appData.kids.length > 1 ? '<option value="__all__">כל הילדים</option>' : '') +
-      appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+      appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
     el.value = val;
   });
   const expChild = document.getElementById('expenseForChild');
@@ -4253,7 +4253,7 @@ function populateKidSelects() {
     const val = expChild.value;
     expChild.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
       (appData.kids.length > 1 ? '<option value="כל הילדים">כל הילדים</option>' : '') +
-      appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+      appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
     expChild.value = val;
   }
 }
@@ -4399,7 +4399,7 @@ function renderBottomBarKids() {
       ? `<svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/><ellipse cx="18" cy="33" rx="11" ry="12" fill="rgba(255,255,255,0.85)"/><path d="M11 11c0-5 3-9 7-9s7 4 7 9c1 1 2 3 1 5-1 1-2 0-2 0 0 2-1 4-3 5l1 3c-1 0-2 0-4 0s-3 0-4 0l1-3c-2-1-3-3-3-5 0 0-1 1-2 0s0-4 1-5z" fill="rgba(255,255,255,0.25)"/></svg>`
       : `<svg viewBox="0 0 36 36" width="36" height="36"><circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/><ellipse cx="18" cy="33" rx="11" ry="12" fill="rgba(255,255,255,0.85)"/></svg>`;
     const avatarContent = kid.photo
-      ? `<div class="bottom-bar-kid-avatar"><img src="${kid.photo}"></div>`
+      ? `<div class="bottom-bar-kid-avatar"><img src="${esc(kid.photo)}"></div>`
       : `<div class="bottom-bar-kid-avatar" style="background:${grad};overflow:hidden;">${silhouette}</div>`;
     const gradeLabel = kid.class ? `<div class="bottom-bar-grade">${esc(kid.class)}</div>` : '';
     return `
@@ -4662,7 +4662,7 @@ function updateDashboard() {
 
   // Greeting
   const firstName = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
-  document.getElementById('dashGreeting').innerHTML = `שלום <span>${firstName}</span>`;
+  document.getElementById('dashGreeting').innerHTML = `שלום <span>${esc(firstName)}</span>`;
   const now = new Date();
   const todayStr = getTodayStr();
 
@@ -5326,7 +5326,7 @@ function renderKids() {
     const genderClass = kid.gender === 'בן' ? 'boy' : 'girl';
     const initials = kid.name.charAt(0);
     const avatarContent = kid.photo
-      ? `<img src="${kid.photo}" alt="${esc(kid.name)}">`
+      ? `<img src="${esc(kid.photo)}" alt="${esc(kid.name)}">`
       : initials;
     return `
       <div class="kid-profile">
@@ -5339,7 +5339,7 @@ function renderKids() {
             <span class="kid-detail">${(kid.class || '').includes('גן') ? esc(kid.class) : 'כיתה ' + esc(kid.class || '')}</span>
             <span class="kid-detail">${esc(kid.teacher)}</span>
           </div>
-          ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${kid.tzaaron}</span></div>` : ''}
+          ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${esc(kid.tzaaron)}</span></div>` : ''}
         </div>
         <div class="kid-actions" style="display:flex;gap:6px;align-self:flex-start;">
           <button class="icon-btn" onclick="openKidModal(${idx})" title="עריכה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;">✎</button>
@@ -6426,7 +6426,7 @@ function populateExpenseChildSelect() {
   const el = document.getElementById('expenseForChild');
   if (!el) return;
   el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
-    appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+    appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
 }
 
 function renderExpenses() {
@@ -6492,7 +6492,7 @@ function populateSigChildSelect() {
   if (!el) return;
   const prev = el.value;
   el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
-    appData.kids.map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+    appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
   if (prev) el.value = prev;
 }
 
@@ -6932,7 +6932,7 @@ function populateActivityChildSelect() {
   if (!sel) return;
   const prev = sel.value;
   sel.innerHTML = '<option value="">בחר ילד/ה</option>' +
-    (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('') +
+    (appData.kids || []).map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('') +
     '<option value="כל הילדים">כל הילדים</option>';
   if (prev) sel.value = prev;
 }
@@ -7082,7 +7082,7 @@ function populateCampChildSelect() {
   const sel = document.getElementById('campChild');
   const prev = sel.value;
   sel.innerHTML = '<option value="">בחרי...</option>' +
-    (appData.kids || []).map(k => `<option value="${k.name}">${k.name}</option>`).join('');
+    (appData.kids || []).map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
   if (prev) sel.value = prev;
 }
 
@@ -7210,8 +7210,8 @@ function renderCamps() {
             <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">◉ ${esc(c.child)}</div>
             <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▪ ${fromStr} - ${toStr}${timeStr ? ' · ' + timeStr : ''}</div>
             ${c.instructor ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + esc(c.instructor) + (c.instructorPhone ? ' · <a href="tel:' + esc(c.instructorPhone) + '" style="color:var(--primary);text-decoration:none;">' + esc(c.instructorPhone) + '</a>' : '') + '</div>' : ''}
-            ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + c.location + '</div>' : ''}
-            ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">▸ ₪' + c.cost + '</div>' : ''}
+            ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + esc(c.location) + '</div>' : ''}
+            ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">▸ ₪' + esc(String(c.cost)) + '</div>' : ''}
           </div>
           <div style="display:flex;gap:6px;margin-right:8px;">
             <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
@@ -7347,7 +7347,7 @@ function showCalDayDetails(dateStr) {
       const isDone = t.status === 'done';
       html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;display:flex;align-items:center;gap:8px;">';
       html += '<span style="cursor:pointer;color:' + (isDone ? '#34d399' : '#ccc') + ';font-size:1.1rem;" onclick="toggleTaskStatus(' + t.id + ');showCalDayDetails(\'' + dateStr + '\')">' + (isDone ? '✓' : '○') + '</span>';
-      html += '<span style="cursor:pointer;' + (isDone ? 'text-decoration:line-through;opacity:0.6;' : '') + '" onclick="editTask(' + t.id + ')">' + t.title + (t.forChild ? ' · ' + t.forChild : '') + '</span>';
+      html += '<span style="cursor:pointer;' + (isDone ? 'text-decoration:line-through;opacity:0.6;' : '') + '" onclick="editTask(' + t.id + ')">' + esc(t.title) + (t.forChild ? ' · ' + esc(t.forChild) : '') + '</span>';
       html += '</div>';
     });
     html += '</div>';
@@ -7356,7 +7356,7 @@ function showCalDayDetails(dateStr) {
     html += '<div><strong style="color:#f59e0b;">◆ אירועים</strong>';
     events.forEach(e => {
       html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-      html += e.title + (e.time ? ' · ' + e.time : '') + (e.forChild ? ' · ' + e.forChild : '') + (e.location ? ' · ' + e.location : '');
+      html += esc(e.title) + (e.time ? ' · ' + esc(e.time) : '') + (e.forChild ? ' · ' + esc(e.forChild) : '') + (e.location ? ' · ' + esc(e.location) : '');
       html += '</div>';
     });
     html += '</div>';
@@ -7672,7 +7672,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '109';
+const APP_VERSION = '110';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
