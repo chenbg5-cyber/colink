@@ -3355,6 +3355,13 @@ function saveToCloud() {
       return copy;
     });
   }
+  if (shared.expenses) {
+    shared.expenses = shared.expenses.map(e => {
+      const copy = {...e};
+      delete copy.invoiceData;
+      return copy;
+    });
+  }
   if (shared.tasks) {
     shared.tasks = shared.tasks.map(t => {
       if (!t.attachment) return t;
@@ -5700,12 +5707,60 @@ async function loadSignaturePDF(sigId) {
   } catch (e) { return null; }
 }
 
+async function uploadExpenseInvoice(expId, invoiceData, invoiceName) {
+  if (!appData.familyCode || !currentFirebaseUser || !invoiceData) return;
+  try {
+    await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('exp_' + expId).set({
+        name: invoiceName,
+        data: invoiceData,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  } catch (e) { console.warn('Invoice upload failed:', e); }
+}
+
+async function viewExpenseInvoice(id) {
+  const exp = (appData.expenses || []).find(e => e.id === id);
+  if (!exp) return;
+  if (exp.invoiceData) {
+    showFileViewer(exp.invoiceData, exp.invoiceName);
+    return;
+  }
+  showToast('טוען קבלה מהענן...');
+  try {
+    const d = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('exp_' + id).get();
+    if (d.exists && d.data().data) {
+      exp.invoiceData = d.data().data;
+      localStorage.setItem('colink_data', JSON.stringify(appData));
+      showFileViewer(exp.invoiceData, exp.invoiceName);
+    } else {
+      showToast('הקבלה לא זמינה');
+    }
+  } catch (e) { showToast('שגיאה בטעינת קבלה'); }
+}
+
+function showFileViewer(dataUrl, fileName) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  const box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:90vw;max-height:85vh;overflow:auto;text-align:center;';
+  const isImage = dataUrl && dataUrl.startsWith('data:image');
+  if (isImage) {
+    box.innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;"><br><button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--primary);color:white;font-family:inherit;cursor:pointer;">סגור</button>';
+  } else {
+    box.innerHTML = '<p style="margin-bottom:12px;">📎 ' + esc(fileName || 'קובץ') + '</p><p style="color:var(--text-light);font-size:0.85rem;">לא ניתן להציג את הקובץ בדפדפן</p><button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--primary);color:white;font-family:inherit;cursor:pointer;">סגור</button>';
+  }
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
 async function viewSignatureFile(id) {
   const s = appData.signatures.find(x => x.id === id);
   if (!s) return;
   if (s.fileData) {
-    const w = window.open('', '_blank');
-    if (w) { w.document.write('<img src="' + s.fileData + '" style="max-width:100%;">'); w.document.title = s.fileName || 'קובץ'; }
+    showFileViewer(s.fileData, s.fileName);
     return;
   }
   showToast('טוען קובץ מהענן...');
@@ -5713,8 +5768,7 @@ async function viewSignatureFile(id) {
   if (cloud && cloud.data) {
     s.fileData = cloud.data;
     localStorage.setItem('colink_data', JSON.stringify(appData));
-    const w = window.open('', '_blank');
-    if (w) { w.document.write('<img src="' + cloud.data + '" style="max-width:100%;">'); w.document.title = s.fileName || 'קובץ'; }
+    showFileViewer(cloud.data, s.fileName);
   } else {
     showToast('הקובץ לא זמין');
   }
@@ -6470,35 +6524,43 @@ function addExpense() {
   if (!invoice) { showToast('נא לצרף קבלה'); return; }
 
   const splitAmount = Math.round(amount * splitPercent / 100);
+  const expId = Date.now();
 
-  appData.expenses.push({
-    id: Date.now(),
-    details,
-    amount,
-    splitPercent,
-    splitAmount,
-    forChild,
-    date,
-    invoiceName: invoice.name,
-    requestedBy: getMyRole(),
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  });
+  const reader = new FileReader();
+  reader.onload = function() {
+    const invoiceData = reader.result;
+    appData.expenses.push({
+      id: expId,
+      details,
+      amount,
+      splitPercent,
+      splitAmount,
+      forChild,
+      date,
+      invoiceName: invoice.name,
+      invoiceData: invoiceData,
+      requestedBy: getMyRole(),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
 
-  saveData();
-  closeModal('expenseModal');
-  showToast('בקשת קיזוז נשלחה ✅');
-  document.getElementById('expenseDetails').value = '';
-  document.getElementById('expenseAmount').value = '';
-  document.getElementById('expenseDate').value = '';
-  document.getElementById('expenseForChild').value = '';
-  document.getElementById('expenseSplit').value = '50';
-  document.getElementById('expenseSplitPreview').textContent = '₪0';
-  document.getElementById('expenseInvoice').value = '';
-  document.getElementById('invoiceFileName').textContent = '';
-  renderExpenses();
-  updateDashboard();
-  notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
+    saveData();
+    uploadExpenseInvoice(expId, invoiceData, invoice.name);
+    closeModal('expenseModal');
+    showToast('בקשת קיזוז נשלחה ✅');
+    document.getElementById('expenseDetails').value = '';
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseDate').value = '';
+    document.getElementById('expenseForChild').value = '';
+    document.getElementById('expenseSplit').value = '50';
+    document.getElementById('expenseSplitPreview').textContent = '₪0';
+    document.getElementById('expenseInvoice').value = '';
+    document.getElementById('invoiceFileName').textContent = '';
+    renderExpenses();
+    updateDashboard();
+    notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild);
+  };
+  reader.readAsDataURL(invoice);
 }
 
 function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild) {
@@ -6559,7 +6621,7 @@ function renderExpenses() {
         <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
         <td>${esc(e.forChild) || '-'}</td>
         <td>${formatDate(e.date)}</td>
-        <td>📎 ${esc(e.invoiceName) || 'קבלה'}</td>
+        <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="viewExpenseInvoice(${e.id})">📎 ${esc(e.invoiceName) || 'קבלה'}</span></td>
         <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
