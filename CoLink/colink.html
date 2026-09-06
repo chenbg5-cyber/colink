@@ -3804,6 +3804,14 @@ function selectMode(mode) {
       document.getElementById('obPhoneGroup').style.display = '';
       document.getElementById('obEmail').closest('.form-group').style.display = '';
     }
+    if (currentFirebaseUser && currentFirebaseUser.email) {
+      document.getElementById('obEmail').value = currentFirebaseUser.email;
+    }
+    if (currentFirebaseUser && currentFirebaseUser.displayName) {
+      const parts = currentFirebaseUser.displayName.split(' ');
+      if (!document.getElementById('obFirstName').value) document.getElementById('obFirstName').value = parts[0] || '';
+      if (!document.getElementById('obLastName').value) document.getElementById('obLastName').value = parts.slice(1).join(' ') || '';
+    }
     goToObStep(2);
   }, 300);
 }
@@ -3913,8 +3921,9 @@ async function obNext(fromStep) {
         }).catch(() => {});
       }
       document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
-      document.getElementById('familyCodeValue').textContent = appData.familyCode;
+      document.getElementById('familyCodeValue').textContent = '';
       document.getElementById('familyCodeShareMsg').textContent = '';
+      document.getElementById('familyCodeCopyBtn').style.display = 'none';
       saveData();
       goToObStep(5);
       return;
@@ -4968,7 +4977,7 @@ function updateDashboard() {
   }
 
   // Holiday assignment alert (once per session, 7 days before)
-  if (!window._holidayAlertShown) {
+  if (!window._holidayAlertShown && !isChildView()) {
     const unassigned = soonHolidays.filter(h => (appData.holidayAssignments[h.name] || 'unset') === 'unset');
     if (unassigned.length > 0) {
       window._holidayAlertShown = true;
