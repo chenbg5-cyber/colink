@@ -2236,6 +2236,7 @@
           <div class="code" id="profileFamilyCode" style="font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:8px;background:#F0EEFF;padding:16px 24px;border-radius:12px;display:inline-block;direction:ltr;"></div>
           <br>
           <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
+          <button class="copy-btn parent-only" onclick="shareInvite()" style="margin-top:8px;background:var(--success);color:white;">📤 שיתוף הזמנה</button>
         </div>
       </div>
       <div class="card parent-only" id="familyMembersCard">
@@ -3921,6 +3922,23 @@ async function copyFamilyCode() {
     navigator.clipboard.writeText(code).then(() => showToast('הקוד הועתק: ' + code)).catch(() => fallbackCopy(code));
   } else {
     fallbackCopy(code);
+  }
+}
+
+async function shareInvite() {
+  let code = appData.familyCode || document.getElementById('profileFamilyCode').textContent.trim();
+  if (!code) { showToast('אין קוד משפחה'); return; }
+  const text = 'הצטרף/י למשפחה שלנו ב-CoLink!\nהיכנס/י לאפליקציה:\nhttps://colink-app.web.app\n\nקוד משפחה: ' + code;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'הזמנה ל-CoLink', text: text });
+    } catch (e) { if (e.name !== 'AbortError') showToast('השיתוף נכשל'); }
+  } else {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast('ההזמנה הועתקה — שלחי בוואטסאפ או מייל')).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
   }
 }
 function fallbackCopy(text) {
