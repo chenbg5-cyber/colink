@@ -718,6 +718,7 @@
     }
     .cal-day-label.holiday-label { background: rgba(253,203,110,0.35); color: #b45309; }
     .cal-day-label.event-label { background: rgba(245,158,11,0.2); color: #92400e; }
+    .cal-day-label.task-label { background: rgba(108,99,255,0.15); color: #4338ca; }
 
     .cal-day:hover { background: #F8F7FF; }
     .cal-day.today { background: var(--primary); color: white; font-weight: 700; }
@@ -7344,15 +7345,21 @@ function renderCalendar() {
     const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
     let labels = '';
     if (holiday) labels += `<div class="cal-day-label holiday-label">${esc(holiday.name)}</div>`;
-    if (dayEvents.length > 0) labels += dayEvents.slice(0, 1).map(e => `<div class="cal-day-label event-label">${esc(e.title)}</div>`).join('');
-    let dots = '';
-    if (dayTasks.length > 0) dots += '<span style="width:5px;height:5px;border-radius:50%;background:#6C63FF;display:inline-block;"></span>';
-    if (dayEvents.length > 1) dots += '<span style="font-size:0.5rem;color:var(--text-muted);">+' + (dayEvents.length - 1) + '</span>';
+    const maxItems = 2;
+    dayEvents.slice(0, maxItems).forEach(e => {
+      labels += `<div class="cal-day-label event-label">◆ ${esc(e.title)}</div>`;
+    });
+    dayTasks.slice(0, maxItems - Math.min(dayEvents.length, maxItems)).forEach(t => {
+      const done = t.status === 'done';
+      labels += `<div class="cal-day-label task-label" style="${done ? 'text-decoration:line-through;opacity:0.5;' : ''}">☐ ${esc(t.title)}</div>`;
+    });
+    const totalItems = dayEvents.length + dayTasks.length;
+    const shownItems = Math.min(dayEvents.length, maxItems) + Math.min(dayTasks.length, maxItems - Math.min(dayEvents.length, maxItems));
+    if (totalItems > shownItems) labels += `<div class="cal-day-label" style="color:var(--text-muted);font-size:0.55rem;">+${totalItems - shownItems} עוד</div>`;
 
-    html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? holiday.name : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
+    html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? esc(holiday.name) : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
       ${d}
       ${labels}
-      ${dots ? '<div style="display:flex;gap:2px;align-items:center;justify-content:center;margin-top:1px;">' + dots + '</div>' : ''}
     </div>`;
   }
 
