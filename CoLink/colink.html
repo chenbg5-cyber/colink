@@ -1980,7 +1980,7 @@
       <div class="card card-compact" id="dashCustodyRequestsCard" style="display:none;">
         <div class="card-compact-header">
           <h3>בקשות משמורת ממתינות</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('custody', document.querySelectorAll('.nav-item')[4])">צפייה</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('custody', document.querySelectorAll('.nav-item')[4])" style="padding:4px 10px;font-size:1rem;line-height:1;">&#8592;</button>
         </div>
         <div id="dashCustodyRequests"></div>
       </div>
@@ -6600,7 +6600,6 @@ function respondCustodyChange(id, status) {
   const label = status === 'approved' ? 'אושרה' : 'נדחתה';
   showToast(`הבקשה ${label}`);
   if (status === 'approved') showConfetti();
-  notifyPartnerCustodyResponse(change, status);
 }
 
 function openCustodyInfoModal(id) {
