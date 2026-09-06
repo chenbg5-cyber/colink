@@ -3863,6 +3863,16 @@ async function obNext(fromStep) {
       if (currentFirebaseUser) {
         const famSnap = await db.collection('families').doc(code.toUpperCase()).get();
         if (!famSnap.exists) { showToast('קוד משפחה לא נמצא — בדוק/י שהקוד נכון'); return; }
+        if (!isChild && role) {
+          const membersSnap = await db.collection('families').doc(code.toUpperCase()).collection('members').get().catch(() => null);
+          if (membersSnap) {
+            const sameRole = membersSnap.docs.find(d => d.data().role === role);
+            if (sameRole) {
+              const ok = await colinkConfirm('כבר יש ' + role + ' רשום/ה במשפחה הזו. את/ה בטוח/ה שגם את/ה ' + role + '?');
+              if (!ok) return;
+            }
+          }
+        }
       }
       appData.familyCode = code.toUpperCase();
     }
