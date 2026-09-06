@@ -5492,9 +5492,10 @@ function renderKids() {
 }
 
 function openKidModal(idx) {
-  if (isChildView()) return;
+  const childMode = isChildView();
+  if (childMode && (idx === undefined || idx < 0)) return;
   const isEdit = idx !== undefined && idx >= 0;
-  document.getElementById('kidModalTitle').textContent = isEdit ? 'עריכת פרטי ילד/ה' : 'הוספת ילד/ה';
+  document.getElementById('kidModalTitle').textContent = childMode ? 'פרטי ילד/ה' : (isEdit ? 'עריכת פרטי ילד/ה' : 'הוספת ילד/ה');
   document.getElementById('kidEditIndex').value = isEdit ? idx : -1;
   const fields = ['Name','Id','Dob','Gender','School','Class','Teacher','TeacherPhone','TeacherEmail','Tzaaron','TzaaronLead','TzaaronLeadPhone','TzaaronLeadEmail','EduCode','EduPass','Notes'];
   const keys = ['name','id','dob','gender','school','class','teacher','teacherPhone','teacherEmail','tzaaron','tzaaronLead','tzaaronLeadPhone','tzaaronLeadEmail','eduCode','eduPass','notes'];
@@ -5509,6 +5510,13 @@ function openKidModal(idx) {
     updateKidPhotoPreview('', '', '');
   }
   document.getElementById('kidPhotoInput').value = '';
+  fields.forEach(f => { const el = document.getElementById('kidModal' + f); if (el) el.disabled = childMode; });
+  const saveBtn = document.querySelector('#kidModal .modal-actions .btn-primary');
+  if (saveBtn) saveBtn.style.display = childMode ? 'none' : '';
+  const photoInput = document.getElementById('kidPhotoInput');
+  if (photoInput) photoInput.parentElement.style.display = childMode ? 'none' : '';
+  const removePhotoBtn = document.getElementById('kidPhotoRemoveBtn');
+  if (removePhotoBtn && childMode) removePhotoBtn.hidden = true;
   openModal('kidModal');
 }
 
