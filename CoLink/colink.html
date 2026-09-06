@@ -701,8 +701,9 @@
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
-      min-height: 54px;
+      height: 54px;
       padding: 4px 2px 2px;
+      overflow: hidden;
     }
     .cal-day-label {
       font-size: 0.55rem;
@@ -1488,11 +1489,13 @@
       .tab-btn { padding: 7px 6px; font-size: 0.76rem; }
 
       /* Calendar */
-      .cal-day { min-height: 44px; font-size: 0.75rem; padding: 3px 1px 1px; }
+      #page-calendar > .card { padding: 8px 4px; overflow-x: auto; }
+      .cal-day { height: 44px; font-size: 0.75rem; padding: 3px 1px 1px; }
       .cal-day-name { font-size: 0.65rem; padding: 4px 0; }
       .cal-day-label { font-size: 0.48rem; }
-      .calendar-grid { gap: 2px; }
+      .calendar-grid { gap: 1px; min-width: 320px; }
       .cal-header h3 { font-size: 0.95rem; }
+      .cal-header { padding: 0 8px; }
       .cal-nav-btn { padding: 4px 10px; font-size: 0.82rem; }
 
       /* Custody */
@@ -2166,7 +2169,7 @@
     <div class="page" id="page-activities">
       <div class="page-header">
         <h1>חוגים</h1>
-        <button class="btn btn-primary btn-sm" onclick="openActivityModal()">+ חוג חדש</button>
+        <button class="btn btn-primary btn-sm parent-only" onclick="openActivityModal()">+ חוג חדש</button>
       </div>
       <div id="activitiesList"></div>
       <div class="empty-state" id="activitiesEmpty">
@@ -2179,7 +2182,7 @@
     <div class="page" id="page-camps">
       <div class="page-header">
         <h1>קייטנות קיץ</h1>
-        <button class="btn btn-primary btn-sm" onclick="openCampModal()">+ קייטנה חדשה</button>
+        <button class="btn btn-primary btn-sm parent-only" onclick="openCampModal()">+ קייטנה חדשה</button>
       </div>
       <div id="campsList">
         <div class="empty-state" id="campsEmpty">
@@ -2231,11 +2234,11 @@
           <label>טלפון</label>
           <input type="tel" id="profilePhone" dir="ltr">
         </div>
-        <div class="form-group">
+        <div class="form-group parent-only">
           <label>שם משפחת הילדים</label>
           <input type="text" id="profileFamilyName" placeholder="שם המשפחה המשותף לילדים">
         </div>
-        <div class="form-group">
+        <div class="form-group parent-only">
           <label>תפקיד</label>
           <select id="profileRole">
             <option value="אמא">אמא</option>
@@ -2260,7 +2263,7 @@
           <p style="font-size:0.8rem;color:var(--text-light);">טוען...</p>
         </div>
       </div>
-      <div class="card" style="border:1px solid #f59e0b44;">
+      <div class="card parent-only" style="border:1px solid #f59e0b44;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
           <button class="btn" style="background:#8b5cf6;color:white;padding:10px 16px;border-radius:10px;" onclick="restoreFromBackup()">⟳ שחזור מגיבוי מקומי</button>
@@ -2272,7 +2275,7 @@
           <p style="font-size:0.7rem;color:var(--text-light);">אם השחזור הרגיל לא עובד, בקשי את הקוד מההורה השני והזיני כאן.</p>
         </div>
       </div>
-      <div class="card" style="border:1px solid #e74c3c22;">
+      <div class="card parent-only" style="border:1px solid #e74c3c22;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
           <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
@@ -3967,6 +3970,7 @@ async function generateUniqueFamilyCode() {
 }
 
 async function leaveFamily() {
+  if (isChildView()) return;
   if (!await colinkConfirm('בטוח שברצונך לעזוב את המשפחה?\nהנתונים המשותפים יישארו להורה השני.')) return;
   if (!await colinkConfirm('פעולה זו תאפס את כל הנתונים המקומיים שלך. להמשיך?')) return;
   if (sharedDataListener) { sharedDataListener(); sharedDataListener = null; }
@@ -4521,6 +4525,7 @@ function renderBottomBarKids() {
 }
 
 function updatePendingBadge() {
+  if (isChildView()) { const b = document.getElementById('headerPendingBadge'); if (b) b.style.display = 'none'; return; }
   const myRole = getMyRole();
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole).length;
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole)).length;
@@ -4534,6 +4539,7 @@ function updatePendingBadge() {
 }
 
 function showPendingRequests() {
+  if (isChildView()) return;
   const myRole = getMyRole();
   const pendingCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
   const pendingSigs = (appData.signatures || []).filter(s => s.status === 'pending' && s.dualSign && !s.signedBy.includes(myRole));
@@ -4584,6 +4590,7 @@ function showPendingRequests() {
 }
 
 function showSentPending() {
+  if (isChildView()) return;
   const myRole = getMyRole();
   const sentCustody = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy === myRole);
   const sentExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy === myRole);
@@ -5162,7 +5169,7 @@ function updateDashboard() {
   const custodyContainer = document.getElementById('dashCustodyRequests');
   if (custodyCard) {
   const pendingForMe = (appData.custodyChanges || []).filter(c => c.status === 'pending' && c.requestedBy && c.requestedBy !== myRole);
-  if (pendingForMe.length === 0) {
+  if (pendingForMe.length === 0 || isChildView()) {
     custodyCard.style.display = 'none';
   } else {
     custodyCard.style.display = '';
@@ -5187,6 +5194,7 @@ function updateDashboard() {
 }
 
 async function toggleTaskStatus(id) {
+  if (isChildView()) return;
   const task = appData.tasks.find(t => t.id === id);
   if (!task) return;
   const myRole = getMyRole();
@@ -5447,6 +5455,7 @@ function renderKids() {
     container.innerHTML = '<div class="empty-state"><p>לא נוספו ילדים</p></div>';
     return;
   }
+  const childMode = isChildView();
   container.innerHTML = appData.kids.map((kid, idx) => {
     const age = calculateAge(kid.dob);
     const genderClass = kid.gender === 'בן' ? 'boy' : 'girl';
@@ -5454,6 +5463,12 @@ function renderKids() {
     const avatarContent = kid.photo
       ? `<img src="${esc(kid.photo)}" alt="${esc(kid.name)}">`
       : initials;
+    const eduLine = kid.eduCode ? `<div style="margin-top:4px;"><span class="kid-detail">קוד משרד החינוך: ${esc(kid.eduCode)}${kid.eduPass ? ' · סיסמה משרד החינוך: ' + esc(kid.eduPass) : ''}</span></div>` : '';
+    const actionsHtml = childMode ? '' : `
+        <div class="kid-actions" style="display:flex;gap:6px;align-self:flex-start;">
+          <button class="icon-btn" onclick="openKidModal(${idx})" title="עריכה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;">✎</button>
+          <button class="icon-btn" onclick="deleteKid(${idx})" title="מחיקה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;color:#e74c3c;">✕</button>
+        </div>`;
     return `
       <div class="kid-profile">
         <div class="kid-avatar ${genderClass}">${avatarContent}</div>
@@ -5466,13 +5481,10 @@ function renderKids() {
             <span class="kid-detail">${esc(kid.teacher)}</span>
           </div>
           ${kid.tzaaron ? `<div style="margin-top:8px;"><span class="kid-detail">צהרון: ${esc(kid.tzaaron)}</span></div>` : ''}
-          ${kid.eduCode ? `<div style="margin-top:4px;"><span class="kid-detail">קוד משרד החינוך: ${esc(kid.eduCode)}${kid.eduPass ? ' · סיסמה משרד החינוך: ' + esc(kid.eduPass) : ''}</span></div>` : ''}
+          ${eduLine}
           ${kid.notes ? `<div style="margin-top:4px;"><span class="kid-detail" style="white-space:pre-wrap;">${esc(kid.notes)}</span></div>` : ''}
         </div>
-        <div class="kid-actions parent-only" style="display:flex;gap:6px;align-self:flex-start;">
-          <button class="icon-btn" onclick="openKidModal(${idx})" title="עריכה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;">✎</button>
-          <button class="icon-btn" onclick="deleteKid(${idx})" title="מחיקה" style="font-size:0.85rem;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;color:#e74c3c;">✕</button>
-        </div>
+        ${actionsHtml}
       </div>
     `;
   }).join('');
@@ -5480,6 +5492,7 @@ function renderKids() {
 }
 
 function openKidModal(idx) {
+  if (isChildView()) return;
   const isEdit = idx !== undefined && idx >= 0;
   document.getElementById('kidModalTitle').textContent = isEdit ? 'עריכת פרטי ילד/ה' : 'הוספת ילד/ה';
   document.getElementById('kidEditIndex').value = isEdit ? idx : -1;
@@ -5552,6 +5565,7 @@ function removeKidPhoto() {
 }
 
 function saveKid() {
+  if (isChildView()) return;
   const name = document.getElementById('kidModalName').value.trim();
   const id = document.getElementById('kidModalId').value.trim();
   const dob = document.getElementById('kidModalDob').value;
@@ -5612,6 +5626,7 @@ function saveKid() {
 }
 
 async function deleteKid(idx) {
+  if (isChildView()) return;
   if (!await colinkConfirm('למחוק את ' + appData.kids[idx].name + '?')) return;
   appData.kids.splice(idx, 1);
   saveData();
@@ -5861,6 +5876,7 @@ async function viewSignatureFile(id) {
 }
 
 function addTask() {
+  if (isChildView()) return;
   try {
   const title = document.getElementById('taskTitle').value.trim();
   const desc = document.getElementById('taskDesc').value.trim();
@@ -5978,6 +5994,7 @@ function changeTaskStatus(id, newStatus) {
 }
 
 async function deleteTask(id) {
+  if (isChildView()) return;
   const task = appData.tasks.find(t => t.id === id);
   if (!task) return;
   const myRole = getMyRole();
@@ -5991,6 +6008,7 @@ async function deleteTask(id) {
 }
 
 function openNewTask() {
+  if (isChildView()) return;
   document.getElementById('taskEditId').value = '';
   document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
   document.getElementById('taskTitle').value = '';
@@ -6009,6 +6027,7 @@ function openNewTask() {
 }
 
 function editTask(id) {
+  if (isChildView()) return;
   const t = appData.tasks.find(task => task.id === id);
   if (!t) return;
   document.getElementById('taskEditId').value = id;
@@ -6113,6 +6132,7 @@ function renderTasks() {
 
 // ============ EVENTS ============
 function addEvent() {
+  if (isChildView()) return;
   const title = document.getElementById('eventTitle').value.trim();
   const date = document.getElementById('eventDate').value;
   const time = document.getElementById('eventTime').value;
@@ -6160,6 +6180,7 @@ function addEvent() {
 }
 
 function editEvent(id) {
+  if (isChildView()) return;
   const e = appData.events.find(ev => ev.id === id);
   if (!e) return;
   document.getElementById('eventEditId').value = id;
@@ -6174,6 +6195,7 @@ function editEvent(id) {
 }
 
 async function deleteEvent(id) {
+  if (isChildView()) return;
   if (!await colinkConfirm('למחוק את האירוע?')) return;
   appData.events = appData.events.filter(e => e.id !== id);
   saveData(); renderEvents(); updateDashboard();
@@ -6437,6 +6459,7 @@ function toggleAltDayEdit(day, el) {
 }
 
 function addCustodyChange() {
+  if (isChildView()) return;
   const from = document.getElementById('changeFrom').value;
   const to = document.getElementById('changeTo').value;
   const reason = document.getElementById('changeReason').value.trim();
@@ -6515,6 +6538,7 @@ function renderCustodyChanges() {
 }
 
 function respondCustodyChange(id, status) {
+  if (isChildView()) return;
   const change = appData.custodyChanges.find(c => c.id === id);
   if (!change) return;
   if (change.requestedBy === getMyRole()) { showToast('לא ניתן לאשר בקשה שאתה שלחת'); return; }
@@ -6596,6 +6620,7 @@ function updateExpenseSplit() {
 }
 
 function addExpense() {
+  if (isChildView()) return;
   const details = document.getElementById('expenseDetails').value.trim();
   const amount = parseFloat(document.getElementById('expenseAmount').value);
   const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
@@ -6653,6 +6678,7 @@ function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, 
 }
 
 function updateExpenseStatus(id, status) {
+  if (isChildView()) return;
   const expense = appData.expenses.find(e => e.id === id);
   if (!expense) return;
   if (expense.createdBy === getMyRole() || expense.requestedBy === getMyRole()) { showToast('לא ניתן לאשר הוצאה שאתה שלחת'); return; }
@@ -6798,6 +6824,7 @@ function getSigPadData() {
 }
 
 function addSignature() {
+  if (isChildView()) return;
   const title = document.getElementById('sigTitle').value.trim();
   const category = document.getElementById('sigCategory').value;
   const forChild = document.getElementById('sigForChild').value;
@@ -6903,6 +6930,7 @@ function rejectSignature(id) {
 }
 
 async function deleteSignature(id) {
+  if (isChildView()) return;
   if (!await colinkConfirm('למחוק את המסמך?')) return;
   appData.signatures = appData.signatures.filter(s => s.id !== id);
   saveData();
@@ -7199,6 +7227,7 @@ function populateActivityChildSelect() {
 }
 
 function openActivityModal(id) {
+  if (isChildView()) return;
   document.getElementById('activityEditId').value = id || '';
   document.getElementById('activityModalTitle').textContent = id ? 'עריכת חוג' : 'הוספת חוג';
   document.getElementById('activityName').value = '';
@@ -7290,6 +7319,7 @@ function saveActivity() {
 }
 
 async function deleteActivity(id) {
+  if (isChildView()) return;
   if (!await colinkConfirm('למחוק את החוג?')) return;
   appData.activities = appData.activities.filter(a => a.id !== id);
   saveData();
@@ -7310,6 +7340,7 @@ function renderActivities() {
   }
 
   empty.style.display = 'none';
+  const childMode = isChildView();
 
   const dayOrder = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const sorted = [...acts].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
@@ -7317,6 +7348,11 @@ function renderActivities() {
   list.innerHTML = sorted.map(a => {
     const timeStr = a.startTime ? (a.endTime ? a.startTime + '-' + a.endTime : a.startTime) : '';
     const custodyParent = getActivityCustodyParent(a.day) || a.responsible || '';
+    const actionsHtml = childMode ? '' : `
+        <div style="display:flex;gap:6px;margin-right:8px;">
+          <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
+          <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה" style="font-size:1.1rem;">✕</button>
+        </div>`;
     return `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;">
@@ -7329,10 +7365,7 @@ function renderActivities() {
             ${a.cost ? '₪' + a.cost : ''}${a.cost && custodyParent ? ' · ' : ''}${custodyParent ? 'אחראי: ' + custodyParent : ''}
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-right:8px;">
-          <button class="icon-btn" onclick="openActivityModal(${a.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
-          <button class="icon-btn" onclick="deleteActivity(${a.id})" title="מחיקה" style="font-size:1.1rem;">✕</button>
-        </div>
+        ${actionsHtml}
       </div>
     </div>`;
   }).join('');
@@ -7348,6 +7381,7 @@ function populateCampChildSelect() {
 }
 
 function openCampModal(id) {
+  if (isChildView()) return;
   document.getElementById('campEditId').value = id || '';
   document.getElementById('campModalTitle').textContent = id ? 'עריכת קייטנה' : 'הוספת קייטנה';
   document.getElementById('campName').value = '';
@@ -7424,6 +7458,7 @@ function saveCamp() {
 }
 
 async function deleteCamp(id) {
+  if (isChildView()) return;
   if (!await colinkConfirm('למחוק את הקייטנה?')) return;
   appData.camps = appData.camps.filter(c => c.id !== id);
   saveData();
@@ -7446,6 +7481,7 @@ function renderCamps() {
   }
 
   empty.style.display = 'none';
+  const childMode = isChildView();
 
   const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
   const today = new Date(); today.setHours(0,0,0,0);
@@ -7460,6 +7496,11 @@ function renderCamps() {
     const active = from <= today && to >= today;
     const statusText = ended ? 'הסתיימה' : active ? 'פעילה' : 'קרובה';
     const statusColor = ended ? '#aaa' : active ? '#00B894' : 'var(--primary)';
+    const actionsHtml = childMode ? '' : `
+          <div style="display:flex;gap:6px;margin-right:8px;">
+            <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
+            <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה" style="font-size:1.1rem;">🗑</button>
+          </div>`;
     return `
       <div class="card" style="${ended ? 'opacity:0.5;' : ''}margin-bottom:10px;padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -7474,10 +7515,7 @@ function renderCamps() {
             ${c.location ? '<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ' + esc(c.location) + '</div>' : ''}
             ${c.cost ? '<div style="font-size:0.85rem;color:var(--text-light);">▸ ₪' + esc(String(c.cost)) + '</div>' : ''}
           </div>
-          <div style="display:flex;gap:6px;margin-right:8px;">
-            <button class="icon-btn" onclick="openCampModal(${c.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
-            <button class="icon-btn" onclick="deleteCamp(${c.id})" title="מחיקה" style="font-size:1.1rem;">🗑</button>
-          </div>
+          ${actionsHtml}
         </div>
       </div>`;
   }).join('');
@@ -7562,22 +7600,28 @@ function renderCalendar() {
     if (isToday) classes += ' today';
     if (holiday) classes += ' holiday';
 
-    const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr);
+    const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr && t.status !== 'done');
     const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
     const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
     let labels = '';
+    const isMobile = window.innerWidth < 600;
+    const maxItems = isMobile ? 1 : 2;
     if (holiday) labels += `<div class="cal-day-label holiday-label">${esc(holiday.name)}</div>`;
-    const maxItems = 2;
-    dayEvents.slice(0, maxItems).forEach(e => {
-      labels += `<div class="cal-day-label event-label">◆ ${esc(e.title)}</div>`;
-    });
-    dayTasks.slice(0, maxItems - Math.min(dayEvents.length, maxItems)).forEach(t => {
-      const done = t.status === 'done';
-      labels += `<div class="cal-day-label task-label" style="${done ? 'text-decoration:line-through;opacity:0.5;' : ''}">☐ ${esc(t.title)}</div>`;
-    });
-    const totalItems = dayEvents.length + dayTasks.length;
-    const shownItems = Math.min(dayEvents.length, maxItems) + Math.min(dayTasks.length, maxItems - Math.min(dayEvents.length, maxItems));
-    if (totalItems > shownItems) labels += `<div class="cal-day-label" style="color:var(--text-muted);font-size:0.55rem;">+${totalItems - shownItems} עוד</div>`;
+    let labelCount = holiday ? 1 : 0;
+    if (labelCount < maxItems) {
+      dayEvents.slice(0, maxItems - labelCount).forEach(e => {
+        labels += `<div class="cal-day-label event-label">${esc(e.title)}</div>`;
+        labelCount++;
+      });
+    }
+    if (labelCount < maxItems) {
+      dayTasks.slice(0, maxItems - labelCount).forEach(t => {
+        labels += `<div class="cal-day-label task-label">${esc(t.title)}</div>`;
+        labelCount++;
+      });
+    }
+    const totalItems = dayEvents.length + dayTasks.length + (holiday ? 1 : 0);
+    if (totalItems > labelCount) labels += `<div class="cal-day-label" style="color:var(--text-muted);">+${totalItems - labelCount}</div>`;
 
     html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? esc(holiday.name) : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
       ${d}
@@ -7689,8 +7733,10 @@ function saveProfile() {
   appData.user.lastName = lastName;
   appData.user.name = firstName + (lastName ? ' ' + lastName : '');
   appData.user.phone = phone;
-  appData.user.role = role;
-  appData.familyName = document.getElementById('profileFamilyName').value.trim();
+  if (!isChildView()) {
+    appData.user.role = role;
+    appData.familyName = document.getElementById('profileFamilyName').value.trim();
+  }
   saveData();
   showToast('הפרופיל עודכן בהצלחה ✅');
   updateApp();
@@ -7940,7 +7986,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '112';
+const APP_VERSION = '116';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
