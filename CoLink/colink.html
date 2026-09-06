@@ -1928,7 +1928,7 @@
           </div>
         </div>
         <div class="stat-chip" id="statSentPendingChip" style="display:none;cursor:pointer;" onclick="showSentPending()">
-          <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF0F0;">⏳</span>
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF0F0;">◷</span>
           <div class="stat-chip-info">
             <span class="stat-chip-value" id="statSentPending">0</span>
             <span class="stat-chip-label">ממתין לצד השני</span>
@@ -7408,15 +7408,16 @@ async function renderFamilyMembers() {
   try {
     const snap = await db.collection('families').doc(appData.familyCode).collection('members').get();
     if (snap.empty) { list.innerHTML = '<p style="font-size:0.8rem;color:var(--text-light);">אין בני משפחה מחוברים</p>'; return; }
-    const icons = { 'אמא': '👩', 'אבא': '👨', 'child': '☆' };
+    const colors = { 'אמא': '#E8A0BF', 'אבא': '#7BA4D4', 'child': '#F5A623' };
     let html = '';
     snap.forEach(doc => {
       const m = doc.data();
       const isMe = currentFirebaseUser && doc.id === currentFirebaseUser.uid;
-      const icon = m.memberType === 'child' ? icons.child : (icons[m.role] || '👤');
+      const color = m.memberType === 'child' ? colors.child : (colors[m.role] || '#B0B0B0');
+      const initial = (m.name || '?').charAt(0);
       const roleLabel = m.memberType === 'child' ? 'ילד/ה' : (m.role || 'הורה');
       html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:10px;">
-        <span style="font-size:1.2rem;">${icon}</span>
+        <div style="width:32px;height:32px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.9rem;">${esc(initial)}</div>
         <div style="flex:1;">
           <div style="font-weight:600;font-size:0.9rem;">${esc(m.name || 'ללא שם')}${isMe ? ' <span style="color:var(--primary);font-size:0.75rem;">(אני)</span>' : ''}</div>
           <div style="font-size:0.75rem;color:var(--text-light);">${roleLabel}</div>
