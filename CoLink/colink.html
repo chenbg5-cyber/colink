@@ -3406,7 +3406,7 @@ function listenToFamilyNotifications() {
           showToast(n.title);
         }
       });
-    });
+    }, err => { console.warn('Notification listener error:', err.message); });
 }
 
 function sendFamilyNotification(title, body, forRole) {
@@ -7209,17 +7209,21 @@ function populateExpenseChildSelect() {
 function renderExpenses() {
   const tbody = document.getElementById('expensesTable');
   const empty = document.getElementById('expensesEmpty');
+  if (!tbody) return;
 
   if (appData.expenses.length === 0) {
     tbody.innerHTML = '';
-    empty.style.display = 'block';
-    document.getElementById('totalOwedToMe').textContent = '₪0';
-    document.getElementById('totalIOwe').textContent = '₪0';
-    document.getElementById('totalExpenses').textContent = '₪0';
+    if (empty) empty.style.display = 'block';
+    const toe = document.getElementById('totalOwedToMe');
+    const tio = document.getElementById('totalIOwe');
+    const te = document.getElementById('totalExpenses');
+    if (toe) toe.textContent = '₪0';
+    if (tio) tio.textContent = '₪0';
+    if (te) te.textContent = '₪0';
     return;
   }
 
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
   const myRole = getMyRole();
   tbody.innerHTML = appData.expenses.map(e => {
     const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
@@ -8146,6 +8150,7 @@ function renderCamps() {
 // ============ HOLIDAYS ============
 function renderHolidays() {
   const container = document.getElementById('holidaysList');
+  if (!container) return;
   const now = new Date();
   const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 30)).slice(0, 12);
 
@@ -8314,17 +8319,23 @@ function changeMonth(delta) {
 
 // ============ PROFILE ============
 function renderProfile() {
-  document.getElementById('profileFirstName').value = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
-  document.getElementById('profileLastName').value = appData.user.lastName || (appData.user.name ? appData.user.name.split(' ').slice(1).join(' ') : '');
-  document.getElementById('profileEmail').value = appData.user.email;
-  document.getElementById('profilePhone').value = appData.user.phone;
-  document.getElementById('profileFamilyName').value = appData.familyName || '';
-  document.getElementById('profileRole').value = appData.user.role;
-  document.getElementById('profileRole').disabled = true;
-  document.getElementById('profileRole').style.opacity = '0.5';
-  document.getElementById('profileFamilyName').disabled = false;
-  document.getElementById('profileFamilyName').style.opacity = '1';
-  document.getElementById('profileFamilyCode').textContent = appData.familyCode;
+  const pf = document.getElementById('profileFirstName');
+  const pl = document.getElementById('profileLastName');
+  const pe = document.getElementById('profileEmail');
+  const pp = document.getElementById('profilePhone');
+  const pfn = document.getElementById('profileFamilyName');
+  const pr = document.getElementById('profileRole');
+  const pfc = document.getElementById('profileFamilyCode');
+  if (!pf || !pr) return;
+  pf.value = appData.user.firstName || (appData.user.name ? appData.user.name.split(' ')[0] : '');
+  if (pl) pl.value = appData.user.lastName || (appData.user.name ? appData.user.name.split(' ').slice(1).join(' ') : '');
+  if (pe) pe.value = appData.user.email;
+  if (pp) pp.value = appData.user.phone;
+  if (pfn) { pfn.value = appData.familyName || ''; pfn.disabled = false; pfn.style.opacity = '1'; }
+  pr.value = appData.user.role;
+  pr.disabled = true;
+  pr.style.opacity = '0.5';
+  if (pfc) pfc.textContent = appData.familyCode;
   if (!isChildView()) renderFamilyMembers();
 }
 
@@ -8618,7 +8629,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '161';
+const APP_VERSION = '162';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
