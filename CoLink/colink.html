@@ -5911,8 +5911,20 @@ async function loadAttachmentFromFirestore(taskId) {
   } catch (e) { console.warn('Attachment load failed:', e); return null; }
 }
 
+function _storageTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+}
+
 async function uploadSignatureFile(sigId, fileData, fileName) {
   if (!appData.familyCode || !currentFirebaseUser || !fileData) return;
+  try {
+    await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sig_' + sigId).set({
+        name: fileName, data: fileData,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    return;
+  } catch (e) { console.warn('Firestore upload failed:', e); }
   try {
     const storage = firebase.storage();
     const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/original';
@@ -5921,36 +5933,28 @@ async function uploadSignatureFile(sigId, fileData, fileName) {
     const mimeMatch = fileData.match(/^data:([^;]+);/);
     const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
     const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-    await ref.put(bytes, { contentType: mime, customMetadata: { fileName: fileName } });
-    return;
-  } catch (e) { console.warn('Storage upload failed, trying Firestore:', e); }
-  try {
-    await db.collection('families').doc(appData.familyCode)
-      .collection('attachments').doc('sig_' + sigId).set({
-        name: fileName, data: fileData,
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-  } catch (e2) { console.warn('Firestore upload also failed:', e2); showToast('שגיאה בהעלאת קובץ - הקובץ גדול מדי'); }
+    await _storageTimeout(ref.put(bytes, { contentType: mime, customMetadata: { fileName: fileName } }), 8000);
+  } catch (e2) { console.warn('Storage upload also failed:', e2); showToast('שגיאה בהעלאת קובץ - הקובץ גדול מדי'); }
 }
 
 async function uploadSignaturePDF(sigId, pdfData) {
   if (!appData.familyCode || !currentFirebaseUser || !pdfData) return;
-  try {
-    const storage = firebase.storage();
-    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf';
-    const ref = storage.ref(path);
-    const base64 = pdfData.split(',')[1] || pdfData;
-    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-    await ref.put(bytes, { contentType: 'application/pdf' });
-    return;
-  } catch (e) { console.warn('Storage PDF upload failed, trying Firestore:', e); }
   try {
     await db.collection('families').doc(appData.familyCode)
       .collection('attachments').doc('sigpdf_' + sigId).set({
         data: pdfData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e2) { console.warn('Firestore PDF upload also failed:', e2); showToast('שגיאה בהעלאת PDF חתום לענן'); }
+    return;
+  } catch (e) { console.warn('Firestore PDF upload failed:', e); }
+  try {
+    const storage = firebase.storage();
+    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf';
+    const ref = storage.ref(path);
+    const base64 = pdfData.split(',')[1] || pdfData;
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    await _storageTimeout(ref.put(bytes, { contentType: 'application/pdf' }), 8000);
+  } catch (e2) { console.warn('Storage PDF upload also failed:', e2); showToast('שגיאה בהעלאת PDF חתום לענן'); }
 }
 
 async function loadSignatureFile(sigId) {
@@ -5963,7 +5967,7 @@ async function loadSignatureFile(sigId) {
   try {
     const storage = firebase.storage();
     const ref = storage.ref('families/' + appData.familyCode + '/signatures/' + sigId + '/original');
-    const url = await ref.getDownloadURL();
+    const url = await _storageTimeout(ref.getDownloadURL(), 5000);
     const resp = await fetch(url);
     const blob = await resp.blob();
     return new Promise(resolve => {
@@ -5973,6 +5977,11 @@ async function loadSignatureFile(sigId) {
       reader.readAsDataURL(blob);
     });
   } catch(e2) {}
+  try {
+    const backup = JSON.parse(localStorage.getItem('colink_backup') || '{}');
+    const bs = (backup.signatures || []).find(s => s.id === sigId);
+    if (bs && bs.fileData) return { data: bs.fileData, name: bs.fileName || '' };
+  } catch(e3) {}
   return null;
 }
 
@@ -5986,7 +5995,7 @@ async function loadSignaturePDF(sigId) {
   try {
     const storage = firebase.storage();
     const ref = storage.ref('families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf');
-    const url = await ref.getDownloadURL();
+    const url = await _storageTimeout(ref.getDownloadURL(), 5000);
     const resp = await fetch(url);
     const blob = await resp.blob();
     return new Promise(resolve => {
@@ -5996,6 +6005,11 @@ async function loadSignaturePDF(sigId) {
       reader.readAsDataURL(blob);
     });
   } catch(e2) {}
+  try {
+    const backup = JSON.parse(localStorage.getItem('colink_backup') || '{}');
+    const bs = (backup.signatures || []).find(s => s.id === sigId);
+    if (bs && bs.pdfData) return { data: bs.pdfData };
+  } catch(e3) {}
   return null;
 }
 
@@ -6081,14 +6095,25 @@ async function viewSignatureFile(id) {
     showFileViewer(s.fileData, s.fileName);
     return;
   }
+  try {
+    const backup = JSON.parse(localStorage.getItem('colink_backup') || '{}');
+    const bs = (backup.signatures || []).find(x => x.id === id);
+    if (bs && bs.fileData) {
+      s.fileData = bs.fileData;
+      saveData();
+      uploadSignatureFile(id, bs.fileData, s.fileName).catch(() => {});
+      showFileViewer(bs.fileData, s.fileName);
+      return;
+    }
+  } catch(e) {}
   showToast('טוען קובץ מהענן...');
   const cloud = await loadSignatureFile(id);
   if (cloud && cloud.data) {
     s.fileData = cloud.data;
-    localStorage.setItem('colink_data', JSON.stringify(appData));
+    saveData();
     showFileViewer(cloud.data, s.fileName);
   } else {
-    showToast('הקובץ לא זמין');
+    showToast('הקובץ לא זמין - ייתכן שנדרש לעלות מחדש');
   }
 }
 
@@ -8263,7 +8288,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '130';
+const APP_VERSION = '131';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
