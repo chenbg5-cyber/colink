@@ -3321,6 +3321,7 @@ async function onAuthSuccess() {
           } else if (sync.weekendFixedWith === 'partner') {
             appData.weekendFixedWith = 'me';
           }
+          saveData();
         }
       }
     }
@@ -6670,7 +6671,10 @@ function isCustodyOwner() {
 function saveCustodyToCloud() {
   saveData();
   saveToCloud();
-  showToast('שינויי משמורת נשמרו לענן');
+  showToast('שינויי משמורת נשמרו');
+  renderCustody();
+  updateDashboard();
+  if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
 function toggleCustodyEdit(day, el) {
@@ -6689,10 +6693,6 @@ function toggleCustodyEdit(day, el) {
     el.classList.add(myClass);
     appData.custodyDays.push(day);
   }
-  saveData();
-  showToast('נשמר ✓');
-  updateDashboard();
-  if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
 function renderWeekendEditor() {
@@ -6788,8 +6788,6 @@ function updateWeekendMode(mode) {
     appData.weekendFixedWith = '';
     appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
   }
-  saveData();
-  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -6805,8 +6803,6 @@ function toggleWeekendDayEdit(day) {
     wDays.push(day);
   }
   appData.weekendDays = wDays;
-  saveData();
-  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -6824,9 +6820,6 @@ function updateWeekendRef(val) {
   appData.weekendStartWithMe = true;
   const input = document.getElementById('editWeekendRef');
   if (input) input.value = appData.weekendStartDate;
-  saveData();
-  showToast('נשמר ✓');
-  updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
@@ -6836,8 +6829,6 @@ function updateWeekendFixed(who) {
   const wDays = appData.weekendDays || [5, 6];
   appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
   if (who === 'me') wDays.forEach(d => appData.custodyDays.push(d));
-  saveData();
-  showToast('נשמר ✓');
   renderWeekendEditor();
   updateDashboard();
   if (document.getElementById('calendarGrid')) renderCalendar();
@@ -6859,10 +6850,6 @@ function toggleFollowDayEdit(day, el) {
     }
     document.querySelectorAll('.alt-day-edit[data-day="'+day+'"]').forEach(e => e.classList.remove('mine'));
   }
-  saveData();
-  showToast('נשמר ✓');
-  updateDashboard();
-  if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
 function toggleAltDayEdit(day, el) {
@@ -6881,10 +6868,6 @@ function toggleAltDayEdit(day, el) {
     }
     document.querySelectorAll('.follow-day-edit[data-day="'+day+'"]').forEach(e => e.classList.remove('mine'));
   }
-  saveData();
-  showToast('נשמר ✓');
-  updateDashboard();
-  if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
 function addCustodyChange() {
