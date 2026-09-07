@@ -2214,8 +2214,7 @@
       </div>
       <div class="card">
         <div class="tabs" style="margin-bottom:16px;">
-          <button class="tab-btn active" onclick="filterSignatures('all', this)">הכל</button>
-          <button class="tab-btn" onclick="filterSignatures('pending', this)">ממתינים</button>
+          <button class="tab-btn active" onclick="filterSignatures('pending', this)">ממתינים</button>
           <button class="tab-btn" onclick="filterSignatures('signed', this)">חתומים</button>
         </div>
         <div id="signaturesList"></div>
@@ -3145,8 +3144,7 @@ async function onAuthSuccess() {
   if (localData) {
     const hasContent = (localData.kids && localData.kids.length > 0) || (localData.tasks && localData.tasks.length > 0) || (localData.events && localData.events.length > 0) || (localData.activities && localData.activities.length > 0);
     if (hasContent) {
-      localStorage.setItem('colink_backup', JSON.stringify(localData));
-      localStorage.setItem('colink_backup_time', new Date().toISOString());
+      try { localStorage.setItem('colink_backup', JSON.stringify(localData)); localStorage.setItem('colink_backup_time', new Date().toISOString()); } catch(e) {}
     }
   }
 
@@ -3315,7 +3313,7 @@ async function onAuthSuccess() {
   }
 
   loadingFromCloud = false;
-  localStorage.setItem('colink_data', JSON.stringify(appData));
+  try { localStorage.setItem('colink_data', JSON.stringify(appData)); } catch(e) { console.warn('localStorage save failed in onAuthSuccess:', e); }
   migrateData();
   if (appData.user.name && appData.familyCode) {
     document.getElementById('onboarding').classList.add('hidden');
@@ -3764,11 +3762,33 @@ function saveData() {
   if (!appData.activities) appData.activities = [];
   if (!appData.camps) appData.camps = [];
   if (!appData.user) appData.user = { name: '', email: '', phone: '', role: '', partnerEmail: '' };
-  localStorage.setItem('colink_data', JSON.stringify(appData));
+  try {
+    localStorage.setItem('colink_data', JSON.stringify(appData));
+  } catch(e) {
+    const lite = JSON.parse(JSON.stringify(appData));
+    if (lite.signatures) lite.signatures = lite.signatures.map(s => {
+      const c = {...s};
+      delete c.fileData; delete c.pdfData;
+      if (c.signatures) {
+        const sc = {};
+        Object.keys(c.signatures).forEach(k => { sc[k] = { date: c.signatures[k].date, name: c.signatures[k].name || '' }; });
+        c.signatures = sc;
+      }
+      return c;
+    });
+    if (lite.expenses) lite.expenses = lite.expenses.map(ex => { const c = {...ex}; delete c.invoiceData; return c; });
+    if (lite.tasks) lite.tasks = lite.tasks.map(t => {
+      if (!t.attachment || !t.attachment.data) return t;
+      const c = {...t}; c.attachment = { name: t.attachment.name, type: t.attachment.type }; return c;
+    });
+    try { localStorage.setItem('colink_data', JSON.stringify(lite)); } catch(e2) { console.warn('localStorage full even after trim'); }
+  }
   const hasContent = (appData.kids.length > 0) || (appData.tasks.length > 0) || (appData.events.length > 0) || (appData.activities && appData.activities.length > 0);
   if (hasContent) {
-    localStorage.setItem('colink_backup', localStorage.getItem('colink_data'));
-    localStorage.setItem('colink_backup_time', new Date().toISOString());
+    try {
+      localStorage.setItem('colink_backup', localStorage.getItem('colink_data'));
+      localStorage.setItem('colink_backup_time', new Date().toISOString());
+    } catch(e) {}
   }
   saveToCloud();
   cacheBirthdayData();
@@ -6371,7 +6391,7 @@ function filterTasks(filter, btn) {
 
 function renderTasks() {
   const container = document.getElementById('tasksList');
-  let tasks = [...(appData.tasks || [])];
+  let tasks = [...(appData.tasks || [])].filter(t => isMyTask(t));
 
   if (currentTaskFilter === 'pending') tasks = tasks.filter(t => t.status === 'pending');
   else if (currentTaskFilter === 'inprocess') tasks = tasks.filter(t => t.status === 'inprocess');
@@ -7036,7 +7056,7 @@ function renderExpenses() {
 }
 
 // ============ SIGNATURES ============
-let currentSigFilter = 'all';
+let currentSigFilter = 'pending';
 let sigPadDrawing = false;
 
 function populateSigChildSelect() {
@@ -7103,7 +7123,12 @@ function isSigPadEmpty() {
 
 function getSigPadData() {
   const canvas = document.getElementById('sigPadCanvas');
-  return canvas.toDataURL('image/png');
+  const small = document.createElement('canvas');
+  small.width = Math.min(canvas.width, 400);
+  small.height = Math.round(canvas.height * (small.width / canvas.width));
+  const sCtx = small.getContext('2d');
+  sCtx.drawImage(canvas, 0, 0, small.width, small.height);
+  return small.toDataURL('image/png');
 }
 
 function showFileSizeUpgrade() {
@@ -7129,62 +7154,69 @@ function showFileSizeUpgrade() {
 }
 
 function addSignature() {
-  if (isChildView()) return;
-  const title = document.getElementById('sigTitle').value.trim();
-  const category = document.getElementById('sigCategory').value;
-  const forChild = document.getElementById('sigForChild').value;
-  const deadline = document.getElementById('sigDeadline').value;
-  const dualSign = document.getElementById('sigDualSign').checked;
-  const notes = document.getElementById('sigNotes').value.trim();
-  const file = document.getElementById('sigFile').files[0];
+  try {
+    if (isChildView()) return;
+    const title = document.getElementById('sigTitle').value.trim();
+    const category = document.getElementById('sigCategory').value;
+    const forChild = document.getElementById('sigForChild').value;
+    const deadline = document.getElementById('sigDeadline').value;
+    const dualSign = document.getElementById('sigDualSign').checked;
+    const notes = document.getElementById('sigNotes').value.trim();
+    const file = document.getElementById('sigFile').files[0];
 
-  if (!title) { showToast('נא למלא שם מסמך'); return; }
+    if (!title) { showToast('נא למלא שם מסמך'); return; }
 
-  const myRole = getMyRole();
-  const sigObj = {
-    id: Date.now(),
-    title,
-    category,
-    forChild,
-    deadline,
-    dualSign,
-    notes,
-    fileName: file ? file.name : '',
-    fileData: null,
-    createdBy: myRole,
-    signatures: {},
-    signedBy: [],
-    status: 'pending',
-    pdfData: null,
-    createdAt: new Date().toISOString()
-  };
-
-  function finishAdd() {
-    appData.signatures.push(sigObj);
-    saveData();
-    if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName).then(() => { sigObj.fileCloudSaved = true; saveData(); }).catch(() => {});
-    closeModal('signatureModal');
-    document.getElementById('sigTitle').value = '';
-    document.getElementById('sigCategory').value = 'בית ספר';
-    document.getElementById('sigForChild').value = '';
-    document.getElementById('sigDeadline').value = '';
-    document.getElementById('sigDualSign').checked = true;
-    document.getElementById('sigNotes').value = '';
-    document.getElementById('sigFile').value = '';
-    document.getElementById('sigFileName').textContent = '';
-    renderSignatures();
-    showToast('מסמך נשלח לחתימה');
-  }
-
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function() {
-      sigObj.fileData = reader.result;
-      finishAdd();
+    const myRole = getMyRole();
+    const sigObj = {
+      id: Date.now(),
+      title,
+      category,
+      forChild,
+      deadline,
+      dualSign,
+      notes,
+      fileName: file ? file.name : '',
+      fileData: null,
+      createdBy: myRole,
+      signatures: {},
+      signedBy: [],
+      status: 'pending',
+      pdfData: null,
+      createdAt: new Date().toISOString()
     };
-    reader.readAsDataURL(file);
-  } else {
-    finishAdd();
+
+    function finishAdd() {
+      try {
+        appData.signatures.push(sigObj);
+        saveData();
+        if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName).then(() => { sigObj.fileCloudSaved = true; saveData(); }).catch(() => {});
+        closeModal('signatureModal');
+        document.getElementById('sigTitle').value = '';
+        document.getElementById('sigCategory').value = 'בית ספר';
+        document.getElementById('sigForChild').value = '';
+        document.getElementById('sigDeadline').value = '';
+        document.getElementById('sigDualSign').checked = true;
+        document.getElementById('sigNotes').value = '';
+        document.getElementById('sigFile').value = '';
+        document.getElementById('sigFileName').textContent = '';
+        renderSignatures();
+        showToast('המסמך נוצר — לחצ/י על כפתור חתימה');
+      } catch(e) { console.error('finishAdd error:', e); showToast('שגיאה ביצירת מסמך: ' + e.message); }
+    }
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        sigObj.fileData = reader.result;
+        finishAdd();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      finishAdd();
+    }
+  } catch(err) {
+    console.error('addSignature error:', err);
+    showToast('שגיאה: ' + err.message);
   }
 }
 
@@ -7195,37 +7227,48 @@ function openSignPad(id) {
 }
 
 async function confirmSignature() {
-  if (isSigPadEmpty()) { showToast('נא לחתום בתוך המסגרת'); return; }
+  try {
+    if (isSigPadEmpty()) { showToast('נא לחתום בתוך המסגרת'); return; }
 
-  const id = parseInt(document.getElementById('sigPadDocId').value);
-  const doc = appData.signatures.find(s => s.id === id);
-  if (!doc) return;
+    const idVal = document.getElementById('sigPadDocId').value;
+    const id = parseInt(idVal);
+    if (!appData.signatures) appData.signatures = [];
+    const doc = appData.signatures.find(s => s.id == id);
+    if (!doc) { showToast('שגיאה: מסמך לא נמצא (ID: ' + idVal + ')'); return; }
 
-  const myRole = getMyRole();
-  const sigData = getSigPadData();
-  if (!doc.signatures) doc.signatures = {};
-  doc.signatures[myRole] = { data: sigData, date: new Date().toISOString() };
-  if (!doc.signedBy.includes(myRole)) doc.signedBy.push(myRole);
+    const myRole = getMyRole();
+    if (!myRole) { showToast('שגיאה: לא ניתן לזהות תפקיד'); return; }
+    const sigData = getSigPadData();
+    if (!sigData) { showToast('שגיאה: לא ניתן לקרוא חתימה'); return; }
 
-  const needed = doc.dualSign ? 2 : 1;
-  if (doc.signedBy.length >= needed) {
-    doc.status = 'signed';
-    showConfetti();
-    showToast('המסמך נחתם — מכין PDF להורדה...');
-    saveData();
-    closeModal('sigPadModal');
-    renderSignatures();
-    await generateSignedPDF(doc);
-  } else {
-    showToast('חתמת — ממתין להורה השני');
-    saveData();
-    closeModal('sigPadModal');
-    renderSignatures();
+    if (!doc.signatures || typeof doc.signatures !== 'object') doc.signatures = {};
+    doc.signatures[myRole] = { data: sigData, date: new Date().toISOString(), name: appData.user.name || '' };
+    if (!Array.isArray(doc.signedBy)) doc.signedBy = [];
+    if (!doc.signedBy.includes(myRole)) doc.signedBy.push(myRole);
+
+    const needed = doc.dualSign ? 2 : 1;
+    if (doc.signedBy.length >= needed) {
+      doc.status = 'signed';
+      showConfetti();
+      showToast('המסמך נחתם בהצלחה!');
+      saveData();
+      closeModal('sigPadModal');
+      renderSignatures();
+      try { await generateSignedPDF(doc); } catch(e) { console.warn('PDF generation error:', e); showToast('החתימה נשמרה, הפקת PDF נכשלה — נסו הפקה מחדש'); }
+    } else {
+      showToast('חתמת — ממתין להורה השני');
+      saveData();
+      closeModal('sigPadModal');
+      renderSignatures();
+    }
+  } catch(err) {
+    console.error('confirmSignature error:', err);
+    showToast('שגיאה: ' + (err.message || 'לא ידוע'));
   }
 }
 
 function rejectSignature(id) {
-  const doc = appData.signatures.find(s => s.id === id);
+  const doc = appData.signatures.find(s => s.id == id);
   if (!doc) return;
   doc.status = 'rejected';
   saveData();
@@ -7295,7 +7338,8 @@ async function generateSignedPDF(doc) {
       ctx.beginPath(); ctx.moveTo(xStart, sigY + sigDrawH + 5); ctx.lineTo(xStart + sigDrawW, sigY + sigDrawH + 5); ctx.stroke();
       ctx.textAlign = 'center';
       ctx.font = 'bold 15px Rubik, sans-serif'; ctx.fillStyle = '#333';
-      ctx.fillText(role, xStart + sigDrawW / 2, sigY + sigDrawH + 24);
+      const sigName = (doc.signatures[role] && doc.signatures[role].name) ? ' (' + doc.signatures[role].name + ')' : '';
+      ctx.fillText(role + sigName, xStart + sigDrawW / 2, sigY + sigDrawH + 24);
       ctx.font = '12px Rubik, sans-serif'; ctx.fillStyle = '#888';
       ctx.fillText(date ? formatDate(date.split('T')[0]) : '', xStart + sigDrawW / 2, sigY + sigDrawH + 42);
       xStart += sigDrawW + gap;
@@ -7425,7 +7469,7 @@ function _openPdfBlob(pdfData) {
 }
 
 function downloadSignedPDF(id) {
-  const doc = appData.signatures.find(s => s.id === id);
+  const doc = appData.signatures.find(s => s.id == id);
   if (!doc) return;
   if (doc.pdfData) {
     _openPdfBlob(doc.pdfData);
@@ -7452,7 +7496,7 @@ function downloadSignedPDF(id) {
 }
 
 async function regenerateAndDownload(id) {
-  const doc = appData.signatures.find(s => s.id === id);
+  const doc = appData.signatures.find(s => s.id == id);
   if (!doc) return;
   showToast('מפיק PDF...');
   await generateSignedPDF(doc);
@@ -7488,7 +7532,7 @@ function renderSignatures() {
     const needed = s.dualSign ? 2 : 1;
     const statusMap = {
       pending: { cls: 'badge-pending', label: s.dualSign ? 'ממתין לחתימה כפולה' : 'ממתין לחתימה' },
-      signed: { cls: 'badge-approved', label: s.dualSign ? 'חתום ע״י שניהם' : 'חתום' },
+      signed: { cls: 'badge-approved', label: s.dualSign ? 'חתום ע"י שני ההורים' : 'חתום' },
       rejected: { cls: 'badge-rejected', label: 'נדחה' }
     };
     const st = statusMap[s.status] || statusMap.pending;
@@ -7501,7 +7545,7 @@ function renderSignatures() {
       sigPreviewHtml = '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">' +
         sigKeys.map(role => `<div style="text-align:center;">
           <img src="${sigs1[role].data}" class="sig-preview">
-          <div style="font-size:0.7rem;color:var(--text-light);margin-top:2px;">${role} · ${formatDate(sigs1[role].date.split('T')[0])}</div>
+          <div style="font-size:0.7rem;color:var(--text-light);margin-top:2px;">${role}${sigs1[role].name ? ' (' + esc(sigs1[role].name) + ')' : ''} · ${formatDate(sigs1[role].date.split('T')[0])}</div>
         </div>`).join('') + '</div>';
     }
 
@@ -8366,7 +8410,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '138';
+const APP_VERSION = '147';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
