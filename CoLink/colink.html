@@ -5958,13 +5958,39 @@ function showFileViewer(dataUrl, fileName) {
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
   const box = document.createElement('div');
-  box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:90vw;max-height:85vh;overflow:auto;text-align:center;';
+  box.style.cssText = 'background:white;border-radius:16px;padding:20px;max-width:90vw;max-height:85vh;overflow:auto;text-align:center;position:relative;';
   const isImage = dataUrl && dataUrl.startsWith('data:image');
-  if (isImage) {
-    box.innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;"><br><button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--primary);color:white;font-family:inherit;cursor:pointer;">סגור</button>';
+  const isPdf = dataUrl && dataUrl.startsWith('data:application/pdf');
+  const fnLower = (fileName || '').toLowerCase();
+  const looksLikePdf = fnLower.endsWith('.pdf');
+  const looksLikeImage = fnLower.endsWith('.jpg') || fnLower.endsWith('.jpeg') || fnLower.endsWith('.png') || fnLower.endsWith('.webp');
+  const btnStyle = 'padding:8px 20px;border:none;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.85rem;';
+  if (isImage || (!isPdf && looksLikeImage)) {
+    box.innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;max-height:60vh;border-radius:8px;margin-bottom:12px;"><br>' +
+      '<div style="display:flex;gap:8px;justify-content:center;">' +
+      '<button onclick="window._fileViewerDownload()" style="' + btnStyle + 'background:var(--primary);color:white;">הורדה</button>' +
+      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="' + btnStyle + 'background:#eee;color:#333;">סגור</button></div>';
+  } else if (isPdf || looksLikePdf) {
+    box.style.width = '90vw';
+    box.style.height = '85vh';
+    box.style.display = 'flex';
+    box.style.flexDirection = 'column';
+    box.innerHTML = '<div style="flex:1;min-height:0;"><iframe src="' + dataUrl + '" style="width:100%;height:100%;border:none;border-radius:8px;"></iframe></div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-shrink:0;">' +
+      '<button onclick="window._fileViewerDownload()" style="' + btnStyle + 'background:var(--primary);color:white;">הורדה</button>' +
+      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="' + btnStyle + 'background:#eee;color:#333;">סגור</button></div>';
   } else {
-    box.innerHTML = '<p style="margin-bottom:12px;">📎 ' + esc(fileName || 'קובץ') + '</p><p style="color:var(--text-light);font-size:0.85rem;">לא ניתן להציג את הקובץ בדפדפן</p><button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--primary);color:white;font-family:inherit;cursor:pointer;">סגור</button>';
+    box.innerHTML = '<p style="margin-bottom:12px;">' + esc(fileName || 'קובץ') + '</p>' +
+      '<div style="display:flex;gap:8px;justify-content:center;">' +
+      '<button onclick="window._fileViewerDownload()" style="' + btnStyle + 'background:var(--primary);color:white;">הורדה</button>' +
+      '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="' + btnStyle + 'background:#eee;color:#333;">סגור</button></div>';
   }
+  window._fileViewerDownload = function() {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName || 'document';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 }
@@ -8130,7 +8156,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '120';
+const APP_VERSION = '121';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
