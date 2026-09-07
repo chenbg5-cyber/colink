@@ -7480,7 +7480,10 @@ function renderSignatures() {
     let pdfBtn = '';
     if (s.status === 'signed') {
       if (s.pdfData) {
-        pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.85rem;margin-top:10px;display:flex;align-items:center;gap:6px;" onclick="downloadSignedPDF(${s.id})">⤓ הורדת PDF חתום</button>`;
+        pdfBtn = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;gap:6px;" onclick="downloadSignedPDF(${s.id})">⤓ צפייה ב-PDF חתום</button>
+          <button class="btn btn-sm" style="background:#dfe6e9;color:#2d3436;border:none;padding:8px 12px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="regenerateAndDownload(${s.id})">⟳ הפקה מחדש</button>
+        </div>`;
       } else {
         pdfBtn = `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:inherit;cursor:pointer;font-size:0.85rem;margin-top:10px;" onclick="regenerateAndDownload(${s.id})">⤓ הפקת PDF חתום</button>`;
       }
@@ -7508,7 +7511,7 @@ function renderSignatures() {
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="badge ${st.cls}">${st.label}</span>
-            ${isMine ? `<button class="icon-btn" onclick="deleteSignature(${s.id})" title="מחיקה">✕</button>` : ''}
+            <button class="icon-btn parent-only" onclick="deleteSignature(${s.id})" title="מחיקה">✕</button>
           </div>
         </div>
         ${sigPreviewHtml}
@@ -8324,7 +8327,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '134';
+const APP_VERSION = '135';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
