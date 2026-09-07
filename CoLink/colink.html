@@ -3559,7 +3559,7 @@ function listenToSharedData() {
         changed = true;
       }
       if (changed) {
-        localStorage.setItem('colink_data', JSON.stringify(appData));
+        try { localStorage.setItem('colink_data', JSON.stringify(appData)); } catch(e) { console.warn('localStorage save failed in onSnapshot:', e); }
         if (document.getElementById('appContainer').classList.contains('active')) {
           updateApp();
         }
@@ -4148,7 +4148,7 @@ async function copyFamilyCode() {
       if (snap.exists && snap.data().appData && snap.data().appData.familyCode) {
         code = snap.data().appData.familyCode;
         appData.familyCode = code;
-        localStorage.setItem('colink_data', JSON.stringify(appData));
+        try { localStorage.setItem('colink_data', JSON.stringify(appData)); } catch(e) {}
         document.getElementById('profileFamilyCode').textContent = code;
       }
     } catch (e) {}
@@ -6085,7 +6085,7 @@ async function viewExpenseInvoice(id) {
       .collection('attachments').doc('exp_' + id).get();
     if (d.exists && d.data().data) {
       exp.invoiceData = d.data().data;
-      localStorage.setItem('colink_data', JSON.stringify(appData));
+      saveData();
       showFileViewer(exp.invoiceData, exp.invoiceName);
     } else {
       showToast('הקבלה לא זמינה');
@@ -8410,10 +8410,10 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '147';
+const APP_VERSION = '148';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
-  localStorage.setItem('colink_version', APP_VERSION);
+  try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
   if ('caches' in window) {
     caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
       if ('serviceWorker' in navigator) {
@@ -8429,7 +8429,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
     window.location.reload(true);
   }
 } else {
-  localStorage.setItem('colink_version', APP_VERSION);
+  try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
 }
 
 // PWA Service Worker
