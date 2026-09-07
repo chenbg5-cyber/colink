@@ -1556,6 +1556,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <!-- Storage via Firestore (no Storage SDK needed) -->
 </head>
 <body>
@@ -5888,44 +5889,94 @@ async function loadAttachmentFromFirestore(taskId) {
 async function uploadSignatureFile(sigId, fileData, fileName) {
   if (!appData.familyCode || !currentFirebaseUser || !fileData) return;
   try {
+    const storage = firebase.storage();
+    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/original';
+    const ref = storage.ref(path);
+    const base64 = fileData.split(',')[1] || fileData;
+    const mimeMatch = fileData.match(/^data:([^;]+);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    await ref.put(bytes, { contentType: mime, customMetadata: { fileName: fileName } });
+    return;
+  } catch (e) { console.warn('Storage upload failed, trying Firestore:', e); }
+  try {
     await db.collection('families').doc(appData.familyCode)
       .collection('attachments').doc('sig_' + sigId).set({
-        name: fileName,
-        data: fileData,
+        name: fileName, data: fileData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e) { console.warn('Sig file upload failed:', e); showToast('שגיאה בהעלאת קובץ לענן'); }
+  } catch (e2) { console.warn('Firestore upload also failed:', e2); showToast('שגיאה בהעלאת קובץ - הקובץ גדול מדי'); }
 }
 
 async function uploadSignaturePDF(sigId, pdfData) {
   if (!appData.familyCode || !currentFirebaseUser || !pdfData) return;
+  try {
+    const storage = firebase.storage();
+    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf';
+    const ref = storage.ref(path);
+    const base64 = pdfData.split(',')[1] || pdfData;
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    await ref.put(bytes, { contentType: 'application/pdf' });
+    return;
+  } catch (e) { console.warn('Storage PDF upload failed, trying Firestore:', e); }
   try {
     await db.collection('families').doc(appData.familyCode)
       .collection('attachments').doc('sigpdf_' + sigId).set({
         data: pdfData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-  } catch (e) { console.warn('Sig PDF upload failed:', e); showToast('שגיאה בהעלאת PDF לענן'); }
+  } catch (e2) { console.warn('Firestore PDF upload also failed:', e2); showToast('שגיאה בהעלאת PDF חתום לענן'); }
 }
 
 async function loadSignatureFile(sigId) {
   if (!appData.familyCode || !currentFirebaseUser) return null;
   try {
-    const d = await db.collection('families').doc(appData.familyCode)
-      .collection('attachments').doc('sig_' + sigId).get();
-    if (d.exists) return d.data();
+    const storage = firebase.storage();
+    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/original';
+    const ref = storage.ref(path);
+    const meta = await ref.getMetadata();
+    const url = await ref.getDownloadURL();
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ data: reader.result, name: meta.customMetadata ? meta.customMetadata.fileName : '' });
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    try {
+      const d = await db.collection('families').doc(appData.familyCode)
+        .collection('attachments').doc('sig_' + sigId).get();
+      if (d.exists) return d.data();
+    } catch(e2) {}
     return null;
-  } catch (e) { return null; }
+  }
 }
 
 async function loadSignaturePDF(sigId) {
   if (!appData.familyCode || !currentFirebaseUser) return null;
   try {
-    const d = await db.collection('families').doc(appData.familyCode)
-      .collection('attachments').doc('sigpdf_' + sigId).get();
-    if (d.exists) return d.data();
+    const storage = firebase.storage();
+    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf';
+    const ref = storage.ref(path);
+    const url = await ref.getDownloadURL();
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ data: reader.result });
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    try {
+      const d = await db.collection('families').doc(appData.familyCode)
+        .collection('attachments').doc('sigpdf_' + sigId).get();
+      if (d.exists) return d.data();
+    } catch(e2) {}
     return null;
-  } catch (e) { return null; }
+  }
 }
 
 async function uploadExpenseInvoice(expId, invoiceData, invoiceName) {
@@ -8168,7 +8219,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '123';
+const APP_VERSION = '124';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
