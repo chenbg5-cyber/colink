@@ -6270,6 +6270,7 @@ function changeTaskStatus(id, newStatus) {
     delete task.completedAt;
   }
   task.status = newStatus;
+  task.updatedAt = new Date().toISOString();
   saveData(); renderTasks(); updateDashboard();
 }
 
@@ -8343,7 +8344,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '136';
+const APP_VERSION = '137';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
