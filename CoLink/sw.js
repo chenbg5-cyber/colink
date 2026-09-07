@@ -22,7 +22,7 @@ messaging.onBackgroundMessage(payload => {
   }
 });
 
-const CACHE_NAME = 'colink-v132';
+const CACHE_NAME = 'colink-v133';
 const ASSETS = [
   './colink.html',
   './manifest.json'
