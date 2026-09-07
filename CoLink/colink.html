@@ -5039,11 +5039,11 @@ function updateDashboard() {
   }
 
   // Card 3: Today Assignments count (for my role)
-  const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && t.status !== 'done');
+  const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && isTaskPendingForMe(t));
   document.getElementById('statTodayTasks').textContent = todayTasks.length;
 
   // Card 4: Total Assignments count (for my role, not done)
-  const totalTasks = (appData.tasks || []).filter(t => isMyTask(t) && t.status !== 'done');
+  const totalTasks = (appData.tasks || []).filter(t => isMyTask(t) && isTaskPendingForMe(t));
   document.getElementById('statTotalTasks').textContent = totalTasks.length;
 
   // Card 5: Friends Birthday count
@@ -5193,7 +5193,7 @@ function updateDashboard() {
   const childMode = isChildView();
   const myTodayTasks = childMode
     ? appData.tasks.filter(t => t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'))
-    : appData.tasks.filter(t => isMyTask(t) && t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
+    : appData.tasks.filter(t => isMyTask(t) && isTaskPendingForMe(t)).sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
   if (myTodayTasks.length === 0) {
     dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
   } else {
@@ -5202,9 +5202,21 @@ function updateDashboard() {
     const visibleTasks = isExpanded ? myTodayTasks : myTodayTasks.slice(0, COLLAPSED_LIMIT);
     const taskItems = visibleTasks.map(t => {
       const isDone = t.status === 'done';
-      const lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
+      const isShared = t.responsibility === 'משותפת';
+      let lockedByOther = false;
+      let stamp = '';
+      if (isShared) {
+        const cb = getSharedCompletedBy(t);
+        const momDone = cb.includes('אמא');
+        const dadDone = cb.includes('אבא');
+        stamp = (momDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אמא</span> ' : '') +
+                (dadDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אבא</span>' : '');
+      } else {
+        lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
+        stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + esc(t.completedBy) + '</span>' : '';
+      }
       const desc = t.desc ? '<div style="font-size:0.72rem;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(t.desc) + '</div>' : '';
-      const stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + esc(t.completedBy) + '</span>' : '';
+      const myDoneInShared = isShared && getSharedCompletedBy(t).includes(getMyRole());
       if (childMode) {
         return `
         <div class="list-item">
@@ -5218,8 +5230,8 @@ function updateDashboard() {
       }
       return `
         <div class="list-item">
-          <div class="list-item-check ${isDone ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + esc(t.completedBy) + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
-            ${isDone ? '✓' : ''}
+          <div class="list-item-check ${isDone || myDoneInShared ? 'checked' : ''}${lockedByOther ? ' locked' : ''}" onclick="${lockedByOther ? 'showToast(\'הושלם ע\\\'\\\'י ' + esc(t.completedBy) + '\')' : 'toggleTaskStatus(' + t.id + ')'}">
+            ${isDone || myDoneInShared ? '✓' : ''}
           </div>
           <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
             <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + esc(t.recurringFreq) : ''} ${stamp}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
@@ -5426,33 +5438,66 @@ function updateDashboard() {
   }
 }
 
+function isTaskPendingForMe(t) {
+  if (t.status === 'done') return false;
+  if (t.responsibility === 'משותפת') {
+    const cb = Array.isArray(t.completedBy) ? t.completedBy : (t.completedBy ? [t.completedBy] : []);
+    return !cb.includes(getMyRole());
+  }
+  return true;
+}
+
+function getSharedCompletedBy(task) {
+  if (Array.isArray(task.completedBy)) return task.completedBy;
+  if (task.completedBy) return [task.completedBy];
+  return [];
+}
+
 async function toggleTaskStatus(id) {
   if (isChildView()) return;
   const task = appData.tasks.find(t => t.id === id);
   if (!task) return;
   const myRole = getMyRole();
-  const wasPending = task.status !== 'done';
-  if (!wasPending && task.completedBy && task.completedBy !== myRole) {
-    showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
-    return;
-  }
-  const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
-  if (!await colinkConfirm(msg)) return;
-  if (wasPending) {
-    task.status = 'done';
-    task.completedBy = myRole;
-    task.completedAt = new Date().toISOString();
-    task.updatedAt = task.completedAt;
-  } else {
-    task.status = 'pending';
-    delete task.completedBy;
-    delete task.completedAt;
+
+  if (task.responsibility === 'משותפת') {
+    const cb = getSharedCompletedBy(task);
+    const myDone = cb.includes(myRole);
+    const msg = myDone ? 'להחזיר את החלק שלך לממתין?' : 'לסמן שסיימת את החלק שלך?';
+    if (!await colinkConfirm(msg)) return;
+    if (myDone) {
+      task.completedBy = cb.filter(r => r !== myRole);
+      task.status = 'pending';
+    } else {
+      if (!cb.includes(myRole)) cb.push(myRole);
+      task.completedBy = cb;
+      task.status = cb.length >= 2 ? 'done' : 'pending';
+      task.completedAt = new Date().toISOString();
+    }
     task.updatedAt = new Date().toISOString();
+  } else {
+    const wasPending = task.status !== 'done';
+    if (!wasPending && task.completedBy && task.completedBy !== myRole) {
+      showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
+      return;
+    }
+    const msg = wasPending ? 'לסמן את המשימה כבוצעה?' : 'להחזיר את המשימה לממתינה?';
+    if (!await colinkConfirm(msg)) return;
+    if (wasPending) {
+      task.status = 'done';
+      task.completedBy = myRole;
+      task.completedAt = new Date().toISOString();
+      task.updatedAt = task.completedAt;
+    } else {
+      task.status = 'pending';
+      delete task.completedBy;
+      delete task.completedAt;
+      task.updatedAt = new Date().toISOString();
+    }
   }
   saveData();
   renderTasks();
   updateDashboard();
-  if (wasPending) showConfetti();
+  if (task.status === 'done') showConfetti();
 }
 
 function getPriorityLabel(p) {
@@ -6374,19 +6419,33 @@ function changeTaskStatus(id, newStatus) {
   const task = appData.tasks.find(t => t.id === id);
   if (!task) return;
   const myRole = getMyRole();
-  if (task.completedBy && task.completedBy !== myRole && task.status === 'done') {
-    showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
-    renderTasks();
-    return;
-  }
-  if (newStatus === 'done') {
-    task.completedBy = myRole;
-    task.completedAt = new Date().toISOString();
+
+  if (task.responsibility === 'משותפת') {
+    const cb = getSharedCompletedBy(task);
+    if (newStatus === 'done') {
+      if (!cb.includes(myRole)) cb.push(myRole);
+      task.completedBy = cb;
+      task.status = cb.length >= 2 ? 'done' : 'pending';
+      task.completedAt = new Date().toISOString();
+    } else {
+      task.completedBy = cb.filter(r => r !== myRole);
+      task.status = newStatus;
+    }
   } else {
-    delete task.completedBy;
-    delete task.completedAt;
+    if (task.completedBy && task.completedBy !== myRole && task.status === 'done') {
+      showToast('המשימה הושלמה ע״י ' + task.completedBy + ' ולא ניתן לשנות');
+      renderTasks();
+      return;
+    }
+    if (newStatus === 'done') {
+      task.completedBy = myRole;
+      task.completedAt = new Date().toISOString();
+    } else {
+      delete task.completedBy;
+      delete task.completedAt;
+    }
+    task.status = newStatus;
   }
-  task.status = newStatus;
   task.updatedAt = new Date().toISOString();
   saveData(); renderTasks(); updateDashboard();
 }
@@ -6502,10 +6561,23 @@ function renderTasks() {
 
   const myRole = getMyRole();
   container.innerHTML = tasks.map(t => {
+    const isShared = t.responsibility === 'משותפת';
     const isDone = t.status === 'done';
-    const canEdit = t.responsibility === myRole || t.responsibility === 'משותפת';
-    const lockedByOther = isDone && t.completedBy && t.completedBy !== myRole;
-    const completedStamp = t.completedBy ? `<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ ${esc(t.completedBy)}</span>` : '';
+    const canEdit = t.responsibility === myRole || isShared;
+    let lockedByOther = false;
+    let completedStamp = '';
+    if (isShared) {
+      const cb = getSharedCompletedBy(t);
+      const momDone = cb.includes('אמא');
+      const dadDone = cb.includes('אבא');
+      completedStamp = (momDone ? '<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ אמא</span> ' : '<span style="color:var(--text-muted);font-size:0.72rem;">○ אמא</span> ') +
+                        (dadDone ? '<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ אבא</span>' : '<span style="color:var(--text-muted);font-size:0.72rem;">○ אבא</span>');
+    } else {
+      lockedByOther = isDone && t.completedBy && t.completedBy !== myRole;
+      completedStamp = t.completedBy ? `<span style="color:var(--success);font-size:0.72rem;font-weight:500;">✓ ${esc(t.completedBy)}</span>` : '';
+    }
+    const myDoneInShared = isShared && getSharedCompletedBy(t).includes(myRole);
+    const statusVal = isShared ? (myDoneInShared ? 'done' : t.status) : t.status;
     return `
       <div class="list-item">
         <div class="list-item-content">
@@ -6518,9 +6590,9 @@ function renderTasks() {
         </div>
         <div class="list-item-actions">
           <select onchange="changeTaskStatus(${t.id}, this.value)" ${lockedByOther ? 'disabled' : ''} style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;${lockedByOther ? 'opacity:0.5;' : ''}">
-            <option value="pending" ${t.status==='pending'?'selected':''}>ממתין</option>
-            <option value="inprocess" ${t.status==='inprocess'?'selected':''}>בתהליך</option>
-            <option value="done" ${t.status==='done'?'selected':''}>בוצע</option>
+            <option value="pending" ${statusVal==='pending'?'selected':''}>ממתין</option>
+            <option value="inprocess" ${statusVal==='inprocess'?'selected':''}>בתהליך</option>
+            <option value="done" ${statusVal==='done'?'selected':''}>סיימתי</option>
           </select>
           ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="editTask(${t.id})" title="עריכה">✎</button>` : ''}
           ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">✕</button>` : ''}
@@ -8252,14 +8324,8 @@ function renderProfile() {
   document.getElementById('profileRole').value = appData.user.role;
   document.getElementById('profileRole').disabled = true;
   document.getElementById('profileRole').style.opacity = '0.5';
-  const isCreator = appData.mode === 'new' || !!appData.user.partnerEmail;
-  if (!isCreator) {
-    document.getElementById('profileFamilyName').disabled = true;
-    document.getElementById('profileFamilyName').style.opacity = '0.5';
-  } else {
-    document.getElementById('profileFamilyName').disabled = false;
-    document.getElementById('profileFamilyName').style.opacity = '1';
-  }
+  document.getElementById('profileFamilyName').disabled = false;
+  document.getElementById('profileFamilyName').style.opacity = '1';
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
   if (!isChildView()) renderFamilyMembers();
 }
@@ -8303,8 +8369,7 @@ function saveProfile() {
   appData.user.name = firstName + (lastName ? ' ' + lastName : '');
   appData.user.phone = phone;
   if (!isChildView()) {
-    const _isCreator = appData.mode === 'new' || !!appData.user.partnerEmail;
-    if (_isCreator) appData.familyName = document.getElementById('profileFamilyName').value.trim();
+    appData.familyName = document.getElementById('profileFamilyName').value.trim();
   }
   saveData();
   showToast('הפרופיל עודכן בהצלחה ✅');
@@ -8555,7 +8620,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '157';
+const APP_VERSION = '158';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
