@@ -279,6 +279,8 @@
     .custody-day:hover { border-color: var(--primary-light); }
     .custody-day.mine { background: var(--primary); color: white; border-color: var(--primary); }
     .custody-day.partner { background: var(--secondary); color: white; border-color: var(--secondary); }
+    .custody-day.mom-day { background: rgba(108,92,231,1); color: white; border-color: rgba(108,92,231,1); }
+    .custody-day.dad-day { background: rgba(39,174,96,1); color: white; border-color: rgba(39,174,96,1); }
     .alt-day.mine { background: var(--accent); border-color: var(--accent); }
 
     .custody-day .day-name { font-size: 0.75rem; font-weight: 600; }
@@ -6596,24 +6598,23 @@ function renderCustody() {
   const hint = document.getElementById('custodyEditHint');
   if (hint) hint.textContent = 'לחצ/י על יום כדי לשנות';
 
+  const myRole = getMyRole();
+  const partnerRole = myRole === 'אמא' ? 'אבא' : myRole === 'אבא' ? 'אמא' : 'ההורה השני';
   container.innerHTML = weekdays.map(d => {
     const isMine = appData.custodyDays.includes(d.i);
+    const dayRole = isMine ? myRole : partnerRole;
+    const cls = dayRole === 'אמא' ? 'mom-day' : dayRole === 'אבא' ? 'dad-day' : (isMine ? 'mine' : 'partner');
     return `
-      <button class="custody-day ${isMine ? 'mine' : 'partner'}" onclick="toggleCustodyEdit(${d.i}, this)">
+      <button class="custody-day ${cls}" onclick="toggleCustodyEdit(${d.i}, this)">
         <div class="day-name">${d.short}</div>
         <div class="day-label">${d.full}</div>
       </button>
     `;
   }).join('');
 
-  const myRole = getMyRole();
-  const partnerRole = myRole === 'אמא' ? 'אבא' : myRole === 'אבא' ? 'אמא' : 'ההורה השני';
   const legend = container.parentElement.querySelector('.custody-legend');
   if (legend) {
-    const meEl = legend.querySelector('.me');
-    const otherEl = legend.querySelector('.other');
-    if (meEl) meEl.textContent = myRole || 'אצלי';
-    if (otherEl) otherEl.textContent = partnerRole;
+    legend.innerHTML = '<span class="mom">אמא</span><span class="dad">אבא</span>';
   }
   if (!isCustodyOwner()) {
     if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י ' + (appData.custodySetBy || '');
@@ -6631,14 +6632,18 @@ function isCustodyOwner() {
 function toggleCustodyEdit(day, el) {
   if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   if (!appData.custodySetBy) appData.custodySetBy = getMyRole();
-  if (el.classList.contains('mine')) {
-    el.classList.remove('mine');
-    el.classList.add('partner');
+  const myRole = getMyRole();
+  const partnerRole = myRole === 'אמא' ? 'אבא' : 'אמא';
+  const myClass = myRole === 'אמא' ? 'mom-day' : 'dad-day';
+  const partnerClass = partnerRole === 'אמא' ? 'mom-day' : 'dad-day';
+  if (appData.custodyDays.includes(day)) {
+    el.classList.remove(myClass);
+    el.classList.add(partnerClass);
     appData.custodyDays = appData.custodyDays.filter(d => d !== day);
   } else {
-    el.classList.remove('partner');
-    el.classList.add('mine');
-    if (!appData.custodyDays.includes(day)) appData.custodyDays.push(day);
+    el.classList.remove(partnerClass);
+    el.classList.add(myClass);
+    appData.custodyDays.push(day);
   }
   saveData();
   showToast('נשמר ✓');
@@ -8487,7 +8492,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '151';
+const APP_VERSION = '152';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
