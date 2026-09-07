@@ -2343,7 +2343,7 @@
     <div style="font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:4px;">CoLink</div>
     <p id="colinkConfirmMsg" style="margin:12px 0 20px;font-size:0.92rem;line-height:1.6;white-space:pre-line;"></p>
     <div style="display:flex;gap:10px;justify-content:center;">
-      <button class="btn" id="colinkConfirmNo" style="background:var(--bg-card);color:var(--text);border:1px solid var(--border);padding:8px 24px;border-radius:10px;font-size:0.9rem;">ביטול</button>
+      <button class="btn" id="colinkConfirmNo" style="background:var(--card);color:var(--text);border:1px solid var(--border);padding:8px 24px;border-radius:10px;font-size:0.9rem;">ביטול</button>
       <button class="btn" id="colinkConfirmYes" style="background:#e74c3c;color:white;padding:8px 24px;border-radius:10px;font-size:0.9rem;">אישור</button>
     </div>
   </div>
@@ -2798,7 +2798,7 @@
         <span onclick="document.getElementById('sigHelpTip').style.display=document.getElementById('sigHelpTip').style.display==='none'?'block':'none'"
           style="width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;cursor:pointer;">?</span>
       </label>
-      <div id="sigHelpTip" style="display:none;background:var(--card-bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:0.82rem;color:var(--text-muted);line-height:1.6;">
+      <div id="sigHelpTip" style="display:none;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:0.82rem;color:var(--text-muted);line-height:1.6;">
         <strong style="color:var(--text);">איך זה עובד?</strong><br>
         העלו מסמך, וכשכל הצדדים חותמים, החתימות נשתלות בתחתית המסמך המקורי ומופק PDF חתום להורדה.<br><br>
         <strong style="color:var(--text);">סוגים נתמכים:</strong> PDF, JPG, PNG<br>
@@ -3273,10 +3273,12 @@ async function onAuthSuccess() {
             return t;
           });
           const cloudIds = new Set(appData.tasks.map(t => t.id));
-          const deletedIds = new Set(appData.deletedTaskIds || []);
+          const deletedIds = new Set([...(appData.deletedTaskIds || []), ...(shared.deletedTaskIds || [])]);
+          appData.deletedTaskIds = [...deletedIds];
           Object.values(localTasks).forEach(loc => {
             if (!cloudIds.has(loc.id) && !deletedIds.has(loc.id)) { appData.tasks.push(loc); merged = true; }
           });
+          appData.tasks = appData.tasks.filter(t => !deletedIds.has(t.id));
           if (merged) saveData();
         }
       }
@@ -5013,11 +5015,11 @@ function updateDashboard() {
       } else if (assignment !== 'unset' && assignment !== 'regular') {
         let assignLabel = '';
           if (assignment === 'אמא' || assignment === 'אבא') {
-          assignLabel = assignment;
+          assignLabel = 'אצל ' + assignment;
         } else {
           assignLabel = 'חלוקה';
         }
-        statHolidaySummary.textContent = daysText + ' · אצל ' + assignLabel;
+        statHolidaySummary.textContent = daysText + ' · ' + assignLabel;
         statHolidaySummary.style.color = '';
       } else {
         statHolidaySummary.style.color = '';
@@ -5046,7 +5048,7 @@ function updateDashboard() {
           <p style="margin:0 0 20px;font-size:0.9rem;line-height:1.6;">${esc(names)} מתקרב/ים ולא הוגדר אצל מי הילדים.</p>
           <div style="display:flex;flex-direction:column;gap:8px;">
             <button class="btn btn-primary" id="_holidayDefine" style="width:100%;padding:10px;border-radius:10px;">הגדר עכשיו</button>
-            <button class="btn" id="_holidayLater" style="width:100%;padding:10px;border-radius:10px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);">אחר כך</button>
+            <button class="btn" id="_holidayLater" style="width:100%;padding:10px;border-radius:10px;background:var(--card);color:var(--text);border:1px solid var(--border);">אחר כך</button>
             <button id="_holidayNever" style="background:none;border:none;color:var(--text-muted);font-size:0.78rem;cursor:pointer;padding:6px;font-family:inherit;">אל תציג יותר</button>
           </div>
         </div>`;
@@ -8266,7 +8268,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '128';
+const APP_VERSION = '129';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
