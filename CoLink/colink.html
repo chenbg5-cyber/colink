@@ -6610,7 +6610,7 @@ function renderCustody() {
       cls = '';
     } else {
       const dayRole = isMine ? myRole : partnerRole;
-      cls = dayRole === 'אמא' ? 'mom-day' : dayRole === 'אבא' ? 'dad-day' : (isMine ? 'mine' : 'partner');
+      cls = dayRole === 'אמא' ? 'mom-day' : 'dad-day';
     }
     return `
       <button class="custody-day ${cls}" onclick="toggleCustodyEdit(${d.i}, this)">
