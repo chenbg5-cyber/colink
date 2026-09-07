@@ -5965,12 +5965,21 @@ function _storageTimeout(promise, ms) {
 async function uploadSignatureFile(sigId, fileData, fileName) {
   if (!appData.familyCode || !currentFirebaseUser || !fileData) return;
   try {
-    await db.collection('families').doc(appData.familyCode)
-      .collection('attachments').doc('sig_' + sigId).set({
-        name: fileName, data: fileData,
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    return;
+    let uploadData = fileData;
+    if (fileData.startsWith('data:image')) {
+      uploadData = await compressImageData(fileData, 800, 0.6);
+    }
+    if (uploadData.length / 1024 > 900 && fileData.startsWith('data:image')) {
+      uploadData = await compressImageData(fileData, 600, 0.4);
+    }
+    if (uploadData.length / 1024 <= 900) {
+      await db.collection('families').doc(appData.familyCode)
+        .collection('attachments').doc('sig_' + sigId).set({
+          name: fileName, data: uploadData,
+          uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      return;
+    }
   } catch (e) { console.warn('Firestore upload failed:', e); }
   try {
     const storage = firebase.storage();
@@ -6060,13 +6069,45 @@ async function loadSignaturePDF(sigId) {
   return null;
 }
 
+function compressImageData(dataUrl, maxW, quality) {
+  return new Promise(resolve => {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) { resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = function() {
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', quality || 0.7));
+    };
+    img.onerror = function() { resolve(dataUrl); };
+    img.src = dataUrl;
+  });
+}
+
 async function uploadExpenseInvoice(expId, invoiceData, invoiceName) {
   if (!appData.familyCode || !currentFirebaseUser || !invoiceData) return;
   try {
+    let uploadData = invoiceData;
+    if (invoiceData.startsWith('data:image')) {
+      uploadData = await compressImageData(invoiceData, 800, 0.6);
+    }
+    const sizeKB = Math.round(uploadData.length / 1024);
+    if (sizeKB > 900) {
+      if (invoiceData.startsWith('data:image')) {
+        uploadData = await compressImageData(invoiceData, 600, 0.4);
+      }
+      if (uploadData.length / 1024 > 900) {
+        console.warn('Invoice too large for Firestore:', sizeKB + 'KB');
+        showToast('הקבלה גדולה מדי לשמירה בענן (' + sizeKB + 'KB)');
+        return;
+      }
+    }
     await db.collection('families').doc(appData.familyCode)
       .collection('attachments').doc('exp_' + expId).set({
         name: invoiceName,
-        data: invoiceData,
+        data: uploadData,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
   } catch (e) { console.warn('Invoice upload failed:', e); showToast('שגיאה בהעלאת קבלה לענן'); }
@@ -6946,7 +6987,7 @@ function addExpense() {
     if (invoiceName) { expObj.invoiceName = invoiceName; expObj.invoiceData = invoiceData; }
     appData.expenses.push(expObj);
     saveData();
-    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName).then(() => { expObj.invoiceCloudSaved = true; saveData(); }).catch(() => {});
+    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName).then(() => { expObj.invoiceCloudSaved = true; saveData(); }).catch(e => { console.warn('Invoice upload error:', e); showToast('שגיאה בשמירת קבלה בענן — נסו שוב מאוחר יותר'); });
     closeModal('expenseModal');
     showToast('בקשת קיזוז נשלחה');
     document.getElementById('expenseDetails').value = '';
@@ -6962,8 +7003,15 @@ function addExpense() {
   }
 
   if (invoice) {
+    if (invoice.size > 5 * 1024 * 1024) { showFileSizeUpgrade(); return; }
     const reader = new FileReader();
-    reader.onload = function() { finishExpense(reader.result, invoice.name); };
+    reader.onload = async function() {
+      let data = reader.result;
+      if (data.startsWith('data:image')) {
+        data = await compressImageData(data, 800, 0.7);
+      }
+      finishExpense(data, invoice.name);
+    };
     reader.readAsDataURL(invoice);
   } else {
     finishExpense(null, null);
@@ -8410,7 +8458,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '148';
+const APP_VERSION = '149';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
