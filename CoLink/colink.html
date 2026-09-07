@@ -3469,7 +3469,7 @@ function saveToCloud() {
     });
   }
   if (appData.user.role) {
-    shared.custodySync = { setBy: appData.user.role };
+    shared.custodySync = { setBy: appData.custodySetBy || appData.user.role };
     CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
   }
   ignoringSnapshot = true;
@@ -6599,22 +6599,44 @@ function renderCustody() {
   container.innerHTML = weekdays.map(d => {
     const isMine = appData.custodyDays.includes(d.i);
     return `
-      <button class="custody-day ${isMine ? 'mine' : ''}" onclick="toggleCustodyEdit(${d.i}, this)">
+      <button class="custody-day ${isMine ? 'mine' : 'partner'}" onclick="toggleCustodyEdit(${d.i}, this)">
         <div class="day-name">${d.short}</div>
         <div class="day-label">${d.full}</div>
       </button>
     `;
   }).join('');
 
+  const myRole = getMyRole();
+  const partnerRole = myRole === 'אמא' ? 'אבא' : myRole === 'אבא' ? 'אמא' : 'ההורה השני';
+  const legend = container.parentElement.querySelector('.custody-legend');
+  if (legend) {
+    const meEl = legend.querySelector('.me');
+    const otherEl = legend.querySelector('.other');
+    if (meEl) meEl.textContent = myRole || 'אצלי';
+    if (otherEl) otherEl.textContent = partnerRole;
+  }
+  if (!isCustodyOwner()) {
+    if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י ' + (appData.custodySetBy || '');
+  }
+
   renderWeekendEditor();
   renderCustodyChanges();
 }
 
+function isCustodyOwner() {
+  if (!appData.custodySetBy) return true;
+  return appData.custodySetBy === getMyRole();
+}
+
 function toggleCustodyEdit(day, el) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!appData.custodySetBy) appData.custodySetBy = getMyRole();
   if (el.classList.contains('mine')) {
     el.classList.remove('mine');
+    el.classList.add('partner');
     appData.custodyDays = appData.custodyDays.filter(d => d !== day);
   } else {
+    el.classList.remove('partner');
     el.classList.add('mine');
     if (!appData.custodyDays.includes(day)) appData.custodyDays.push(day);
   }
@@ -6702,6 +6724,7 @@ function renderWeekendEditor() {
 }
 
 function updateWeekendMode(mode) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   appData.weekendMode = mode;
   if (mode !== 'alternating') {
     appData.weekendStartDate = '';
@@ -6721,6 +6744,7 @@ function updateWeekendMode(mode) {
 }
 
 function toggleWeekendDayEdit(day) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   const wDays = appData.weekendDays || [5, 6];
   const idx = wDays.indexOf(day);
   if (idx >= 0 && wDays.length > 1) {
@@ -6737,6 +6761,7 @@ function toggleWeekendDayEdit(day) {
 }
 
 function updateWeekendRef(val) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   if (!val) return;
   const d = new Date(val);
   const dow = d.getDay();
@@ -6754,6 +6779,7 @@ function updateWeekendRef(val) {
 }
 
 function updateWeekendFixed(who) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   appData.weekendFixedWith = who;
   const wDays = appData.weekendDays || [5, 6];
   appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
@@ -6766,6 +6792,7 @@ function updateWeekendFixed(who) {
 }
 
 function toggleFollowDayEdit(day, el) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   if (!appData.followWeekendDays) appData.followWeekendDays = [];
   const idx = appData.followWeekendDays.indexOf(day);
   if (idx >= 0) {
@@ -6787,6 +6814,7 @@ function toggleFollowDayEdit(day, el) {
 }
 
 function toggleAltDayEdit(day, el) {
+  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
   if (!appData.alternatingDays) appData.alternatingDays = [];
   const idx = appData.alternatingDays.indexOf(day);
   if (idx >= 0) {
@@ -8459,7 +8487,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '150';
+const APP_VERSION = '151';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
