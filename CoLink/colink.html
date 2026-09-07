@@ -4719,13 +4719,19 @@ function showPendingRequests() {
   } else {
     let html = '';
     if (pendingCustody.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות החלפת משמורת (' + pendingCustody.length + ')</strong>';
+      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות שינוי משמורת (' + pendingCustody.length + ')</strong>';
       pendingCustody.forEach(c => {
-        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += '<div>' + (c.date ? formatDate(c.date) : '') + ' · ' + esc(c.reason || 'בקשת החלפה') + '</div>';
+        const typeLabel = c.type === 'permanent' ? 'שינוי קבוע' : c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+        const fromDate = c.from ? formatDate(c.from) : '';
+        const toDate = c.to ? formatDate(c.to) : '';
+        const dateRange = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[3])">';
+        html += '<div style="font-weight:600;">' + typeLabel + '</div>';
+        if (dateRange) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + dateRange + '</div>';
+        if (c.reason) html += '<div style="font-size:0.78rem;margin-top:2px;">' + esc(c.reason) + '</div>';
         html += '<div style="display:flex;gap:8px;margin-top:6px;">';
-        html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'approved\');showPendingRequests()">אישור ✓</button>';
-        html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="respondCustodyChange(' + c.id + ',\'rejected\');showPendingRequests()">דחייה ✕</button>';
+        html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="event.stopPropagation();respondCustodyChange(' + c.id + ',\'approved\');showPendingRequests()">אישור</button>';
+        html += '<button style="background:#D63031;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="event.stopPropagation();respondCustodyChange(' + c.id + ',\'rejected\');showPendingRequests()">דחייה</button>';
         html += '</div></div>';
       });
       html += '</div>';
@@ -4769,10 +4775,16 @@ function showSentPending() {
     html += '<p style="text-align:center;color:var(--text-light);padding:1.5rem 0;">אין בקשות ממתינות</p>';
   } else {
     if (sentCustody.length > 0) {
-      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ החלפת משמורת (' + sentCustody.length + ')</strong>';
+      html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות שינוי משמורת (' + sentCustody.length + ')</strong>';
       sentCustody.forEach(c => {
-        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;">';
-        html += (c.date ? formatDate(c.date) : '') + ' · ' + esc(c.reason || 'בקשת החלפה');
+        const typeLabel = c.type === 'permanent' ? 'שינוי קבוע' : c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+        const fromDate = c.from ? formatDate(c.from) : '';
+        const toDate = c.to ? formatDate(c.to) : '';
+        const dateRange = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[3])">';
+        html += '<div style="font-weight:600;">' + typeLabel + '</div>';
+        if (dateRange) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + dateRange + '</div>';
+        if (c.reason) html += '<div style="font-size:0.78rem;margin-top:2px;">' + esc(c.reason) + '</div>';
         html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
         html += '</div>';
       });
@@ -4871,6 +4883,7 @@ function renderCustodyToday() {
   const container = document.getElementById('custodyTodayContent');
   const card = document.getElementById('custodyTodayCard');
   if (!container || !card) return;
+  if (loadingFromCloud) return;
   const today = new Date();
   const dayOfWeek = today.getDay();
   const todayISO = today.toISOString().split('T')[0];
@@ -4977,6 +4990,7 @@ function updateDashboard() {
   const role = getMyRole();
   const partnerLabel = role === 'אמא' ? 'אבא' : role === 'אבא' ? 'אמא' : 'ההורה השני';
 
+  if (!loadingFromCloud) {
   const nextFri = new Date(now);
   const dow = now.getDay();
   nextFri.setDate(now.getDate() + ((5 - dow + 7) % 7 || 7));
@@ -5014,6 +5028,7 @@ function updateDashboard() {
       </div>
     </div>
   `;
+  }
 
   // Card 3: Today Assignments count (for my role)
   const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && t.status !== 'done');
@@ -7141,7 +7156,7 @@ function renderExpenses() {
         <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
         <td>${esc(e.forChild) || '-'}</td>
         <td>${formatDate(e.date)}</td>
-        <td>${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="viewExpenseInvoice(${e.id})">📎 ${esc(e.invoiceName)}</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
+        <td style="text-align:center;">${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);font-size:1.2rem;" onclick="viewExpenseInvoice(${e.id})" title="${esc(e.invoiceName)}">📄</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
         <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
@@ -8522,7 +8537,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '152';
+const APP_VERSION = '153';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
