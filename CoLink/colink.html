@@ -2082,6 +2082,9 @@
           <span class="me">אצלי</span>
           <span class="other">אצל ההורה השני</span>
         </div>
+        <div id="custodySaveBtn" style="text-align:center;margin-top:12px;display:none;">
+          <button class="btn btn-primary" onclick="saveCustodyToCloud()">שמור שינויים</button>
+        </div>
       </div>
       <div class="card">
         <h3>סידור סופ״ש</h3>
@@ -3295,10 +3298,30 @@ async function onAuthSuccess() {
           if (merged) saveData();
         }
       }
-      if (shared.custodySync && shared.custodySync.setBy && isChildView()) {
-        const sync = shared.custodySync;
-        appData.custodySetBy = sync.setBy;
-        CUSTODY_FIELDS.forEach(f => { if (sync[f] !== undefined) appData[f] = sync[f]; });
+      if (shared.custodySync && shared.custodySync.setBy) {
+        if (isChildView()) {
+          const sync = shared.custodySync;
+          appData.custodySetBy = sync.setBy;
+          CUSTODY_FIELDS.forEach(f => { if (sync[f] !== undefined) appData[f] = sync[f]; });
+        } else if (shared.custodySync.setBy !== getMyRole()) {
+          const sync = shared.custodySync;
+          appData.custodySetBy = sync.setBy;
+          const allWeekdays = [0, 1, 2, 3, 4];
+          appData.custodyDays = allWeekdays.filter(d => !(sync.custodyDays || []).includes(d));
+          appData.weekendMode = sync.weekendMode || '';
+          appData.weekendDays = sync.weekendDays || [5, 6];
+          appData.weekendStartDate = sync.weekendStartDate || '';
+          appData.alternatingDays = sync.alternatingDays || [];
+          appData.followWeekendDays = sync.followWeekendDays || [];
+          if (sync.weekendStartWithMe !== null && sync.weekendStartWithMe !== undefined) {
+            appData.weekendStartWithMe = !sync.weekendStartWithMe;
+          }
+          if (sync.weekendFixedWith === 'me') {
+            appData.weekendFixedWith = 'partner';
+          } else if (sync.weekendFixedWith === 'partner') {
+            appData.weekendFixedWith = 'me';
+          }
+        }
       }
     }
     if (!sharedHasData) {
@@ -3542,6 +3565,7 @@ function listenToSharedData() {
         changed = true;
       } else if (shared.custodySync && shared.custodySync.setBy && shared.custodySync.setBy !== getMyRole()) {
         const sync = shared.custodySync;
+        appData.custodySetBy = sync.setBy;
         const allWeekdays = [0, 1, 2, 3, 4];
         appData.custodyDays = allWeekdays.filter(d => !(sync.custodyDays || []).includes(d));
         appData.weekendMode = sync.weekendMode || '';
@@ -6625,8 +6649,12 @@ function renderCustody() {
     const hasAlt = (appData.alternatingDays || []).length > 0 || (appData.followWeekendDays || []).length > 0;
     legend.innerHTML = '<span class="mom">אמא</span><span class="dad">אבא</span>' + (hasAlt ? '<span class="alt">מתחלף</span>' : '');
   }
+  const saveBtn = document.getElementById('custodySaveBtn');
   if (!isCustodyOwner()) {
     if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י ' + (appData.custodySetBy || '');
+    if (saveBtn) saveBtn.style.display = 'none';
+  } else {
+    if (saveBtn) saveBtn.style.display = 'block';
   }
 
   renderWeekendEditor();
@@ -6636,6 +6664,12 @@ function renderCustody() {
 function isCustodyOwner() {
   if (!appData.custodySetBy) return true;
   return appData.custodySetBy === getMyRole();
+}
+
+function saveCustodyToCloud() {
+  saveData();
+  saveToCloud();
+  showToast('שינויי משמורת נשמרו לענן');
 }
 
 function toggleCustodyEdit(day, el) {
