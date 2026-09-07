@@ -2147,6 +2147,9 @@
       <div class="card">
         <h3>חגים קרובים - חגי ישראל תשפ״ו / 2026</h3>
         <div id="holidaysList"></div>
+        <div style="text-align:center;margin-top:18px;">
+          <button class="btn btn-primary parent-only" onclick="saveHolidaysExplicit()" style="padding:10px 36px;font-size:1rem;">שמור שיבוץ חגים</button>
+        </div>
       </div>
     </div>
 
@@ -7722,6 +7725,11 @@ function setHolidayAssignment(name, value) {
   if (document.getElementById('calendarGrid')) renderCalendar();
 }
 
+function saveHolidaysExplicit() {
+  saveData();
+  showToast('שיבוץ חגים נשמר בהצלחה');
+}
+
 // ============ CALENDAR ============
 function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
@@ -8156,7 +8164,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '121';
+const APP_VERSION = '122';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
