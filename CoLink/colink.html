@@ -5209,8 +5209,8 @@ function updateDashboard() {
         const cb = getSharedCompletedBy(t);
         const momDone = cb.includes('אמא');
         const dadDone = cb.includes('אבא');
-        stamp = (momDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אמא</span> ' : '') +
-                (dadDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אבא</span>' : '');
+        stamp = (momDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אמא</span> ' : '<span style="color:var(--text-muted);font-size:0.68rem;">○ אמא</span> ') +
+                (dadDone ? '<span style="color:var(--success);font-size:0.68rem;">✓ אבא</span>' : '<span style="color:var(--text-muted);font-size:0.68rem;">○ אבא</span>');
       } else {
         lockedByOther = isDone && t.completedBy && t.completedBy !== getMyRole();
         stamp = t.completedBy ? '<span style="color:var(--success);font-size:0.68rem;margin-right:6px;">✓ ' + esc(t.completedBy) + '</span>' : '';
@@ -5234,8 +5234,9 @@ function updateDashboard() {
             ${isDone || myDoneInShared ? '✓' : ''}
           </div>
           <div class="list-item-content" style="cursor:pointer;" onclick="editTask(${t.id})">
-            <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + esc(t.recurringFreq) : ''} ${stamp}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
-            <div class="list-item-meta">${esc(t.forChild) || ''} · ${getPriorityLabel(t.priority)} · ${getCategoryIcon(t.category)} ${esc(t.category) || ''}</div>
+            <div class="list-item-title ${isDone ? 'done' : ''}">${esc(t.title)}${t.date ? ' · ' + formatDate(t.date) : ''}${t.recurring && t.recurringFreq ? ' · ' + esc(t.recurringFreq) : ''}${t.attachment ? ' <span onclick="event.stopPropagation();viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);font-size:0.78rem;">📎</span>' : ''}</div>
+            ${isShared ? '<div style="font-size:0.68rem;margin-top:2px;">' + stamp + '</div>' : (stamp ? '<div style="font-size:0.68rem;margin-top:2px;">' + stamp + '</div>' : '')}
+            <div class="list-item-meta">${esc(t.forChild) || ''} · ${getPriorityLabel(t.priority)}${isShared ? ' · <span style="color:var(--primary);font-weight:600;">משותפת</span>' : ''} · ${getCategoryIcon(t.category)} ${esc(t.category) || ''}</div>
             ${desc}
           </div>
         </div>
@@ -8620,7 +8621,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '158';
+const APP_VERSION = '159';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
