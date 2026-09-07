@@ -5888,7 +5888,9 @@ async function viewTaskAttachment(id) {
     if (isPdf) {
       const blob = _dataUrlToBlob(att.data);
       const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
+      const a = document.createElement('a');
+      a.href = blobUrl; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       return;
     }
@@ -6087,7 +6089,9 @@ function showFileViewer(dataUrl, fileName) {
   if (isPdf && !isImage) {
     const blob = _dataUrlToBlob(dataUrl);
     const blobUrl = URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
+    const a = document.createElement('a');
+    a.href = blobUrl; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     return;
   }
@@ -7396,7 +7400,6 @@ async function generateSignedPDF(doc) {
         saveData();
         uploadSignaturePDF(doc.id, reader.result).then(() => { doc.pdfCloudSaved = true; saveData(); }).catch(() => {});
         renderSignatures();
-        downloadSignedPDF(doc.id);
         resolve();
       };
       reader.readAsDataURL(blob);
@@ -7406,27 +7409,46 @@ async function generateSignedPDF(doc) {
   }
 }
 
-async function downloadSignedPDF(id) {
-  const doc = appData.signatures.find(s => s.id === id);
-  if (!doc) return;
-  if (!doc.pdfData) {
-    showToast('טוען PDF מהענן...');
-    const cloud = await loadSignaturePDF(id);
-    if (cloud && cloud.data) {
-      doc.pdfData = cloud.data;
-      localStorage.setItem('colink_data', JSON.stringify(appData));
-    } else {
-      showToast('מפיק PDF מחדש...');
-      await generateSignedPDF(doc);
-      if (!doc.pdfData) { showToast('לא ניתן להפיק PDF'); return; }
-    }
-  }
-  const base64 = doc.pdfData.split(',')[1] || doc.pdfData;
+function _openPdfBlob(pdfData) {
+  const base64 = pdfData.split(',')[1] || pdfData;
   const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const blobUrl = URL.createObjectURL(blob);
-  window.open(blobUrl, '_blank');
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+}
+
+function downloadSignedPDF(id) {
+  const doc = appData.signatures.find(s => s.id === id);
+  if (!doc) return;
+  if (doc.pdfData) {
+    _openPdfBlob(doc.pdfData);
+    return;
+  }
+  showToast('טוען PDF מהענן...');
+  loadSignaturePDF(id).then(cloud => {
+    if (cloud && cloud.data) {
+      doc.pdfData = cloud.data;
+      saveData();
+      _openPdfBlob(cloud.data);
+    } else {
+      showToast('מפיק PDF מחדש...');
+      generateSignedPDF(doc).then(() => {
+        if (doc.pdfData) {
+          showToast('ה-PDF מוכן — לחצי על "צפייה ב-PDF חתום"');
+          renderSignatures();
+        } else {
+          showToast('לא ניתן להפיק PDF');
+        }
+      });
+    }
+  });
 }
 
 async function regenerateAndDownload(id) {
@@ -8344,7 +8366,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '137';
+const APP_VERSION = '138';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
