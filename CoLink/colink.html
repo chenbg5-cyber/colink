@@ -5270,7 +5270,7 @@ function updateDashboard() {
   const expenseCard = document.getElementById('dashExpenseRequestsCard');
   const expenseContainer = document.getElementById('dashExpenseRequests');
   if (expenseCard) {
-    const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.createdBy && e.createdBy !== myRole);
+    const pendingExpenses = (appData.expenses || []).filter(e => e.status === 'pending' && e.requestedBy && e.requestedBy !== myRole);
     if (pendingExpenses.length === 0 || isChildView()) {
       expenseCard.style.display = 'none';
     } else {
@@ -7111,17 +7111,52 @@ async function generateSignedPDF(doc) {
     let hasOriginal = false;
 
     if (!doc.fileData && doc.fileName) {
+      showToast('טוען מסמך מקורי מהענן...');
       const cloud = await loadSignatureFile(doc.id);
-      if (cloud && cloud.data) doc.fileData = cloud.data;
+      if (cloud && cloud.data) {
+        doc.fileData = cloud.data;
+      } else {
+        showToast('לא ניתן לטעון את המסמך המקורי מהענן - מפיק PDF עם חתימות בלבד');
+      }
     }
-    if (doc.fileData && doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')) {
+
+    const fnLower = (doc.fileName || '').toLowerCase();
+    const isPdf = fnLower.endsWith('.pdf');
+    const isImage = fnLower.endsWith('.jpg') || fnLower.endsWith('.jpeg') || fnLower.endsWith('.png') || fnLower.endsWith('.webp');
+
+    if (doc.fileData && doc.fileName && isPdf) {
       const fileBase64 = doc.fileData.split(',')[1] || doc.fileData;
       const fileBytes = Uint8Array.from(atob(fileBase64), c => c.charCodeAt(0));
       try {
         pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
         hasOriginal = true;
       } catch(e) {
+        console.warn('Failed to load original PDF:', e);
+        showToast('שגיאה בטעינת PDF מקורי - מפיק מסמך חדש');
         pdfDoc = await PDFDocument.create();
+      }
+    } else if (doc.fileData && doc.fileName && isImage) {
+      pdfDoc = await PDFDocument.create();
+      try {
+        const imgBase64 = doc.fileData.split(',')[1] || doc.fileData;
+        const imgBytes = Uint8Array.from(atob(imgBase64), c => c.charCodeAt(0));
+        let embeddedImg;
+        if (fnLower.endsWith('.png')) {
+          embeddedImg = await pdfDoc.embedPng(imgBytes);
+        } else {
+          embeddedImg = await pdfDoc.embedJpg(imgBytes);
+        }
+        const imgDims = embeddedImg.scale(1);
+        const pageW = 595.28, pageH = 841.89;
+        const scale = Math.min((pageW - 40) / imgDims.width, (pageH - 200) / imgDims.height, 1);
+        const drawW = imgDims.width * scale;
+        const drawH = imgDims.height * scale;
+        const page = pdfDoc.addPage([pageW, pageH]);
+        page.drawImage(embeddedImg, { x: (pageW - drawW) / 2, y: pageH - drawH - 30, width: drawW, height: drawH });
+        hasOriginal = true;
+      } catch(e) {
+        console.warn('Failed to embed image:', e);
+        showToast('שגיאה בטעינת תמונה - מפיק מסמך חדש');
       }
     } else {
       pdfDoc = await PDFDocument.create();
@@ -7133,7 +7168,7 @@ async function generateSignedPDF(doc) {
     if (hasOriginal) {
       const pages = pdfDoc.getPages();
       const lastPage = pages[pages.length - 1];
-      const { width: pw } = lastPage.getSize();
+      const { width: pw, height: ph } = lastPage.getSize();
       const drawW = pw - 40;
       const drawH = drawW * stripAspect;
       lastPage.drawImage(stripImg, { x: 20, y: 10, width: drawW, height: drawH });
@@ -8091,7 +8126,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '118';
+const APP_VERSION = '119';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
