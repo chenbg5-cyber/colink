@@ -3243,6 +3243,7 @@ async function onAuthSuccess() {
 
     const localPhotos = (localData && localData.kids || []).reduce((m, k) => { if (k.photo) m[k.name] = k.photo; return m; }, {});
     const localTasks = (appData.tasks || []).reduce((m, t) => { m[t.id] = t; return m; }, {});
+    const localSigs = (appData.signatures || []).reduce((m, s) => { m[s.id] = s; return m; }, {});
     let sharedHasData = false;
     if (sharedSnap && sharedSnap.exists) {
       const shared = sharedSnap.data();
@@ -3254,6 +3255,17 @@ async function onAuthSuccess() {
             appData[f] = shared[f];
           }
         });
+        if (appData.signatures) {
+          appData.signatures = appData.signatures.map(s => {
+            const loc = localSigs[s.id];
+            if (loc) {
+              if (loc.fileData && !s.fileData) s.fileData = loc.fileData;
+              if (loc.pdfData && !s.pdfData) s.pdfData = loc.pdfData;
+              if (loc.fileName && !s.fileName) s.fileName = loc.fileName;
+            }
+            return s;
+          });
+        }
         if (appData.tasks) {
           let merged = false;
           appData.tasks = appData.tasks.map(t => {
@@ -3501,7 +3513,18 @@ function listenToSharedData() {
               if (!cloudIds.has(loc.id) && !_allDeleted.has(loc.id)) mergedTasks.push(loc);
             });
             appData.tasks = mergedTasks;
-          } else if (f !== 'tasks') {
+          } else if (f === 'signatures' && Array.isArray(shared.signatures)) {
+            const localSigMap = (appData.signatures || []).reduce((m, s) => { m[s.id] = s; return m; }, {});
+            appData.signatures = shared.signatures.map(cs => {
+              const loc = localSigMap[cs.id];
+              if (loc) {
+                if (loc.fileData && !cs.fileData) cs.fileData = loc.fileData;
+                if (loc.pdfData && !cs.pdfData) cs.pdfData = loc.pdfData;
+                if (loc.fileName && !cs.fileName) cs.fileName = loc.fileName;
+              }
+              return cs;
+            });
+          } else if (f !== 'tasks' && f !== 'signatures') {
             if (Array.isArray(shared[f]) && shared[f].length === 0 && Array.isArray(appData[f]) && appData[f].length > 0) { /* keep local */ }
             else appData[f] = shared[f];
           }
@@ -7269,12 +7292,22 @@ async function generateSignedPDF(doc) {
     let hasOriginal = false;
 
     if (!doc.fileData && doc.fileName) {
-      showToast('טוען מסמך מקורי מהענן...');
-      const cloud = await loadSignatureFile(doc.id);
-      if (cloud && cloud.data) {
-        doc.fileData = cloud.data;
-      } else {
-        showToast('לא ניתן לטעון את המסמך המקורי מהענן - מפיק PDF עם חתימות בלבד');
+      try {
+        const backup = JSON.parse(localStorage.getItem('colink_backup') || '{}');
+        const bs = (backup.signatures || []).find(s => s.id === doc.id);
+        if (bs && bs.fileData) {
+          doc.fileData = bs.fileData;
+          uploadSignatureFile(doc.id, bs.fileData, doc.fileName).catch(() => {});
+        }
+      } catch(e) {}
+      if (!doc.fileData) {
+        showToast('טוען מסמך מקורי מהענן...');
+        const cloud = await loadSignatureFile(doc.id);
+        if (cloud && cloud.data) {
+          doc.fileData = cloud.data;
+        } else {
+          showToast('לא ניתן לטעון את המסמך המקורי - מפיק PDF עם חתימות בלבד');
+        }
       }
     }
 
@@ -7370,10 +7403,26 @@ async function downloadSignedPDF(id) {
       if (!doc.pdfData) { showToast('לא ניתן להפיק PDF'); return; }
     }
   }
-  const link = document.createElement('a');
-  link.href = doc.pdfData;
-  link.download = (doc.title || 'document') + '_signed.pdf';
-  link.click();
+  try {
+    const base64 = doc.pdfData.split(',')[1] || doc.pdfData;
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = (doc.title || 'document') + '_signed.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch(e) {
+    const link = document.createElement('a');
+    link.href = doc.pdfData;
+    link.download = (doc.title || 'document') + '_signed.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 }
 
 async function regenerateAndDownload(id) {
@@ -8288,7 +8337,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '131';
+const APP_VERSION = '132';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
