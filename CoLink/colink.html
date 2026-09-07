@@ -8250,11 +8250,11 @@ function renderProfile() {
   document.getElementById('profilePhone').value = appData.user.phone;
   document.getElementById('profileFamilyName').value = appData.familyName || '';
   document.getElementById('profileRole').value = appData.user.role;
+  document.getElementById('profileRole').disabled = true;
+  document.getElementById('profileRole').style.opacity = '0.5';
   if (appData.mode === 'join') {
     document.getElementById('profileFamilyName').disabled = true;
     document.getElementById('profileFamilyName').style.opacity = '0.5';
-    document.getElementById('profileRole').disabled = true;
-    document.getElementById('profileRole').style.opacity = '0.5';
   }
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
   if (!isChildView()) renderFamilyMembers();
@@ -8299,8 +8299,7 @@ function saveProfile() {
   appData.user.name = firstName + (lastName ? ' ' + lastName : '');
   appData.user.phone = phone;
   if (!isChildView()) {
-    appData.user.role = role;
-    appData.familyName = document.getElementById('profileFamilyName').value.trim();
+    if (appData.mode !== 'join') appData.familyName = document.getElementById('profileFamilyName').value.trim();
   }
   saveData();
   showToast('הפרופיל עודכן בהצלחה ✅');
@@ -8551,7 +8550,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '154';
+const APP_VERSION = '155';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
