@@ -741,11 +741,11 @@
     }
 
     .cal-day.custody-mom { background: rgba(108,92,231,0.1); }
-    .cal-day.custody-dad { background: rgba(39,174,96,0.1); }
-    .cal-day.custody-split { background: linear-gradient(135deg, rgba(108,92,231,0.15) 50%, rgba(39,174,96,0.15) 50%); }
+    .cal-day.custody-dad { background: rgba(0,206,201,0.1); }
+    .cal-day.custody-split { background: linear-gradient(135deg, rgba(108,92,231,0.15) 50%, rgba(0,206,201,0.15) 50%); }
     .cal-day.today.custody-mom { background: rgba(108,92,231,1); color: white; }
-    .cal-day.today.custody-dad { background: rgba(39,174,96,1); color: white; }
-    .cal-day.today.custody-split { background: linear-gradient(135deg, rgba(108,92,231,1) 50%, rgba(39,174,96,1) 50%); color: white; }
+    .cal-day.today.custody-dad { background: #00CEC9; color: white; }
+    .cal-day.today.custody-split { background: linear-gradient(135deg, rgba(108,92,231,1) 50%, #00CEC9 50%); color: white; }
 
     /* Events & tasks list */
     .list-item {
@@ -8182,7 +8182,7 @@ function showCalDayDetails(dateStr) {
   if (holiday) {
     const assign = appData.holidayAssignments[holiday.name] || 'unset';
     const assignLabels = { 'אמא': 'אצל אמא', 'אבא': 'אצל אבא', split: 'חלוקה', regular: 'לפי שהות רגילה', unset: 'לא הוגדר' };
-    const assignColors = { 'אמא': 'rgba(108,92,231,1)', 'אבא': 'rgba(39,174,96,1)', split: '#E17055', regular: 'var(--success)', unset: 'var(--text-muted)' };
+    const assignColors = { 'אמא': 'rgba(108,92,231,1)', 'אבא': '#00CEC9', split: '#E17055', regular: 'var(--success)', unset: 'var(--text-muted)' };
     html += `<div style="margin-bottom:10px;padding:8px 12px;background:#FFF8E1;border-radius:8px;border-right:3px solid var(--warning);">`;
     html += `<strong style="color:var(--warning);">✡ ${esc(holiday.name)}</strong>`;
     html += `<span style="margin-right:8px;font-size:0.8rem;color:${assignColors[assign]};">· ${assignLabels[assign]}</span>`;
