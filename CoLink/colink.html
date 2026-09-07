@@ -308,6 +308,7 @@
     .custody-legend .other::before { background: var(--secondary); }
     .custody-legend .mom::before { background: rgba(108,92,231,1); }
     .custody-legend .dad::before { background: #00CEC9; }
+    .custody-legend .alt::before { background: #e0e0e0; border: 1px solid #bbb; }
 
     /* Kids form */
     .kid-card {
@@ -1220,8 +1221,8 @@
     }
 
     .custody-today-card.with-dad {
-      background: linear-gradient(135deg, #E8F8EF, #D4F0E0);
-      border: 1.5px solid #7BC8A0;
+      background: linear-gradient(135deg, #E6FAFA, #D0F5F4);
+      border: 1.5px solid #00CEC9;
     }
 
     .custody-today-content {
@@ -1247,8 +1248,8 @@
     }
 
     .custody-today-icon.with-dad {
-      background: rgba(39,174,96,1);
-      box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+      background: #00CEC9;
+      box-shadow: 0 2px 8px rgba(0, 206, 201, 0.3);
     }
 
     .custody-today-info {
@@ -1279,8 +1280,8 @@
     }
 
     .weekend-dad {
-      background: linear-gradient(135deg, #E8F8EF, #D4F0E0);
-      border: 1.5px solid #7BC8A0;
+      background: linear-gradient(135deg, #E6FAFA, #D0F5F4);
+      border: 1.5px solid #00CEC9;
     }
 
     .weekend-split {
@@ -6601,9 +6602,16 @@ function renderCustody() {
   const myRole = getMyRole();
   const partnerRole = myRole === 'אמא' ? 'אבא' : myRole === 'אבא' ? 'אמא' : 'ההורה השני';
   container.innerHTML = weekdays.map(d => {
+    const isAlt = (appData.alternatingDays || []).includes(d.i);
+    const isFollow = (appData.followWeekendDays || []).includes(d.i);
     const isMine = appData.custodyDays.includes(d.i);
-    const dayRole = isMine ? myRole : partnerRole;
-    const cls = dayRole === 'אמא' ? 'mom-day' : dayRole === 'אבא' ? 'dad-day' : (isMine ? 'mine' : 'partner');
+    let cls;
+    if (isAlt || isFollow) {
+      cls = '';
+    } else {
+      const dayRole = isMine ? myRole : partnerRole;
+      cls = dayRole === 'אמא' ? 'mom-day' : dayRole === 'אבא' ? 'dad-day' : (isMine ? 'mine' : 'partner');
+    }
     return `
       <button class="custody-day ${cls}" onclick="toggleCustodyEdit(${d.i}, this)">
         <div class="day-name">${d.short}</div>
@@ -6614,7 +6622,8 @@ function renderCustody() {
 
   const legend = container.parentElement.querySelector('.custody-legend');
   if (legend) {
-    legend.innerHTML = '<span class="mom">אמא</span><span class="dad">אבא</span>';
+    const hasAlt = (appData.alternatingDays || []).length > 0 || (appData.followWeekendDays || []).length > 0;
+    legend.innerHTML = '<span class="mom">אמא</span><span class="dad">אבא</span>' + (hasAlt ? '<span class="alt">מתחלף</span>' : '');
   }
   if (!isCustodyOwner()) {
     if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י ' + (appData.custodySetBy || '');
