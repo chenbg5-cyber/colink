@@ -4891,6 +4891,7 @@ function esc(s) {
 }
 
 function isMyTask(t) {
+  if (!t.responsibility) return true;
   const role = getMyRole();
   return t.responsibility === role || t.responsibility === 'משותפת';
 }
@@ -8458,7 +8459,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '149';
+const APP_VERSION = '150';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
