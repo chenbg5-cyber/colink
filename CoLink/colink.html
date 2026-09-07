@@ -1212,14 +1212,14 @@
     }
 
     /* Custody Today Card */
-    .custody-today-card.with-me {
+    .custody-today-card.with-mom {
       background: linear-gradient(135deg, #F0EEFF, #E8E4FF);
       border: 1.5px solid var(--primary-light);
     }
 
-    .custody-today-card.with-partner {
-      background: linear-gradient(135deg, #E0FFFE, #D4F8F6);
-      border: 1.5px solid #A0E8E4;
+    .custody-today-card.with-dad {
+      background: linear-gradient(135deg, #E8F8EF, #D4F0E0);
+      border: 1.5px solid #7BC8A0;
     }
 
     .custody-today-content {
@@ -1239,14 +1239,14 @@
       flex-shrink: 0;
     }
 
-    .custody-today-icon.with-me {
-      background: var(--primary);
+    .custody-today-icon.with-mom {
+      background: rgba(108,92,231,1);
       box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
     }
 
-    .custody-today-icon.with-partner {
-      background: var(--secondary);
-      box-shadow: 0 2px 8px rgba(0, 206, 201, 0.3);
+    .custody-today-icon.with-dad {
+      background: rgba(39,174,96,1);
+      box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
     }
 
     .custody-today-info {
@@ -1271,14 +1271,14 @@
     }
 
     /* Weekend card variants */
-    .weekend-me {
+    .weekend-mom {
       background: linear-gradient(135deg, #F0EEFF, #E8E4FF);
       border: 1.5px solid var(--primary-light);
     }
 
-    .weekend-partner {
-      background: linear-gradient(135deg, #E0FFFE, #D4F8F6);
-      border: 1.5px solid #A0E8E4;
+    .weekend-dad {
+      background: linear-gradient(135deg, #E8F8EF, #D4F0E0);
+      border: 1.5px solid #7BC8A0;
     }
 
     .weekend-split {
@@ -4781,12 +4781,15 @@ function renderCustodyToday() {
     else parentLabel = 'ההורה השני';
   }
 
-  const cssClass = isMyCustody ? 'with-me' : 'with-partner';
-  card.classList.remove('with-me', 'with-partner');
-  card.classList.add(cssClass);
+  const _todayRole = getMyRole();
+  const _todayCustodyClass = isMyCustody
+    ? (_todayRole === 'אמא' ? 'with-mom' : 'with-dad')
+    : (_todayRole === 'אמא' ? 'with-dad' : 'with-mom');
+  card.classList.remove('with-mom', 'with-dad');
+  card.classList.add(_todayCustodyClass);
 
   container.innerHTML = `
-    <div class="custody-today-icon ${cssClass}">
+    <div class="custody-today-icon ${_todayCustodyClass}">
       ${isMyCustody ? '⌂' : '⇄'}
     </div>
     <div class="custody-today-info">
@@ -4880,15 +4883,16 @@ function updateDashboard() {
     const otherP = setBy === 'אמא' ? 'אבא' : 'אמא';
     weekendLabel = weekendMine ? 'אצל ' + setBy : 'אצל ' + otherP;
     weekendIcon = weekendMine ? '⌂' : '⇄';
-    weekendClass = weekendMine ? 'with-me' : 'with-partner';
+    weekendClass = weekendMine ? (setBy === 'אמא' ? 'with-mom' : 'with-dad') : (otherP === 'אמא' ? 'with-mom' : 'with-dad');
   } else if (weekendMine) {
     weekendLabel = role === 'אמא' ? 'אצל אמא' : role === 'אבא' ? 'אצל אבא' : 'אצלי';
-    weekendIcon = '⌂'; weekendClass = 'with-me';
+    weekendIcon = '⌂'; weekendClass = role === 'אמא' ? 'with-mom' : 'with-dad';
   } else {
     weekendLabel = 'אצל ' + partnerLabel;
-    weekendIcon = '⇄'; weekendClass = 'with-partner';
+    weekendIcon = '⇄'; weekendClass = role === 'אמא' ? 'with-dad' : 'with-mom';
   }
-  nextWeekendCard.className = 'card dash-mini-card weekend-' + (weekendMine ? 'me' : 'partner');
+  const _wkndCardClass = weekendMine ? (role === 'אמא' ? 'weekend-mom' : 'weekend-dad') : (role === 'אמא' ? 'weekend-dad' : 'weekend-mom');
+  nextWeekendCard.className = 'card dash-mini-card ' + _wkndCardClass;
   nextWeekendContent.innerHTML = `
     <div class="custody-today-content">
       <div class="custody-today-icon ${weekendClass}">
@@ -8126,7 +8130,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '119';
+const APP_VERSION = '120';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
