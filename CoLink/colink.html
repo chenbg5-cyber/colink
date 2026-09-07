@@ -3263,8 +3263,9 @@ async function onAuthSuccess() {
             return t;
           });
           const cloudIds = new Set(appData.tasks.map(t => t.id));
+          const deletedIds = new Set(appData.deletedTaskIds || []);
           Object.values(localTasks).forEach(loc => {
-            if (!cloudIds.has(loc.id)) { appData.tasks.push(loc); merged = true; }
+            if (!cloudIds.has(loc.id) && !deletedIds.has(loc.id)) { appData.tasks.push(loc); merged = true; }
           });
           if (merged) saveData();
         }
@@ -3396,7 +3397,7 @@ async function initFCM() {
   }
 }
 
-const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','campReminders','familyName'];
+const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','campReminders','familyName','deletedTaskIds'];
 const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','followWeekendDays'];
 let sharedDataListener = null;
 let ignoringSnapshot = false;
@@ -3473,7 +3474,9 @@ function listenToSharedData() {
       SHARED_FIELDS.forEach(f => {
         if (shared[f] != null) {
           if (f === 'tasks' && Array.isArray(shared.tasks)) {
-            const mergedTasks = shared.tasks.map(ct => {
+            const _allDeleted = new Set([...(shared.deletedTaskIds || []), ...(appData.deletedTaskIds || [])]);
+            appData.deletedTaskIds = [..._allDeleted];
+            const mergedTasks = shared.tasks.filter(ct => !_allDeleted.has(ct.id)).map(ct => {
               const loc = localTaskMap[ct.id];
               if (loc && loc.updatedAt && (!ct.updatedAt || loc.updatedAt > ct.updatedAt)) return loc;
               if (ct.attachment && !ct.attachment.data && loc && loc.attachment && loc.attachment.data) {
@@ -3483,7 +3486,7 @@ function listenToSharedData() {
             });
             const cloudIds = new Set(shared.tasks.map(t => t.id));
             Object.values(localTaskMap).forEach(loc => {
-              if (!cloudIds.has(loc.id)) mergedTasks.push(loc);
+              if (!cloudIds.has(loc.id) && !_allDeleted.has(loc.id)) mergedTasks.push(loc);
             });
             appData.tasks = mergedTasks;
           } else if (f !== 'tasks') {
@@ -3551,7 +3554,8 @@ let appData = {
   expenses: [],
   custodyChanges: [],
   signatures: [],
-  holidayAssignments: {}
+  holidayAssignments: {},
+  deletedTaskIds: []
 };
 
 const HEB_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -3620,6 +3624,7 @@ function migrateData() {
   if (!appData.activities) appData.activities = [];
   if (!appData.camps) appData.camps = [];
   if (!appData.campReminders) appData.campReminders = {};
+  if (!appData.deletedTaskIds) appData.deletedTaskIds = [];
   if (!appData.weekendMode) appData.weekendMode = '';
   if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
   if (!appData.weekendStartDate) appData.weekendStartDate = '';
@@ -6199,6 +6204,8 @@ async function deleteTask(id) {
     return;
   }
   if (!await colinkConfirm('למחוק את המשימה?')) return;
+  if (!appData.deletedTaskIds) appData.deletedTaskIds = [];
+  appData.deletedTaskIds.push(id);
   appData.tasks = appData.tasks.filter(t => t.id !== id);
   saveData(); renderTasks(); updateDashboard();
 }
@@ -8219,7 +8226,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '124';
+const APP_VERSION = '125';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
