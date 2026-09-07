@@ -8255,6 +8255,9 @@ function renderProfile() {
   if (appData.mode === 'join') {
     document.getElementById('profileFamilyName').disabled = true;
     document.getElementById('profileFamilyName').style.opacity = '0.5';
+  } else {
+    document.getElementById('profileFamilyName').disabled = false;
+    document.getElementById('profileFamilyName').style.opacity = '1';
   }
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
   if (!isChildView()) renderFamilyMembers();
@@ -8550,7 +8553,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '155';
+const APP_VERSION = '156';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
