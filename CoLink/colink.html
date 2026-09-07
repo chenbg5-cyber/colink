@@ -2620,12 +2620,6 @@
           <button type="button" class="day-chip" data-day="4" onclick="toggleChangeDay(this)">ה</button>
         </div>
       </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:12px;">
-        <p style="font-size:0.85rem;color:var(--text-light);line-height:1.6;margin:0;">
-          שינוי קבוע בימי המשמורת מתבצע רק דרך הגדרות המשמורת.
-          יש לפנות ליוצר/ת המשפחה לביצוע השינוי מתוך מסך המשמורת.
-        </p>
-      </div>
     </div>
     <div class="form-group">
       <label>סיבה / הערה</label>
@@ -7057,7 +7051,11 @@ function addCustodyChange() {
   toggleChangeType();
   renderCustodyChanges();
   updateDashboard();
-  showToast('בקשת שינוי נשלחה');
+  if (type === 'permanent') {
+    showToast('הבקשה נשלחה. שינוי קבוע מתבצע ע״י יוצר/ת המשפחה דרך הגדרות המשמורת');
+  } else {
+    showToast('בקשת שינוי נשלחה');
+  }
 }
 
 function renderCustodyChanges() {
@@ -8702,7 +8700,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '169';
+const APP_VERSION = '170';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
@@ -8726,7 +8724,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=69', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=70', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
