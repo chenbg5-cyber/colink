@@ -3498,19 +3498,9 @@ function saveToCloud() {
       return copy;
     });
   }
-  if (appData.user.role) {
-    if (!appData.custodySetBy || appData.custodySetBy === getMyRole()) {
-      shared.custodySync = { setBy: appData.custodySetBy || appData.user.role };
-      CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
-    } else {
-      shared.custodySync = { setBy: appData.custodySetBy };
-      CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
-      const allWeekdays = [0, 1, 2, 3, 4];
-      shared.custodySync.custodyDays = allWeekdays.filter(d => !(appData.custodyDays || []).includes(d));
-      if (shared.custodySync.weekendStartWithMe != null) shared.custodySync.weekendStartWithMe = !shared.custodySync.weekendStartWithMe;
-      if (shared.custodySync.weekendFixedWith === 'me') shared.custodySync.weekendFixedWith = 'partner';
-      else if (shared.custodySync.weekendFixedWith === 'partner') shared.custodySync.weekendFixedWith = 'me';
-    }
+  if (appData.user.role && (!appData.custodySetBy || appData.custodySetBy === getMyRole())) {
+    shared.custodySync = { setBy: appData.custodySetBy || appData.user.role };
+    CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
   }
   ignoringSnapshot = true;
   lastSaveTime = Date.now();
@@ -8642,7 +8632,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '164';
+const APP_VERSION = '165';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
