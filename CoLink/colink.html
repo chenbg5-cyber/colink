@@ -286,6 +286,14 @@
     .custody-day .day-name { font-size: 0.75rem; font-weight: 600; }
     .custody-day .day-label { font-size: 0.65rem; margin-top: 4px; }
 
+    .day-chip {
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border);
+      background: white; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    }
+    .day-chip:hover { border-color: var(--primary-light); }
+    .day-chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+
     .custody-legend {
       display: flex;
       gap: 20px;
@@ -2584,19 +2592,39 @@
     <h2>בקשת שינוי משמורת</h2>
     <div class="form-group">
       <label>סוג הבקשה</label>
-      <select id="changeType" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+      <select id="changeType" onchange="toggleChangeType()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
         <option value="change">שינוי זמני</option>
         <option value="permanent">שינוי קבוע</option>
       </select>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>מתאריך <span style="color:red;">*</span></label>
-        <input type="date" id="changeFrom" required>
+    <div id="changeTempFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label>מתאריך <span style="color:red;">*</span></label>
+          <input type="date" id="changeFrom" required>
+        </div>
+        <div class="form-group">
+          <label>עד תאריך <span style="color:red;">*</span></label>
+          <input type="date" id="changeTo" required>
+        </div>
       </div>
+    </div>
+    <div id="changePermanentFields" hidden>
       <div class="form-group">
-        <label>עד תאריך <span style="color:red;">*</span></label>
-        <input type="date" id="changeTo" required>
+        <label>ימים מבוקשים</label>
+        <div id="changeDaysPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <button type="button" class="day-chip" data-day="0" onclick="toggleChangeDay(this)">א</button>
+          <button type="button" class="day-chip" data-day="1" onclick="toggleChangeDay(this)">ב</button>
+          <button type="button" class="day-chip" data-day="2" onclick="toggleChangeDay(this)">ג</button>
+          <button type="button" class="day-chip" data-day="3" onclick="toggleChangeDay(this)">ד</button>
+          <button type="button" class="day-chip" data-day="4" onclick="toggleChangeDay(this)">ה</button>
+        </div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:12px;">
+        <p style="font-size:0.85rem;color:var(--text-light);line-height:1.6;margin:0;">
+          שינוי קבוע בימי המשמורת מתבצע רק דרך הגדרות המשמורת.
+          יש לפנות ליוצר/ת המשפחה לביצוע השינוי מתוך מסך המשמורת.
+        </p>
       </div>
     </div>
     <div class="form-group">
@@ -4732,12 +4760,18 @@ function showPendingRequests() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות שינוי משמורת (' + pendingCustody.length + ')</strong>';
       pendingCustody.forEach(c => {
         const typeLabel = c.type === 'permanent' ? 'שינוי קבוע' : c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
-        const fromDate = c.from ? formatDate(c.from) : '';
-        const toDate = c.to ? formatDate(c.to) : '';
-        const dateRange = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        const _dn = ['א','ב','ג','ד','ה','ו','ש'];
+        let detailStr = '';
+        if (c.type === 'permanent' && c.days) {
+          detailStr = 'ימים: ' + c.days.sort().map(function(d){return _dn[d]||d;}).join(', ');
+        } else {
+          const fromDate = c.from ? formatDate(c.from) : '';
+          const toDate = c.to ? formatDate(c.to) : '';
+          detailStr = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        }
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[3])">';
         html += '<div style="font-weight:600;">' + typeLabel + '</div>';
-        if (dateRange) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + dateRange + '</div>';
+        if (detailStr) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + detailStr + '</div>';
         if (c.reason) html += '<div style="font-size:0.78rem;margin-top:2px;">' + esc(c.reason) + '</div>';
         html += '<div style="display:flex;gap:8px;margin-top:6px;">';
         html += '<button style="background:#00B894;color:#fff;border:none;padding:4px 14px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.8rem;" onclick="event.stopPropagation();respondCustodyChange(' + c.id + ',\'approved\');showPendingRequests()">אישור</button>';
@@ -4788,12 +4822,18 @@ function showSentPending() {
       html += '<div style="margin-bottom:0.75rem;"><strong>⇄ בקשות שינוי משמורת (' + sentCustody.length + ')</strong>';
       sentCustody.forEach(c => {
         const typeLabel = c.type === 'permanent' ? 'שינוי קבוע' : c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
-        const fromDate = c.from ? formatDate(c.from) : '';
-        const toDate = c.to ? formatDate(c.to) : '';
-        const dateRange = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        const _dn2 = ['א','ב','ג','ד','ה','ו','ש'];
+        let detailStr2 = '';
+        if (c.type === 'permanent' && c.days) {
+          detailStr2 = 'ימים: ' + c.days.sort().map(function(d){return _dn2[d]||d;}).join(', ');
+        } else {
+          const fromDate = c.from ? formatDate(c.from) : '';
+          const toDate = c.to ? formatDate(c.to) : '';
+          detailStr2 = fromDate && toDate ? fromDate + ' - ' + toDate : (fromDate || toDate || '');
+        }
         html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'custody\',document.querySelectorAll(\'.nav-item\')[3])">';
         html += '<div style="font-weight:600;">' + typeLabel + '</div>';
-        if (dateRange) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + dateRange + '</div>';
+        if (detailStr2) html += '<div style="font-size:0.78rem;color:var(--text-light);margin-top:2px;">' + detailStr2 + '</div>';
         if (c.reason) html += '<div style="font-size:0.78rem;margin-top:2px;">' + esc(c.reason) + '</div>';
         html += '<div style="font-size:0.72rem;color:#E17055;margin-top:2px;">ממתין לאישור</div>';
         html += '</div>';
@@ -5398,11 +5438,15 @@ function updateDashboard() {
     custodyCard.style.display = '';
     custodyContainer.innerHTML = pendingForMe.map(c => {
       const typeLabel = c.type === 'permanent' ? 'שינוי קבוע' : c.type === 'swap' ? 'החלפת ימים' : 'שינוי זמני';
+      const _dn3 = ['א','ב','ג','ד','ה','ו','ש'];
+      const detailStr3 = (c.type === 'permanent' && c.days)
+        ? 'ימים: ' + c.days.sort().map(d => _dn3[d]||d).join(', ') + (c.reason ? ' · ' + esc(c.reason) : '')
+        : formatDate(c.from) + ' - ' + formatDate(c.to) + (c.reason ? ' · ' + esc(c.reason) : '');
       return `
         <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
           <div>
             <div class="list-item-title">${typeLabel}</div>
-            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + esc(c.reason) : ''}</div>
+            <div class="list-item-meta">${detailStr3}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-sm" style="background:#00B894;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-family:inherit;cursor:pointer;font-size:0.75rem;" onclick="respondCustodyChange(${c.id},'approved')">אישור</button>
@@ -6752,7 +6796,7 @@ function renderCustody() {
   }
   const saveBtn = document.getElementById('custodySaveBtn');
   if (!isCustodyOwner()) {
-    if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י ' + (appData.custodySetBy || '');
+    if (hint) hint.textContent = 'הגדרות המשמורת נקבעות ע״י יוצר/ת המשפחה';
     if (saveBtn) saveBtn.style.display = 'none';
   } else {
     if (saveBtn) saveBtn.style.display = 'block';
@@ -6777,7 +6821,7 @@ function saveCustodyToCloud() {
 }
 
 function toggleCustodyEdit(day, el) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   if (!appData.custodySetBy) appData.custodySetBy = getMyRole();
   const myRole = getMyRole();
   const partnerRole = myRole === 'אמא' ? 'אבא' : 'אמא';
@@ -6875,7 +6919,7 @@ function renderWeekendEditor() {
 }
 
 function updateWeekendMode(mode) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   appData.weekendMode = mode;
   if (mode !== 'alternating') {
     appData.weekendStartDate = '';
@@ -6893,7 +6937,7 @@ function updateWeekendMode(mode) {
 }
 
 function toggleWeekendDayEdit(day) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   const wDays = appData.weekendDays || [5, 6];
   const idx = wDays.indexOf(day);
   if (idx >= 0 && wDays.length > 1) {
@@ -6908,7 +6952,7 @@ function toggleWeekendDayEdit(day) {
 }
 
 function updateWeekendRef(val) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   if (!val) return;
   const d = new Date(val);
   const dow = d.getDay();
@@ -6923,7 +6967,7 @@ function updateWeekendRef(val) {
 }
 
 function updateWeekendFixed(who) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   appData.weekendFixedWith = who;
   const wDays = appData.weekendDays || [5, 6];
   appData.custodyDays = appData.custodyDays.filter(d => d !== 5 && d !== 6);
@@ -6934,7 +6978,7 @@ function updateWeekendFixed(who) {
 }
 
 function toggleFollowDayEdit(day, el) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   if (!appData.followWeekendDays) appData.followWeekendDays = [];
   const idx = appData.followWeekendDays.indexOf(day);
   if (idx >= 0) {
@@ -6952,7 +6996,7 @@ function toggleFollowDayEdit(day, el) {
 }
 
 function toggleAltDayEdit(day, el) {
-  if (!isCustodyOwner()) { showToast('רק ההורה שהגדיר את המשמורת יכול לשנות'); return; }
+  if (!isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות הגדרות משמורת'); return; }
   if (!appData.alternatingDays) appData.alternatingDays = [];
   const idx = appData.alternatingDays.indexOf(day);
   if (idx >= 0) {
@@ -6969,30 +7013,48 @@ function toggleAltDayEdit(day, el) {
   }
 }
 
+function toggleChangeType() {
+  const type = document.getElementById('changeType').value;
+  document.getElementById('changeTempFields').hidden = type === 'permanent';
+  document.getElementById('changePermanentFields').hidden = type !== 'permanent';
+}
+
+function toggleChangeDay(el) {
+  el.classList.toggle('selected');
+}
+
 function addCustodyChange() {
   if (isChildView()) return;
-  const from = document.getElementById('changeFrom').value;
-  const to = document.getElementById('changeTo').value;
   const reason = document.getElementById('changeReason').value.trim();
   const type = document.getElementById('changeType').value;
 
-  if (!from || !to) { showToast('נא למלא תאריכים'); return; }
-
-  appData.custodyChanges.push({
-    id: Date.now(),
-    type,
-    from, to, reason,
-    requestedBy: getMyRole(),
-    status: 'pending',
-    responseNote: '',
-    createdAt: new Date().toISOString()
-  });
+  if (type === 'permanent') {
+    const selected = [...document.querySelectorAll('#changeDaysPicker .day-chip.selected')].map(el => parseInt(el.dataset.day));
+    if (selected.length === 0) { showToast('נא לבחור ימים מבוקשים'); return; }
+    appData.custodyChanges.push({
+      id: Date.now(), type, days: selected, reason,
+      requestedBy: getMyRole(), status: 'pending', responseNote: '',
+      createdAt: new Date().toISOString()
+    });
+  } else {
+    const from = document.getElementById('changeFrom').value;
+    const to = document.getElementById('changeTo').value;
+    if (!from || !to) { showToast('נא למלא תאריכים'); return; }
+    appData.custodyChanges.push({
+      id: Date.now(), type, from, to, reason,
+      requestedBy: getMyRole(), status: 'pending', responseNote: '',
+      createdAt: new Date().toISOString()
+    });
+  }
 
   saveData();
   closeModal('custodyChangeModal');
   document.getElementById('changeFrom').value = '';
   document.getElementById('changeTo').value = '';
   document.getElementById('changeReason').value = '';
+  document.querySelectorAll('#changeDaysPicker .day-chip').forEach(el => el.classList.remove('selected'));
+  document.getElementById('changeType').value = 'change';
+  toggleChangeType();
   renderCustodyChanges();
   updateDashboard();
   showToast('בקשת שינוי נשלחה');
@@ -7031,12 +7093,17 @@ function renderCustodyChanges() {
       actionsHtml = `<div style="margin-top:6px;padding:8px 12px;background:#FFF3E0;border-radius:8px;font-size:0.82rem;color:#E17055;">הערת ההורה השני: ${esc(c.responseNote)}</div>`;
     }
 
+    const dayNames = ['א','ב','ג','ד','ה','ו','ש'];
+    const detailLine = c.type === 'permanent' && c.days
+      ? 'ימים: ' + c.days.sort().map(d => dayNames[d] || d).join(', ') + (c.reason ? ' · ' + esc(c.reason) : '')
+      : formatDate(c.from) + ' - ' + formatDate(c.to) + (c.reason ? ' · ' + esc(c.reason) : '');
+
     return `
       <div class="list-item" style="flex-direction:column;align-items:stretch;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="list-item-content" style="flex:1;">
             <div class="list-item-title">${typeLabel}</div>
-            <div class="list-item-meta">${formatDate(c.from)} - ${formatDate(c.to)} ${c.reason ? '· ' + esc(c.reason) : ''}</div>
+            <div class="list-item-meta">${detailLine}</div>
             <div class="list-item-meta" style="font-size:0.75rem;color:var(--text-light);">${requester}</div>
           </div>
           <span class="badge ${st.cls}">${st.label}</span>
@@ -8635,7 +8702,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '167';
+const APP_VERSION = '169';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
@@ -8659,7 +8726,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=67', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=69', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
