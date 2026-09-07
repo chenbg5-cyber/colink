@@ -3495,7 +3495,7 @@ function saveToCloud() {
       return copy;
     });
   }
-  if (appData.user.role) {
+  if (appData.user.role && (!appData.custodySetBy || appData.custodySetBy === getMyRole())) {
     shared.custodySync = { setBy: appData.custodySetBy || appData.user.role };
     CUSTODY_FIELDS.forEach(f => { if (appData[f] !== undefined) shared.custodySync[f] = appData[f]; });
   }
@@ -8621,7 +8621,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '159';
+const APP_VERSION = '160';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
