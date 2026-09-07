@@ -4098,9 +4098,16 @@ async function obNext(fromStep) {
       }).catch(() => {});
     }
 
-    document.getElementById('familyCodeValue').textContent = appData.familyCode;
-    if (appData.mode === 'join') {
+    if (appData.mode === 'child') {
+      document.getElementById('familyCodeValue').style.display = 'none';
+      document.getElementById('familyCodeCopyBtn').style.display = 'none';
+      document.getElementById('familyCodeShareMsg').style.display = 'none';
       document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
+    } else {
+      document.getElementById('familyCodeValue').textContent = appData.familyCode;
+      if (appData.mode === 'join') {
+        document.getElementById('familyCodeMsg').textContent = 'הצטרפת למשפחה בהצלחה!';
+      }
     }
 
     saveData();
@@ -4903,7 +4910,7 @@ function renderCustodyToday() {
     else parentLabel = 'ההורה השני';
   }
 
-  const _todayRole = getMyRole();
+  const _todayRole = isChildView() ? (appData.custodySetBy || 'אמא') : getMyRole();
   const _todayCustodyClass = isMyCustody
     ? (_todayRole === 'אמא' ? 'with-mom' : 'with-dad')
     : (_todayRole === 'אמא' ? 'with-dad' : 'with-mom');
@@ -5015,7 +5022,8 @@ function updateDashboard() {
     weekendLabel = 'אצל ' + partnerLabel;
     weekendIcon = '⇄'; weekendClass = role === 'אמא' ? 'with-dad' : 'with-mom';
   }
-  const _wkndCardClass = weekendMine ? (role === 'אמא' ? 'weekend-mom' : 'weekend-dad') : (role === 'אמא' ? 'weekend-dad' : 'weekend-mom');
+  const _wkndRole = isChildView() ? (appData.custodySetBy || 'אמא') : role;
+  const _wkndCardClass = weekendMine ? (_wkndRole === 'אמא' ? 'weekend-mom' : 'weekend-dad') : (_wkndRole === 'אמא' ? 'weekend-dad' : 'weekend-mom');
   nextWeekendCard.className = 'card dash-mini-card ' + _wkndCardClass;
   nextWeekendContent.innerHTML = `
     <div class="custody-today-content">
@@ -8124,7 +8132,7 @@ function renderCalendar() {
   }
 
   // Days
-  const _calRole = getMyRole();
+  const _calRole = isChildView() ? (appData.custodySetBy || 'אמא') : getMyRole();
   const _calClassMine = _calRole === 'אמא' ? 'custody-mom' : 'custody-dad';
   const _calClassPartner = _calRole === 'אמא' ? 'custody-dad' : 'custody-mom';
   for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -8242,6 +8250,12 @@ function renderProfile() {
   document.getElementById('profilePhone').value = appData.user.phone;
   document.getElementById('profileFamilyName').value = appData.familyName || '';
   document.getElementById('profileRole').value = appData.user.role;
+  if (appData.mode === 'join') {
+    document.getElementById('profileFamilyName').disabled = true;
+    document.getElementById('profileFamilyName').style.opacity = '0.5';
+    document.getElementById('profileRole').disabled = true;
+    document.getElementById('profileRole').style.opacity = '0.5';
+  }
   document.getElementById('profileFamilyCode').textContent = appData.familyCode;
   if (!isChildView()) renderFamilyMembers();
 }
@@ -8537,7 +8551,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '153';
+const APP_VERSION = '154';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
