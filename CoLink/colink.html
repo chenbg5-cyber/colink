@@ -4890,7 +4890,6 @@ function renderCustodyToday() {
   const container = document.getElementById('custodyTodayContent');
   const card = document.getElementById('custodyTodayCard');
   if (!container || !card) return;
-  if (loadingFromCloud) return;
   const today = new Date();
   const dayOfWeek = today.getDay();
   const todayISO = today.toISOString().split('T')[0];
@@ -4997,7 +4996,6 @@ function updateDashboard() {
   const role = getMyRole();
   const partnerLabel = role === 'אמא' ? 'אבא' : role === 'אבא' ? 'אמא' : 'ההורה השני';
 
-  if (!loadingFromCloud) {
   const nextFri = new Date(now);
   const dow = now.getDay();
   nextFri.setDate(now.getDate() + ((5 - dow + 7) % 7 || 7));
@@ -5036,7 +5034,6 @@ function updateDashboard() {
       </div>
     </div>
   `;
-  }
 
   // Card 3: Today Assignments count (for my role)
   const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && isTaskPendingForMe(t));
@@ -8621,7 +8618,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '160';
+const APP_VERSION = '161';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
