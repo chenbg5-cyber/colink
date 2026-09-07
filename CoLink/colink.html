@@ -2797,7 +2797,7 @@
       <label>צירוף מסמך</label>
       <label class="file-input-label">
         📎 בחירת קובץ
-        <input type="file" id="sigFile" accept="image/*,.pdf,.doc,.docx">
+        <input type="file" id="sigFile" accept="image/*,.pdf">
         <span id="sigFileName"></span>
       </label>
     </div>
@@ -3686,13 +3686,21 @@ function init() {
     document.getElementById('invoiceFileName').textContent = this.files[0] ? this.files[0].name : '';
   });
   document.getElementById('sigFile').addEventListener('change', function() {
-    if (this.files[0] && this.files[0].size > 700 * 1024) {
-      showToast('הקובץ גדול מדי — מקסימום 700KB');
+    if (!this.files[0]) return;
+    const fn = this.files[0].name.toLowerCase();
+    if (fn.endsWith('.doc') || fn.endsWith('.docx') || fn.endsWith('.xls') || fn.endsWith('.xlsx') || fn.endsWith('.ppt') || fn.endsWith('.pptx')) {
+      showToast('יש להמיר את הקובץ ל-PDF לפני העלאה. קבצי Office לא נתמכים.');
       this.value = '';
       document.getElementById('sigFileName').textContent = '';
       return;
     }
-    document.getElementById('sigFileName').textContent = this.files[0] ? this.files[0].name : '';
+    if (this.files[0].size > 5 * 1024 * 1024) {
+      showToast('הקובץ גדול מדי — מקסימום 5MB');
+      this.value = '';
+      document.getElementById('sigFileName').textContent = '';
+      return;
+    }
+    document.getElementById('sigFileName').textContent = this.files[0].name;
   });
 
   auth.onAuthStateChanged(user => {
@@ -8226,7 +8234,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '125';
+const APP_VERSION = '126';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
