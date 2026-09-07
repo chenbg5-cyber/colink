@@ -4286,7 +4286,7 @@ function onWeekendRefDateChange(val) {
     const diff = (5 - dow + 7) % 7;
     d.setDate(d.getDate() + (diff === 0 ? 0 : diff > 3 ? diff - 7 : diff));
   }
-  appData.weekendStartDate = d.toISOString().split('T')[0];
+  appData.weekendStartDate = toLocalDateStr(d);
   appData.weekendStartWithMe = true;
   document.getElementById('obWeekendRefDate').value = appData.weekendStartDate;
 }
@@ -4337,8 +4337,8 @@ function isWeekendMine(date) {
   if (appData.weekendMode === 'fixed') return appData.weekendFixedWith === 'me';
   if (appData.weekendMode === 'other') return false;
   if (appData.weekendMode === 'alternating' && appData.weekendStartDate) {
-    const start = new Date(appData.weekendStartDate);
-    const target = new Date(date);
+    const start = new Date(appData.weekendStartDate + 'T12:00:00');
+    const target = new Date(date + 'T12:00:00');
     const diffDays = Math.round((target - start) / (1000 * 60 * 60 * 24));
     const weeksDiff = Math.floor(diffDays / 7);
     return appData.weekendStartWithMe ? (weeksDiff % 2 === 0) : (weeksDiff % 2 !== 0);
@@ -4347,10 +4347,10 @@ function isWeekendMine(date) {
 }
 
 function getFridayOfWeek(dateStr) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T12:00:00');
   const dow = d.getDay();
   d.setDate(d.getDate() + (dow === 6 ? -1 : (5 - dow)));
-  return d.toISOString().split('T')[0];
+  return toLocalDateStr(d);
 }
 
 function isDayMine(dayOfWeek, dateStr) {
@@ -4895,7 +4895,7 @@ function renderCustodyToday() {
   if (!container || !card) return;
   const today = new Date();
   const dayOfWeek = today.getDay();
-  const todayISO = today.toISOString().split('T')[0];
+  const todayISO = toLocalDateStr(today);
   const isMyCustody = isDayMine(dayOfWeek, todayISO);
   const role = appData.user.role;
 
@@ -4946,9 +4946,12 @@ function isMyTask(t) {
   return t.responsibility === role || t.responsibility === 'משותפת';
 }
 
-function getTodayStr() {
-  const d = new Date();
+function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getTodayStr() {
+  return toLocalDateStr(new Date());
 }
 
 function openBirthdayTask() {
@@ -5003,7 +5006,7 @@ function updateDashboard() {
   const dow = now.getDay();
   nextFri.setDate(now.getDate() + ((5 - dow + 7) % 7 || 7));
   if (dow === 5 || dow === 6) nextFri.setDate(now.getDate() + (dow === 5 ? 0 : 6));
-  const nextFriStr = nextFri.toISOString().split('T')[0];
+  const nextFriStr = toLocalDateStr(nextFri);
 
   const weekendMine = isWeekendMine(nextFriStr);
   let weekendLabel, weekendIcon, weekendClass;
@@ -5531,7 +5534,7 @@ function checkBirthdayReminders() {
   if (!appData.kids || !appData.kids.length) return;
   if (!appData.birthdayReminders) appData.birthdayReminders = {};
   const now = new Date();
-  const todayKey = now.toISOString().split('T')[0];
+  const todayKey = toLocalDateStr(now);
   const milestones = [30, 14, 7, 1, 0];
   const milestoneLabels = { 30: 'בעוד 30 יום', 14: 'בעוד שבועיים', 7: 'בעוד שבוע', 1: 'מחר', 0: 'היום' };
 
@@ -5563,7 +5566,7 @@ function checkEventReminders() {
   if (!appData.eventReminders) appData.eventReminders = {};
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayKey = now.toISOString().split('T')[0];
+  const todayKey = toLocalDateStr(now);
   const milestones = [7, 2, 0];
   const labels = { 7: 'בעוד שבוע', 2: 'בעוד יומיים', 0: 'היום' };
 
@@ -5593,7 +5596,7 @@ function checkTaskReminders() {
   if (!appData.taskReminders) appData.taskReminders = {};
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayKey = now.toISOString().split('T')[0];
+  const todayKey = toLocalDateStr(now);
   const milestones = [2, 0, -1];
   const labels = { 2: 'בעוד יומיים', 0: 'היום', '-1': 'עבר המועד!' };
 
@@ -5624,7 +5627,7 @@ function checkCampReminders() {
   if (!appData.campReminders) appData.campReminders = {};
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayKey = now.toISOString().split('T')[0];
+  const todayKey = toLocalDateStr(now);
 
   appData.camps.forEach(c => {
     if (!c.fromDate) return;
@@ -6912,7 +6915,7 @@ function updateWeekendRef(val) {
   if (dow !== 5) {
     d.setDate(d.getDate() + (dow === 6 ? -1 : (5 - dow)));
   }
-  appData.weekendStartDate = d.toISOString().split('T')[0];
+  appData.weekendStartDate = toLocalDateStr(d);
   appData.weekendStartWithMe = true;
   const input = document.getElementById('editWeekendRef');
   if (input) input.value = appData.weekendStartDate;
@@ -7128,7 +7131,7 @@ function addExpense() {
   if (isChildView()) return;
   const details = document.getElementById('expenseDetails').value.trim();
   const amount = parseFloat(document.getElementById('expenseAmount').value);
-  const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
+  const date = document.getElementById('expenseDate').value || getTodayStr();
   const forChild = document.getElementById('expenseForChild').value;
   const splitPercent = parseInt(document.getElementById('expenseSplit').value) || 50;
   const invoice = document.getElementById('expenseInvoice').files[0];
@@ -7838,7 +7841,7 @@ function getActivityCustodyParent(dayName) {
   const daysAhead = (dayNum - todayDow + 7) % 7 || 7;
   const nextDate = new Date(today);
   nextDate.setDate(today.getDate() + daysAhead);
-  const dateStr = nextDate.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(nextDate);
   const mine = isDayMine(dayNum, dateStr);
   const myRole = getMyRole();
   if (mine) return myRole;
@@ -8632,7 +8635,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '165';
+const APP_VERSION = '167';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
@@ -8656,7 +8659,7 @@ if (storedVersion && storedVersion !== APP_VERSION) {
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=65', { updateViaCache: 'none' }).then(reg => {
+  navigator.serviceWorker.register('./sw.js?v=67', { updateViaCache: 'none' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
