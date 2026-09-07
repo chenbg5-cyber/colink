@@ -3695,9 +3695,9 @@ function init() {
       return;
     }
     if (this.files[0].size > 5 * 1024 * 1024) {
-      showToast('הקובץ גדול מדי — מקסימום 5MB');
       this.value = '';
       document.getElementById('sigFileName').textContent = '';
+      showFileSizeUpgrade();
       return;
     }
     document.getElementById('sigFileName').textContent = this.files[0].name;
@@ -7030,6 +7030,28 @@ function getSigPadData() {
   return canvas.toDataURL('image/png');
 }
 
+function showFileSizeUpgrade() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:380px;text-align:center;padding:28px 24px;">
+      <h3 style="margin-bottom:12px;">הקובץ גדול מדי</h3>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">הגודל המקסימלי בתוכנית הנוכחית: 5MB</p>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">צריכים להעלות קבצים גדולים יותר? פנו אלינו לתוכנית מורחבת</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <a href="https://wa.me/972542884504?text=%D7%94%D7%99%D7%99%2C%20%D7%90%D7%A0%D7%99%20%D7%9E%D7%A2%D7%95%D7%A0%D7%99%D7%99%D7%9F%20%D7%91%D7%AA%D7%95%D7%9B%D7%A0%D7%99%D7%AA%20%D7%94%D7%9E%D7%95%D7%A8%D7%97%D7%91%D7%AA%20%D7%9C%D7%94%D7%A2%D7%9C%D7%90%D7%AA%20%D7%A7%D7%91%D7%A6%D7%99%D7%9D%20%D7%92%D7%93%D7%95%D7%9C%D7%99%D7%9D"
+           target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:12px;font-weight:600;text-decoration:none;font-size:0.95rem;">
+          <span style="font-size:1.2rem;">WhatsApp</span> פנו אלינו
+        </a>
+        <button onclick="this.closest('.modal-overlay').remove()" class="btn" style="padding:10px;font-size:0.9rem;">סגור</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+
 function addSignature() {
   if (isChildView()) return;
   const title = document.getElementById('sigTitle').value.trim();
@@ -8234,7 +8256,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '126';
+const APP_VERSION = '127';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
