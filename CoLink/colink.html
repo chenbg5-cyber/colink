@@ -2261,7 +2261,7 @@
         </div>
         <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:12px;width:100%;">שמירת שינויים</button>
       </div>
-      <div class="card">
+      <div class="card parent-only">
         <h3>קוד משפחה</h3>
         <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:12px;">הקוד הזה מזהה את המשפחה שלכם. רק מי שיודע את הקוד יכול להצטרף ולראות את הנתונים.</p>
         <div style="text-align:center;">
@@ -5956,35 +5956,36 @@ async function uploadSignaturePDF(sigId, pdfData) {
 async function loadSignatureFile(sigId) {
   if (!appData.familyCode || !currentFirebaseUser) return null;
   try {
+    const d = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sig_' + sigId).get();
+    if (d.exists) return d.data();
+  } catch(e) {}
+  try {
     const storage = firebase.storage();
-    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/original';
-    const ref = storage.ref(path);
-    const meta = await ref.getMetadata();
+    const ref = storage.ref('families/' + appData.familyCode + '/signatures/' + sigId + '/original');
     const url = await ref.getDownloadURL();
     const resp = await fetch(url);
     const blob = await resp.blob();
     return new Promise(resolve => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ data: reader.result, name: meta.customMetadata ? meta.customMetadata.fileName : '' });
+      reader.onload = () => resolve({ data: reader.result, name: '' });
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-  } catch (e) {
-    try {
-      const d = await db.collection('families').doc(appData.familyCode)
-        .collection('attachments').doc('sig_' + sigId).get();
-      if (d.exists) return d.data();
-    } catch(e2) {}
-    return null;
-  }
+  } catch(e2) {}
+  return null;
 }
 
 async function loadSignaturePDF(sigId) {
   if (!appData.familyCode || !currentFirebaseUser) return null;
   try {
+    const d = await db.collection('families').doc(appData.familyCode)
+      .collection('attachments').doc('sigpdf_' + sigId).get();
+    if (d.exists) return d.data();
+  } catch(e) {}
+  try {
     const storage = firebase.storage();
-    const path = 'families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf';
-    const ref = storage.ref(path);
+    const ref = storage.ref('families/' + appData.familyCode + '/signatures/' + sigId + '/signed.pdf');
     const url = await ref.getDownloadURL();
     const resp = await fetch(url);
     const blob = await resp.blob();
@@ -5994,14 +5995,8 @@ async function loadSignaturePDF(sigId) {
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-  } catch (e) {
-    try {
-      const d = await db.collection('families').doc(appData.familyCode)
-        .collection('attachments').doc('sigpdf_' + sigId).get();
-      if (d.exists) return d.data();
-    } catch(e2) {}
-    return null;
-  }
+  } catch(e2) {}
+  return null;
 }
 
 async function uploadExpenseInvoice(expId, invoiceData, invoiceName) {
@@ -8268,7 +8263,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '129';
+const APP_VERSION = '130';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   localStorage.setItem('colink_version', APP_VERSION);
