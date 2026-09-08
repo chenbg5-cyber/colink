@@ -2174,10 +2174,13 @@
       <div class="page-header">
         <h1>חגים</h1>
       </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterHolidays('upcoming', this)">קרובים</button>
+        <button class="tab-btn" onclick="filterHolidays('past', this)">עברו</button>
+      </div>
       <div class="card">
-        <h3>חגים קרובים</h3>
         <div id="holidaysList"></div>
-        <div style="text-align:center;margin-top:18px;">
+        <div id="holidaysSaveBtn" style="text-align:center;margin-top:18px;">
           <button class="btn btn-primary parent-only" onclick="saveHolidaysExplicit()" style="padding:10px 36px;font-size:1rem;">שמור שיבוץ חגים</button>
         </div>
       </div>
@@ -8357,32 +8360,85 @@ function renderCamps() {
 }
 
 // ============ HOLIDAYS ============
+let currentHolidayFilter = 'upcoming';
+
+function filterHolidays(filter, btn) {
+  currentHolidayFilter = filter;
+  if (btn) {
+    btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderHolidays();
+}
+
 function renderHolidays() {
   const container = document.getElementById('holidaysList');
   if (!container) return;
   const now = new Date();
-  const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 30)).slice(0, 12);
+  const saveBtn = document.getElementById('holidaysSaveBtn');
 
-  container.innerHTML = upcoming.map(h => {
-    const assignment = appData.holidayAssignments[h.name] || 'unset';
-    const isPast = new Date(h.endDate || h.date) < now;
-    return `
-      <div class="holiday-card" style="${isPast ? 'opacity:0.5;' : ''}">
-        <div class="holiday-info">
-          <h4>${h.name}</h4>
-          <p>${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''} · ${h.heb}</p>
+  if (currentHolidayFilter === 'upcoming') {
+    const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7));
+    if (saveBtn) saveBtn.style.display = '';
+    container.innerHTML = upcoming.map(h => {
+      const assignment = appData.holidayAssignments[h.name] || 'unset';
+      return `
+        <div class="holiday-card">
+          <div class="holiday-info">
+            <h4>${h.name}</h4>
+            <p>${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''} · ${h.heb}</p>
+          </div>
+          <select onchange="setHolidayAssignment('${h.name}', this.value)"
+            style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
+            <option value="unset" ${assignment === 'unset' ? 'selected' : ''}>לא הוגדר</option>
+            <option value="אמא" ${assignment === 'אמא' ? 'selected' : ''}>אצל אמא</option>
+            <option value="אבא" ${assignment === 'אבא' ? 'selected' : ''}>אצל אבא</option>
+            <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
+            <option value="regular" ${assignment === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
+          </select>
         </div>
-        <select onchange="setHolidayAssignment('${h.name}', this.value)"
-          style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
-          <option value="unset" ${assignment === 'unset' ? 'selected' : ''}>לא הוגדר</option>
-          <option value="אמא" ${assignment === 'אמא' ? 'selected' : ''}>אצל אמא</option>
-          <option value="אבא" ${assignment === 'אבא' ? 'selected' : ''}>אצל אבא</option>
-          <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
-          <option value="regular" ${assignment === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
-        </select>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('') || '<p style="text-align:center;color:var(--text-light);padding:20px;">אין חגים קרובים</p>';
+  } else {
+    const past = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) < now).reverse();
+    if (saveBtn) saveBtn.style.display = 'none';
+    const byYear = {};
+    past.forEach(h => {
+      const y = h.date.substring(0, 4);
+      const hebYear = h.heb.match(/תש.״.$/)?.[0] || y;
+      const key = hebYear + ' / ' + y;
+      if (!byYear[key]) byYear[key] = [];
+      byYear[key].push(h);
+    });
+    let html = '';
+    Object.entries(byYear).forEach(([year, holidays]) => {
+      const id = 'pastHol_' + year.replace(/\s/g, '');
+      html += `
+        <div style="margin-bottom:8px;">
+          <div onclick="var b=document.getElementById('${id}');b.hidden=!b.hidden;this.querySelector('.hol-arrow').style.transform=b.hidden?'':'rotate(180deg)';"
+            style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);">
+            <span style="font-weight:600;font-size:0.9rem;">${year} (${holidays.length} חגים)</span>
+            <span class="hol-arrow" style="font-size:0.7rem;color:var(--text-light);transition:transform 0.2s;">▼</span>
+          </div>
+          <div id="${id}" hidden>
+            ${holidays.map(h => {
+              const assignment = appData.holidayAssignments[h.name] || 'unset';
+              const assignLabel = assignment === 'unset' ? 'לא הוגדר' : assignment === 'split' ? 'חלוקה' : assignment === 'regular' ? 'לפי שהות' : 'אצל ' + assignment;
+              const assignColor = assignment === 'אמא' ? 'rgba(108,92,231,0.8)' : assignment === 'אבא' ? '#00CEC9' : 'var(--text-light)';
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);opacity:0.7;">
+                  <div>
+                    <div style="font-size:0.85rem;font-weight:500;">${h.name}</div>
+                    <div style="font-size:0.72rem;color:var(--text-light);">${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''}</div>
+                  </div>
+                  <span style="font-size:0.75rem;color:${assignColor};font-weight:500;">${assignLabel}</span>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    });
+    container.innerHTML = html || '<p style="text-align:center;color:var(--text-light);padding:20px;">אין חגים שעברו</p>';
+  }
 }
 
 function setHolidayAssignment(name, value) {
@@ -8838,7 +8894,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '178';
+const APP_VERSION = '179';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
