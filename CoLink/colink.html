@@ -6958,7 +6958,7 @@ function renderWeekendEditor() {
   if (mode === 'alternating') {
     html += `
       <div style="margin-top:12px;${disStyle}">
-        <label style="font-size:0.85rem;font-weight:500;">תאריך שישי שהילדים אצלך</label>
+        <label style="font-size:0.85rem;font-weight:500;">תאריך שישי שהילדים אצל יוצר/ת המשפחה</label>
         <input type="date" id="editWeekendRef" value="${appData.weekendStartDate || ''}" ${isOwner ? 'onchange="updateWeekendRef(this.value)"' : 'disabled'} style="margin-top:6px;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
       </div>
       <div style="margin-top:12px;${disStyle}">
@@ -8882,7 +8882,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '181';
+const APP_VERSION = '182';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
