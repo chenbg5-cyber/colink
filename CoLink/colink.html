@@ -8293,17 +8293,9 @@ function filterCamps(filter, btn) {
 
 function renderCamps() {
   const container = document.getElementById('campsList');
-  const empty = document.getElementById('campsEmpty');
   if (!container) return;
 
   const camps = appData.camps || [];
-  if (camps.length === 0) {
-    empty.style.display = 'block';
-    container.innerHTML = '';
-    container.appendChild(empty);
-    return;
-  }
-
   const childMode = isChildView();
   const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
   const today = new Date(); today.setHours(0,0,0,0);
@@ -8315,14 +8307,10 @@ function renderCamps() {
   });
 
   if (filtered.length === 0) {
-    empty.style.display = 'block';
-    empty.querySelector('p').textContent = currentCampFilter === 'ended' ? 'אין קייטנות שהסתיימו' : 'אין קייטנות פעילות';
-    container.innerHTML = '';
-    container.appendChild(empty);
+    const msg = camps.length === 0 ? 'אין קייטנות עדיין' : currentCampFilter === 'ended' ? 'אין קייטנות שהסתיימו' : 'אין קייטנות פעילות';
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">--</div><p>' + msg + '</p></div>';
     return;
   }
-
-  empty.style.display = 'none';
 
   container.innerHTML = filtered.map(c => {
     const from = new Date(c.fromDate);
@@ -8894,7 +8882,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '180';
+const APP_VERSION = '181';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
