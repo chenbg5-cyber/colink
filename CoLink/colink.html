@@ -8378,7 +8378,7 @@ function renderHolidays() {
   const saveBtn = document.getElementById('holidaysSaveBtn');
 
   if (currentHolidayFilter === 'upcoming') {
-    const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7));
+    const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7)).slice(0, 13);
     if (saveBtn) saveBtn.style.display = '';
     container.innerHTML = upcoming.map(h => {
       const assignment = appData.holidayAssignments[h.name] || 'unset';
@@ -8894,7 +8894,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '179';
+const APP_VERSION = '180';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
