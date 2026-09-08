@@ -1744,14 +1744,6 @@
         </div>
         <div id="weekendAlternatingQ" style="display:none;margin-top:16px;text-align:center;">
           <div style="margin-bottom:16px;">
-            <p style="font-weight:500;margin-bottom:8px;">אילו ימי סופ״ש מתחלפים?</p>
-            <div style="display:flex;gap:10px;justify-content:center;">
-              <button class="btn btn-secondary weekend-day-btn" data-wday="5" onclick="toggleWeekendDay(this)" style="min-width:70px;">שישי</button>
-              <button class="btn btn-secondary weekend-day-btn" data-wday="6" onclick="toggleWeekendDay(this)" style="min-width:70px;">שבת</button>
-            </div>
-            <p style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">ניתן לבחור שישי בלבד, שבת בלבד, או שניהם</p>
-          </div>
-          <div style="margin-bottom:16px;">
             <p style="font-weight:500;margin-bottom:8px;">בחר/י תאריך סופ״ש שבו הילדים אצלך</p>
             <p style="color:var(--text-light);font-size:0.82rem;margin-bottom:10px;">כדי לדעת את סדר ההתחלפות, בחר/י תאריך של שישי שבו הילדים אצלך</p>
             <input type="date" id="obWeekendRefDate" onchange="onWeekendRefDateChange(this.value)" style="padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.9rem;text-align:center;">
@@ -1783,13 +1775,6 @@
           </div>
         </div>
         <div id="weekendFixedQ" style="display:none;margin-top:16px;text-align:center;">
-          <div style="margin-bottom:16px;">
-            <p style="font-weight:500;margin-bottom:8px;">אילו ימי סופ״ש?</p>
-            <div style="display:flex;gap:10px;justify-content:center;">
-              <button class="btn btn-secondary weekend-day-btn-fixed" data-wday="5" onclick="toggleWeekendDayFixed(this)" style="min-width:70px;">שישי</button>
-              <button class="btn btn-secondary weekend-day-btn-fixed" data-wday="6" onclick="toggleWeekendDayFixed(this)" style="min-width:70px;">שבת</button>
-            </div>
-          </div>
           <p style="font-weight:500;margin-bottom:12px;">הילדים בסופ״ש תמיד אצל:</p>
           <div style="display:flex;gap:12px;justify-content:center;">
             <button class="btn btn-primary weekend-answer" onclick="setWeekendFixed('me')" style="min-width:80px;">אצלי</button>
@@ -2110,24 +2095,26 @@
         <h1>פרטי משמורת</h1>
         <button class="btn btn-secondary btn-sm" onclick="openModal('custodyChangeModal')">בקשת שינוי</button>
       </div>
-      <div class="card">
-        <h3>ימים קבועים</h3>
-        <p id="custodyEditHint" style="font-size:0.82rem;color:var(--text-light);margin-bottom:12px;"></p>
+      <div class="card" style="padding-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+          <h3 style="font-size:0.95rem;margin:0;">ימים קבועים</h3>
+          <span id="custodyEditHint" style="font-size:0.72rem;color:var(--text-light);"></span>
+        </div>
         <div class="custody-week" id="custodyDisplay" style="max-width:350px;grid-template-columns:repeat(5,1fr);"></div>
-        <div class="custody-legend" style="margin-top:12px;">
+        <div class="custody-legend" style="margin-top:8px;font-size:0.75rem;gap:14px;">
           <span class="me">אצלי</span>
           <span class="other">אצל ההורה השני</span>
         </div>
+        <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px;">
+          <h3 style="font-size:0.95rem;margin:0 0 8px;">סידור סופ״ש</h3>
+          <div id="custodyWeekendEditor"></div>
+        </div>
+        <div id="custodySaveBtn" style="text-align:center;margin-top:16px;display:none;">
+          <button class="btn btn-primary" onclick="saveCustodyToCloud()" style="min-width:200px;padding:12px 24px;">שמור שינויים</button>
+        </div>
       </div>
       <div class="card">
-        <h3>סידור סופ״ש</h3>
-        <div id="custodyWeekendEditor"></div>
-      </div>
-      <div id="custodySaveBtn" style="text-align:center;margin:16px 0;display:none;">
-        <button class="btn btn-primary" onclick="saveCustodyToCloud()" style="min-width:200px;padding:12px 24px;">שמור שינויים</button>
-      </div>
-      <div class="card">
-        <h3>בקשות שינוי</h3>
+        <h3 style="font-size:0.95rem;">בקשות שינוי</h3>
         <div id="custodyChangesList"></div>
       </div>
     </div>
@@ -3753,7 +3740,7 @@ function migrateData() {
   if (appData.weekendStartWithMe === undefined) appData.weekendStartWithMe = null;
   if (!appData.weekendStartDate) appData.weekendStartDate = '';
   if (!appData.weekendFixedWith) appData.weekendFixedWith = '';
-  if (!appData.weekendDays || !appData.weekendDays.length) appData.weekendDays = [5, 6];
+  appData.weekendDays = [5, 6];
   if (!appData.alternatingDays) appData.alternatingDays = [];
   if (!appData.followWeekendDays) appData.followWeekendDays = [];
   if (!appData.user.memberType) appData.user.memberType = appData.user.role === 'ילד/ה' ? 'child' : 'parent';
@@ -6915,17 +6902,7 @@ function renderWeekendEditor() {
     </div>
   `;
 
-  if (mode === 'alternating' || mode === 'fixed') {
-    html += `
-      <div style="margin-top:12px;${disStyle}">
-        <label style="font-size:0.85rem;font-weight:500;">ימי סופ״ש</label>
-        <div style="display:flex;gap:8px;margin-top:6px;">
-          <button class="btn btn-sm ${hasFri ? 'btn-primary' : 'btn-secondary'}" ${isOwner ? 'onclick="toggleWeekendDayEdit(5)"' : 'disabled'} style="min-width:60px;">שישי</button>
-          <button class="btn btn-sm ${hasSat ? 'btn-primary' : 'btn-secondary'}" ${isOwner ? 'onclick="toggleWeekendDayEdit(6)"' : 'disabled'} style="min-width:60px;">שבת</button>
-        </div>
-      </div>
-    `;
-  }
+  appData.weekendDays = [5, 6];
 
   if (mode === 'alternating') {
     html += `
@@ -8813,7 +8790,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '175';
+const APP_VERSION = '176';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
