@@ -972,6 +972,29 @@
 
     .toast.show { transform: translateX(-50%) translateY(0); }
 
+    .center-notice {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.4); z-index: 100000;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .center-notice.show { opacity: 1; pointer-events: auto; }
+    .center-notice-box {
+      background: white; border-radius: 16px; padding: 24px 28px;
+      max-width: 340px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      font-family: inherit; line-height: 1.7;
+    }
+    .center-notice-box .notice-title {
+      font-weight: 700; font-size: 1rem; color: var(--primary); margin-bottom: 10px;
+    }
+    .center-notice-box .notice-body {
+      font-size: 0.88rem; color: var(--text); margin-bottom: 16px;
+    }
+    .center-notice-box .notice-btn {
+      background: var(--primary); color: white; border: none; padding: 10px 32px;
+      border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+
     .whatsapp-float {
       position: fixed;
       bottom: 80px;
@@ -1577,6 +1600,13 @@
   <svg viewBox="0 0 32 32" width="20" height="20" fill="white"><path d="M16.004 2.003C8.272 2.003 2.003 8.27 2.003 15.998c0 2.467.644 4.878 1.87 7.004L2 30l7.2-1.888A13.94 13.94 0 0016.004 30c7.728 0 13.993-6.267 13.993-13.998S23.732 2.003 16.004 2.003zm0 25.594a11.58 11.58 0 01-5.908-1.618l-.424-.252-4.394 1.152 1.172-4.282-.276-.44a11.566 11.566 0 01-1.776-6.16c0-6.402 5.21-11.61 11.614-11.61 6.4 0 11.606 5.208 11.606 11.61 0 6.406-5.214 11.6-11.614 11.6zm6.364-8.696c-.348-.174-2.064-1.02-2.384-1.136-.32-.116-.552-.174-.784.174-.232.348-.9 1.136-1.104 1.37-.204.232-.408.26-.756.086-.348-.174-1.468-.54-2.796-1.724-1.034-.92-1.732-2.058-1.936-2.406-.204-.348-.022-.536.153-.71.158-.156.348-.408.522-.612.174-.204.232-.348.348-.58.116-.232.058-.436-.028-.61-.088-.174-.784-1.89-1.074-2.588-.284-.68-.572-.588-.784-.598l-.668-.012c-.232 0-.61.088-.928.436-.32.348-1.218 1.19-1.218 2.902s1.246 3.366 1.42 3.598c.174.232 2.452 3.744 5.942 5.25.83.358 1.478.572 1.984.732.834.264 1.592.228 2.192.138.668-.1 2.064-.844 2.354-1.66.29-.816.29-1.516.204-1.66-.088-.146-.32-.232-.668-.408z"/></svg>
 </a>
 <div class="toast" id="toast"></div>
+<div class="center-notice" id="centerNotice" onclick="closeCenterNotice()">
+  <div class="center-notice-box" onclick="event.stopPropagation()">
+    <div class="notice-title" id="centerNoticeTitle"></div>
+    <div class="notice-body" id="centerNoticeBody"></div>
+    <button class="notice-btn" onclick="closeCenterNotice()">הבנתי</button>
+  </div>
+</div>
 
 <!-- ============ AUTH SCREEN ============ -->
 <div class="onboarding-overlay" id="authScreen" style="z-index:10000;">
@@ -2054,8 +2084,7 @@
         <button class="btn btn-primary btn-sm" onclick="openNewTask()">+ משימה חדשה</button>
       </div>
       <div class="tabs">
-        <button class="tab-btn active" onclick="filterTasks('all', this)">הכל</button>
-        <button class="tab-btn" onclick="filterTasks('pending', this)">ממתין</button>
+        <button class="tab-btn active" onclick="filterTasks('pending', this)">ממתין</button>
         <button class="tab-btn" onclick="filterTasks('inprocess', this)">בתהליך</button>
         <button class="tab-btn" onclick="filterTasks('done', this)">בוצע</button>
       </div>
@@ -2069,8 +2098,7 @@
         <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+ אירוע חדש</button>
       </div>
       <div class="tabs">
-        <button class="tab-btn active" onclick="filterEvents('all', this)">הכל</button>
-        <button class="tab-btn" onclick="filterEvents('upcoming', this)">קרובים</button>
+        <button class="tab-btn active" onclick="filterEvents('upcoming', this)">קרובים</button>
         <button class="tab-btn" onclick="filterEvents('past', this)">עברו</button>
       </div>
       <div id="eventsList"></div>
@@ -2211,6 +2239,10 @@
       <div class="page-header">
         <h1>קייטנות קיץ</h1>
         <button class="btn btn-primary btn-sm parent-only" onclick="openCampModal()">+ קייטנה חדשה</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterCamps('active', this)">פעילות</button>
+        <button class="tab-btn" onclick="filterCamps('ended', this)">הסתיימו</button>
       </div>
       <div id="campsList">
         <div class="empty-state" id="campsEmpty">
@@ -3670,7 +3702,7 @@ const HOLIDAYS_2026 = [
 let currentObStep = 1;
 let currentCalMonth = new Date().getMonth();
 let currentCalYear = new Date().getFullYear();
-let currentTaskFilter = 'all';
+let currentTaskFilter = 'pending';
 
 // ============ INIT ============
 function migrateData() {
@@ -3891,6 +3923,15 @@ function restoreFromBackup() {
   } catch (err) {
     showRecoveryLog(['❌ שגיאה כללית: ' + err.message, '', '💡 נסי "שחזור מהענן" במקום']);
   }
+}
+
+function showCenterNotice(title, body) {
+  document.getElementById('centerNoticeTitle').textContent = title;
+  document.getElementById('centerNoticeBody').textContent = body;
+  document.getElementById('centerNotice').classList.add('show');
+}
+function closeCenterNotice() {
+  document.getElementById('centerNotice').classList.remove('show');
 }
 
 function showToast(msg) {
@@ -4603,7 +4644,8 @@ function toggleRecurringDetails() {
   }
 }
 
-let currentEventFilter = 'all';
+let currentEventFilter = 'upcoming';
+let currentCampFilter = 'active';
 
 function filterEvents(filter, btn) {
   currentEventFilter = filter;
@@ -5292,9 +5334,12 @@ function updateDashboard() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && d >= new Date(now.toDateString());
   }).sort((a,b) => new Date(a.date) - new Date(b.date));
   if (monthEvents.length === 0) {
-    dashEvents.innerHTML = '<div class="empty-state"><p>אין אירועים החודש</p></div>';
+    dashEvents.innerHTML = '<div class="empty-state"><p>אין אירועים קרובים</p></div>';
   } else {
-    dashEvents.innerHTML = monthEvents.map(e => `
+    const DASH_EV_LIMIT = 5;
+    const dashEvExpanded = dashEvents.dataset.expanded === 'true';
+    const visibleEvents = dashEvExpanded ? monthEvents : monthEvents.slice(0, DASH_EV_LIMIT);
+    dashEvents.innerHTML = visibleEvents.map(e => `
       <div class="list-item" style="cursor:pointer;" onclick="showPage('events', document.querySelectorAll('.nav-item')[3])">
         <div class="list-item-content">
           <div class="list-item-title">${esc(e.title)}</div>
@@ -5303,6 +5348,9 @@ function updateDashboard() {
         <span style="color:var(--text-light);font-size:1rem;">←</span>
       </div>
     `).join('');
+    if (monthEvents.length > DASH_EV_LIMIT) {
+      dashEvents.innerHTML += `<div style="text-align:center;padding:8px;"><button onclick="var el=document.getElementById('dashEvents');el.dataset.expanded=el.dataset.expanded==='true'?'false':'true';updateDashboard();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${dashEvExpanded ? 'הצג פחות' : 'הצג עוד ' + (monthEvents.length - DASH_EV_LIMIT) + ' אירועים'}</button></div>`;
+    }
   }
 
   // Bottom bar kids + pending badge
@@ -7052,7 +7100,7 @@ function addCustodyChange() {
   renderCustodyChanges();
   updateDashboard();
   if (type === 'permanent') {
-    showToast('הבקשה נשלחה. שינוי קבוע מתבצע ע״י יוצר/ת המשפחה דרך הגדרות המשמורת');
+    showCenterNotice('הבקשה נשלחה', 'שינוי קבוע מתבצע בפועל לאחר אישור הצד השני, רק ע״י יוצר/ת המשפחה דרך הגדרות המשמורת.');
   } else {
     showToast('בקשת שינוי נשלחה');
   }
@@ -7066,7 +7114,12 @@ function renderCustodyChanges() {
   }
 
   const myRole = getMyRole();
-  container.innerHTML = appData.custodyChanges.map(c => {
+  const sorted = [...appData.custodyChanges].sort((a, b) => (b.id || 0) - (a.id || 0));
+  const CC_LIMIT = 5;
+  const isExpanded = container.dataset.expanded === 'true';
+  const visible = isExpanded ? sorted : sorted.slice(0, CC_LIMIT);
+  const hasMore = sorted.length > CC_LIMIT;
+  container.innerHTML = visible.map(c => {
     const statusMap = {
       pending: { cls: 'badge-pending', label: 'ממתין לאישור' },
       approved: { cls: 'badge-approved', label: 'אושר' },
@@ -7110,6 +7163,9 @@ function renderCustodyChanges() {
       </div>
     `;
   }).join('');
+  if (hasMore) {
+    container.innerHTML += `<div style="text-align:center;padding:8px;"><button onclick="var c=document.getElementById('custodyChangesList');c.dataset.expanded=c.dataset.expanded==='true'?'false':'true';renderCustodyChanges();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${isExpanded ? 'הצג פחות' : 'הצג עוד ' + (sorted.length - CC_LIMIT) + ' בקשות'}</button></div>`;
+  }
 }
 
 function respondCustodyChange(id, status) {
@@ -7122,9 +7178,19 @@ function respondCustodyChange(id, status) {
   saveData();
   renderCustodyChanges();
   updateDashboard();
-  const label = status === 'approved' ? 'אושרה' : 'נדחתה';
-  showToast(`הבקשה ${label}`);
-  if (status === 'approved') showConfetti();
+  if (status === 'approved' && change.type === 'permanent') {
+    const isCreator = appData.custodySetBy && appData.custodySetBy === getMyRole();
+    if (isCreator) {
+      showCenterNotice('הבקשה אושרה', 'על מנת שהשינוי ייכנס לתוקף, יש לעדכן את ימי המשמורת בהתאם בהגדרות המשמורת.');
+    } else {
+      showCenterNotice('הבקשה אושרה', 'השינוי ייכנס לתוקף לאחר עדכון הגדרות המשמורת ע״י יוצר/ת המשפחה.');
+    }
+    showConfetti();
+  } else {
+    const label = status === 'approved' ? 'אושרה' : 'נדחתה';
+    showToast(`הבקשה ${label}`);
+    if (status === 'approved') showConfetti();
+  }
 }
 
 function openCustodyInfoModal(id) {
@@ -7296,7 +7362,18 @@ function renderExpenses() {
 
   if (empty) empty.style.display = 'none';
   const myRole = getMyRole();
-  tbody.innerHTML = appData.expenses.map(e => {
+  const sorted = [...appData.expenses].sort((a, b) => {
+    const ap = a.status === 'pending' ? 0 : 1;
+    const bp = b.status === 'pending' ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    return (b.id || 0) - (a.id || 0);
+  });
+  const EXPENSE_LIMIT = 5;
+  const expTableEl = document.getElementById('expensesTable').closest('table').parentElement;
+  const isExpanded = expTableEl.dataset.expanded === 'true';
+  const visible = isExpanded ? sorted : sorted.slice(0, EXPENSE_LIMIT);
+  const hasMore = sorted.length > EXPENSE_LIMIT;
+  tbody.innerHTML = visible.map(e => {
     const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
     const statusLabel = e.status === 'pending' ? 'ממתין' : e.status === 'approved' ? 'מאושר' : 'נדחה';
     const isMine = e.requestedBy === myRole;
@@ -7321,6 +7398,15 @@ function renderExpenses() {
       </tr>
     `;
   }).join('');
+  let toggleEl = expTableEl.querySelector('.expense-toggle-btn');
+  if (toggleEl) toggleEl.remove();
+  if (hasMore) {
+    toggleEl = document.createElement('div');
+    toggleEl.className = 'expense-toggle-btn';
+    toggleEl.style.cssText = 'text-align:center;padding:8px;';
+    toggleEl.innerHTML = `<button onclick="this.closest('[data-expanded]').dataset.expanded=this.closest('[data-expanded]').dataset.expanded==='true'?'false':'true';renderExpenses();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${isExpanded ? 'הצג פחות' : 'הצג עוד ' + (sorted.length - EXPENSE_LIMIT) + ' הוצאות'}</button>`;
+    expTableEl.appendChild(toggleEl);
+  }
 
   const activeMine = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy === myRole);
   const activeTheirs = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy && e.requestedBy !== myRole);
@@ -8164,6 +8250,13 @@ async function deleteCamp(id) {
   showToast('הקייטנה נמחקה');
 }
 
+function filterCamps(filter, btn) {
+  currentCampFilter = filter;
+  document.querySelectorAll('#page-camps .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCamps();
+}
+
 function renderCamps() {
   const container = document.getElementById('campsList');
   const empty = document.getElementById('campsEmpty');
@@ -8177,13 +8270,27 @@ function renderCamps() {
     return;
   }
 
-  empty.style.display = 'none';
   const childMode = isChildView();
-
   const sorted = [...camps].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
   const today = new Date(); today.setHours(0,0,0,0);
 
-  container.innerHTML = sorted.map(c => {
+  const filtered = sorted.filter(c => {
+    const to = new Date(c.toDate);
+    const ended = to < today;
+    return currentCampFilter === 'ended' ? ended : !ended;
+  });
+
+  if (filtered.length === 0) {
+    empty.style.display = 'block';
+    empty.querySelector('p').textContent = currentCampFilter === 'ended' ? 'אין קייטנות שהסתיימו' : 'אין קייטנות פעילות';
+    container.innerHTML = '';
+    container.appendChild(empty);
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  container.innerHTML = filtered.map(c => {
     const from = new Date(c.fromDate);
     const to = new Date(c.toDate);
     const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
@@ -8700,7 +8807,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '170';
+const APP_VERSION = '174';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
