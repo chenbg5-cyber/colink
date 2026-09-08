@@ -2307,13 +2307,18 @@
         <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:12px;width:100%;">שמירת שינויים</button>
       </div>
       <div class="card parent-only">
-        <h3>קוד משפחה</h3>
-        <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:12px;">הקוד הזה מזהה את המשפחה שלכם. רק מי שיודע את הקוד יכול להצטרף ולראות את הנתונים.</p>
-        <div style="text-align:center;">
-          <div class="code" id="profileFamilyCode" style="font-size:2rem;font-weight:700;color:var(--primary);letter-spacing:8px;background:#F0EEFF;padding:16px 24px;border-radius:12px;display:inline-block;direction:ltr;"></div>
-          <br>
-          <button class="copy-btn" onclick="copyFamilyCode()" style="margin-top:12px;">העתקת הקוד</button>
-          <button class="copy-btn parent-only" onclick="shareInvite()" style="margin-top:8px;background:var(--success);color:white;">שיתוף הזמנה</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;">קוד משפחה</h3>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="copyFamilyCode()" style="padding:5px 12px;font-size:0.78rem;border-radius:8px;">העתקה</button>
+            <button class="btn btn-sm parent-only" onclick="shareInvite()" style="padding:5px 12px;font-size:0.78rem;border-radius:8px;background:var(--success);color:white;">שיתוף</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;text-align:center;">
+          <div id="profileFamilyCodeWrap" style="cursor:pointer;" onclick="this.dataset.show=this.dataset.show==='1'?'':'1';var c=document.getElementById('profileFamilyCode');c.style.filter=this.dataset.show==='1'?'none':'blur(6px)';this.querySelector('.code-hint').textContent=this.dataset.show==='1'?'לחצ/י להסתרה':'לחצ/י לחשיפת הקוד';">
+            <div class="code" id="profileFamilyCode" style="font-size:1.3rem;font-weight:700;color:var(--primary);letter-spacing:4px;background:#F0EEFF;padding:10px 18px;border-radius:10px;display:inline-block;direction:ltr;filter:blur(6px);transition:filter 0.2s;"></div>
+            <p class="code-hint" style="font-size:0.72rem;color:var(--text-light);margin-top:6px;">לחצ/י לחשיפת הקוד</p>
+          </div>
         </div>
       </div>
       <div class="card parent-only" id="familyMembersCard">
@@ -2322,22 +2327,23 @@
           <p style="font-size:0.8rem;color:var(--text-light);">טוען...</p>
         </div>
       </div>
-      <div class="card parent-only" style="border:1px solid #f59e0b44;">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button class="btn" style="background:#f59e0b;color:white;padding:10px 16px;border-radius:10px;" onclick="recoverData()">⟳ שחזור מהענן</button>
-          <button class="btn" style="background:#8b5cf6;color:white;padding:10px 16px;border-radius:10px;" onclick="restoreFromBackup()">⟳ שחזור מגיבוי מקומי</button>
-          <p style="font-size:0.75rem;color:var(--text-light);">אם הנתונים נעלמו, נסי שחזור מגיבוי מקומי או מהענן.</p>
-          <div style="display:flex;gap:8px;margin-top:4px;">
-            <input type="text" id="manualFamilyCode" placeholder="הזנת קוד משפחה ידנית" style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
-            <button class="btn" style="background:#10b981;color:white;padding:10px 14px;border-radius:10px;white-space:nowrap;" onclick="recoverWithCode()">שחזור עם קוד</button>
-          </div>
-          <p style="font-size:0.7rem;color:var(--text-light);">אם השחזור הרגיל לא עובד, בקשי את הקוד מההורה השני והזיני כאן.</p>
+      <div class="card parent-only" id="profileAdvancedCard">
+        <div style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="var b=document.getElementById('profileAdvancedBody');var a=this.querySelector('.adv-arrow');if(b.style.display==='none'){b.style.display='flex';a.style.transform='rotate(180deg)';}else{b.style.display='none';a.style.transform='';}">
+          <span style="font-size:0.88rem;font-weight:600;color:var(--text-muted);">כלים מתקדמים</span>
+          <span class="adv-arrow" style="font-size:0.8rem;color:var(--text-light);transition:transform 0.2s;">▼</span>
         </div>
-      </div>
-      <div class="card parent-only" style="border:1px solid #e74c3c22;">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button class="btn" style="background:#e74c3c;color:white;padding:10px 16px;border-radius:10px;" onclick="leaveFamily()">⊘ עזיבת משפחה</button>
-          <p style="font-size:0.75rem;color:var(--text-light);">עזיבה תנתק אותך מהמשפחה. הנתונים המשותפים יישארו זמינים להורה השני. תוכל/י ליצור משפחה חדשה או להצטרף מחדש עם הקוד.</p>
+        <div id="profileAdvancedBody" style="display:none;flex-direction:column;gap:10px;margin-top:14px;">
+          <button class="btn" style="background:#f59e0b;color:white;padding:8px 14px;border-radius:10px;font-size:0.85rem;" onclick="recoverData()">שחזור מהענן</button>
+          <button class="btn" style="background:#8b5cf6;color:white;padding:8px 14px;border-radius:10px;font-size:0.85rem;" onclick="restoreFromBackup()">שחזור מגיבוי מקומי</button>
+          <p style="font-size:0.72rem;color:var(--text-light);">אם הנתונים נעלמו, נסי שחזור מגיבוי מקומי או מהענן.</p>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="manualFamilyCode" placeholder="הזנת קוד משפחה ידנית" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.82rem;">
+            <button class="btn" style="background:#10b981;color:white;padding:8px 12px;border-radius:10px;white-space:nowrap;font-size:0.82rem;" onclick="recoverWithCode()">שחזור עם קוד</button>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+            <button class="btn" style="background:#e74c3c;color:white;padding:8px 14px;border-radius:10px;font-size:0.85rem;width:100%;" onclick="leaveFamily()">עזיבת משפחה</button>
+            <p style="font-size:0.7rem;color:var(--text-light);margin-top:6px;">עזיבה תנתק אותך מהמשפחה. תוכל/י להצטרף מחדש עם הקוד.</p>
+          </div>
         </div>
       </div>
       <div style="text-align:center;margin-top:16px;">
@@ -8807,7 +8813,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '174';
+const APP_VERSION = '175';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
