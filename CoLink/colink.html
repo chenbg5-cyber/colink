@@ -2260,38 +2260,42 @@
         <h1>הפרופיל שלי</h1>
         <button onclick="showTipsModal()" style="background:var(--primary);color:white;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="טיפים ועזרה">?</button>
       </div>
-      <div class="card">
-        <h3>פרטי התחברות</h3>
-        <div class="form-row">
-          <div class="form-group">
+      <div class="card" style="padding:14px 16px;">
+        <h3 style="font-size:0.95rem;margin:0 0 10px;">פרטי התחברות</h3>
+        <div class="form-row" style="gap:8px;">
+          <div class="form-group" style="margin-bottom:8px;">
             <label>שם פרטי</label>
-            <input type="text" id="profileFirstName">
+            <input type="text" id="profileFirstName" style="padding:8px 10px;">
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:8px;">
             <label>שם משפחה</label>
-            <input type="text" id="profileLastName">
+            <input type="text" id="profileLastName" style="padding:8px 10px;">
           </div>
         </div>
-        <div class="form-group">
-          <label>אימייל</label>
-          <input type="email" id="profileEmail" dir="ltr" readonly style="opacity:0.6;">
+        <div class="form-row" style="gap:8px;">
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>אימייל</label>
+            <input type="email" id="profileEmail" dir="ltr" readonly style="opacity:0.6;padding:8px 10px;">
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>טלפון</label>
+            <input type="tel" id="profilePhone" dir="ltr" style="padding:8px 10px;">
+          </div>
         </div>
-        <div class="form-group">
-          <label>טלפון</label>
-          <input type="tel" id="profilePhone" dir="ltr">
+        <div class="form-row parent-only" style="gap:8px;">
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>שם משפחת הילדים</label>
+            <input type="text" id="profileFamilyName" placeholder="שם המשפחה המשותף" style="padding:8px 10px;">
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>תפקיד</label>
+            <select id="profileRole" style="padding:8px 10px;">
+              <option value="אמא">אמא</option>
+              <option value="אבא">אבא</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group parent-only">
-          <label>שם משפחת הילדים</label>
-          <input type="text" id="profileFamilyName" placeholder="שם המשפחה המשותף לילדים">
-        </div>
-        <div class="form-group parent-only">
-          <label>תפקיד</label>
-          <select id="profileRole">
-            <option value="אמא">אמא</option>
-            <option value="אבא">אבא</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:12px;width:100%;">שמירת שינויים</button>
+        <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:4px;width:100%;padding:10px;">שמירת שינויים</button>
       </div>
       <div class="card parent-only">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -8790,7 +8794,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '176';
+const APP_VERSION = '177';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
