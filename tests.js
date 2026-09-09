@@ -501,6 +501,68 @@ console.log('\n📋 18. שלמות שדות משותפים');
   assert(!SHARED_FIELDS.includes('mode'), 'mode is NOT shared (correct)');
 }
 
+// --- Test 19: Task visibility regression (parent + child) ---
+console.log('\n📋 19. רגרסיה - משימות הורים וילד');
+{
+  // Setup: mom with tasks assigned to different children and roles
+  const mom = createFreshAppData('אמא');
+  mom.tasks = [
+    { id: 1, title: 'קנה מחברת', forChild: 'נועה', responsibility: 'אמא', status: 'pending', priority: 'High', category: 'כללי', date: '2026-09-09' },
+    { id: 2, title: 'תור רופא', forChild: 'איתי', responsibility: 'אמא', status: 'pending', priority: 'Medium', category: 'רפואי', date: '2026-09-10' },
+    { id: 3, title: 'אסיפת הורים', forChild: 'נועה', responsibility: 'משותפת', status: 'pending', priority: 'High', category: 'כללי', date: '2026-09-11' },
+    { id: 4, title: 'לקנות נעליים', forChild: 'כל הילדים', responsibility: 'אבא', status: 'pending', priority: 'Low', category: 'כללי', date: '2026-09-12' },
+    { id: 5, title: 'חוג שחמט', forChild: 'איתי', responsibility: 'משותפת', status: 'done', priority: 'Medium', category: 'כללי', date: '2026-09-08' },
+  ];
+
+  // Mom (role=אמא) should see: tasks with responsibility=אמא or משותפת (ids: 1,2,3,5)
+  function isMyTaskTest(t, role) {
+    if (!t.responsibility) return true;
+    return t.responsibility === role || t.responsibility === 'משותפת';
+  }
+  const momTasks = mom.tasks.filter(t => isMyTaskTest(t, 'אמא'));
+  assert(momTasks.length === 4, 'Mom sees 4 tasks (her own + shared)');
+  assert(momTasks.some(t => t.id === 1), 'Mom sees her task id=1');
+  assert(momTasks.some(t => t.id === 2), 'Mom sees her task id=2');
+  assert(momTasks.some(t => t.id === 3), 'Mom sees shared task id=3');
+  assert(momTasks.some(t => t.id === 5), 'Mom sees shared task id=5');
+  assert(!momTasks.some(t => t.id === 4), 'Mom does NOT see dads task id=4');
+
+  // Dad (role=אבא) should see: tasks with responsibility=אבא or משותפת (ids: 3,4,5)
+  const dadTasks = mom.tasks.filter(t => isMyTaskTest(t, 'אבא'));
+  assert(dadTasks.length === 3, 'Dad sees 3 tasks (his own + shared)');
+  assert(dadTasks.some(t => t.id === 4), 'Dad sees his task id=4');
+  assert(dadTasks.some(t => t.id === 3), 'Dad sees shared task id=3');
+  assert(dadTasks.some(t => t.id === 5), 'Dad sees shared task id=5');
+  assert(!dadTasks.some(t => t.id === 1), 'Dad does NOT see moms task id=1');
+
+  // Child "נועה" should see: tasks where forChild=נועה or forChild=כל הילדים (ids: 1,3,4)
+  const childName = 'נועה';
+  const childTasks = mom.tasks.filter(t => t.forChild && (t.forChild === childName || t.forChild === 'כל הילדים'));
+  assert(childTasks.length === 3, 'Child נועה sees 3 tasks assigned to her');
+  assert(childTasks.some(t => t.id === 1), 'Child נועה sees task id=1 (forChild=נועה)');
+  assert(childTasks.some(t => t.id === 3), 'Child נועה sees task id=3 (forChild=נועה)');
+  assert(childTasks.some(t => t.id === 4), 'Child נועה sees task id=4 (forChild=כל הילדים)');
+  assert(!childTasks.some(t => t.id === 2), 'Child נועה does NOT see task id=2 (forChild=איתי)');
+
+  // Child "איתי" should see: tasks where forChild=איתי or forChild=כל הילדים (ids: 2,4,5)
+  const child2Name = 'איתי';
+  const child2Tasks = mom.tasks.filter(t => t.forChild && (t.forChild === child2Name || t.forChild === 'כל הילדים'));
+  assert(child2Tasks.length === 3, 'Child איתי sees 3 tasks assigned to him');
+  assert(child2Tasks.some(t => t.id === 2), 'Child איתי sees task id=2 (forChild=איתי)');
+  assert(child2Tasks.some(t => t.id === 4), 'Child איתי sees task id=4 (forChild=כל הילדים)');
+  assert(child2Tasks.some(t => t.id === 5), 'Child איתי sees task id=5 (forChild=איתי)');
+  assert(!child2Tasks.some(t => t.id === 1), 'Child איתי does NOT see task id=1 (forChild=נועה)');
+
+  // Task with no forChild should NOT appear for any child
+  mom.tasks.push({ id: 6, title: 'בלי ילד', forChild: '', responsibility: 'אמא', status: 'pending', priority: 'Low', category: 'כללי', date: '' });
+  const childTasksNoOrphan = mom.tasks.filter(t => t.forChild && (t.forChild === childName || t.forChild === 'כל הילדים'));
+  assert(!childTasksNoOrphan.some(t => t.id === 6), 'Child does NOT see task with empty forChild');
+
+  // Mom still sees the task with no forChild
+  const momTasksAll = mom.tasks.filter(t => isMyTaskTest(t, 'אמא'));
+  assert(momTasksAll.some(t => t.id === 6), 'Mom sees task with empty forChild');
+}
+
 // --- Summary ---
 console.log('\n============================');
 console.log(`  Results: ${passed} passed, ${failed} failed`);

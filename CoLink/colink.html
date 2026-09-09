@@ -64,6 +64,7 @@
       display: none;
     }
 
+
     .onboarding-card {
       background: white;
       border-radius: 16px;
@@ -2263,7 +2264,7 @@
         <h1>הפרופיל שלי</h1>
         <button onclick="showTipsModal()" style="background:var(--primary);color:white;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="טיפים ועזרה">?</button>
       </div>
-      <div class="card" style="padding:14px 16px;">
+      <div class="card parent-only" style="padding:14px 16px;">
         <h3 style="font-size:0.95rem;margin:0 0 10px;">פרטי התחברות</h3>
         <div class="form-row" style="gap:8px;">
           <div class="form-group" style="margin-bottom:8px;">
@@ -5161,12 +5162,13 @@ function updateDashboard() {
     </div>
   `;
 
-  // Card 3: Today Assignments count (for my role)
-  const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && isMyTask(t) && isTaskPendingForMe(t));
+  // Card 3: Today Assignments count (for my role / child's tasks)
+  const _childTaskFilter = isChildView() ? (t => { const mn = appData.user.firstName || appData.user.name || ''; return t.forChild && (t.forChild === mn || t.forChild === 'כל הילדים'); }) : (t => isMyTask(t));
+  const todayTasks = (appData.tasks || []).filter(t => t.date === todayStr && _childTaskFilter(t) && isTaskPendingForMe(t));
   document.getElementById('statTodayTasks').textContent = todayTasks.length;
 
-  // Card 4: Total Assignments count (for my role, not done)
-  const totalTasks = (appData.tasks || []).filter(t => isMyTask(t) && isTaskPendingForMe(t));
+  // Card 4: Total Assignments count (for my role / child's tasks, not done)
+  const totalTasks = (appData.tasks || []).filter(t => _childTaskFilter(t) && isTaskPendingForMe(t));
   document.getElementById('statTotalTasks').textContent = totalTasks.length;
 
   // Card 5: Friends Birthday count
@@ -6550,6 +6552,7 @@ function addTask() {
 }
 
 function changeTaskStatus(id, newStatus) {
+  if (isChildView()) return;
   const task = appData.tasks.find(t => t.id === id);
   if (!task) return;
   const myRole = getMyRole();
@@ -6677,7 +6680,13 @@ function filterTasks(filter, btn) {
 
 function renderTasks() {
   const container = document.getElementById('tasksList');
-  let tasks = [...(appData.tasks || [])].filter(t => isMyTask(t));
+  let tasks;
+  if (isChildView()) {
+    const myName = appData.user.firstName || appData.user.name || '';
+    tasks = [...(appData.tasks || [])].filter(t => t.forChild && (t.forChild === myName || t.forChild === 'כל הילדים'));
+  } else {
+    tasks = [...(appData.tasks || [])].filter(t => isMyTask(t));
+  }
 
   if (currentTaskFilter === 'pending') tasks = tasks.filter(t => t.status === 'pending');
   else if (currentTaskFilter === 'inprocess') tasks = tasks.filter(t => t.status === 'inprocess');
@@ -6722,7 +6731,7 @@ function renderTasks() {
           </div>
           <div class="list-item-meta">${esc(t.responsibility) || ''} · <span class="badge ${getStatusBadgeClass(t.status)}">${getStatusLabel(t.status)}</span> ${completedStamp}${t.attachment ? ' · <span onclick="viewTaskAttachment(' + t.id + ')" style="cursor:pointer;color:var(--primary);">📎 ' + esc(t.attachment.name) + '</span>' : ''}</div>
         </div>
-        <div class="list-item-actions">
+        ${isChildView() ? '' : `<div class="list-item-actions">
           <select onchange="changeTaskStatus(${t.id}, this.value)" ${lockedByOther ? 'disabled' : ''} style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;font-family:inherit;${lockedByOther ? 'opacity:0.5;' : ''}">
             <option value="pending" ${statusVal==='pending'?'selected':''}>ממתין</option>
             <option value="inprocess" ${statusVal==='inprocess'?'selected':''}>בתהליך</option>
@@ -6730,7 +6739,7 @@ function renderTasks() {
           </select>
           ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="editTask(${t.id})" title="עריכה">✎</button>` : ''}
           ${canEdit && !lockedByOther ? `<button class="icon-btn" onclick="deleteTask(${t.id})" title="מחיקה">✕</button>` : ''}
-        </div>
+        </div>`}
       </div>
     `;
   }).join('');
@@ -8621,6 +8630,7 @@ async function renderFamilyMembers() {
 }
 
 function saveProfile() {
+  if (isChildView()) return;
   const firstName = document.getElementById('profileFirstName').value.trim();
   const lastName = document.getElementById('profileLastName').value.trim();
   const phone = document.getElementById('profilePhone').value.trim();
@@ -8882,7 +8892,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '182';
+const APP_VERSION = '183';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
