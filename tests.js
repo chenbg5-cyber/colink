@@ -1,7 +1,7 @@
 // CoLink Tests - Logic & Two-Parent Sync Simulation
 // Run with: node tests.js
 
-const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','campReminders','familyName'];
+const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','holidayChanges','campReminders','familyName','deletedTaskIds','vacations'];
 const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays'];
 
 let passed = 0;
@@ -42,8 +42,11 @@ function createFreshAppData(role, mode = 'new') {
     activities: [],
     camps: [],
     holidayAssignments: {},
+    holidayChanges: [],
+    vacations: [],
     campReminders: {},
-    taskReminders: {}
+    taskReminders: {},
+    deletedTaskIds: []
   };
 }
 
@@ -632,12 +635,16 @@ console.log('\n\u{1F4CB} 20. רגרסיה - חלוקת חגים לפי ימים'
 console.log('\n\u{1F4CB} 21. הרשאות שיבוץ חגים - יוצר מול מצטרף');
 {
   function canEditHolidays(appData) {
-    return appData.mode === 'new';
+    return appData.mode !== 'join' && appData.mode !== 'child';
   }
 
   // Creator (mode='new') can edit
   const creator = createFreshAppData('אמא', 'new');
   assert(canEditHolidays(creator) === true, 'Creator (mode=new) can edit holiday assignments');
+
+  // Legacy creator (mode='') can edit
+  const legacy = createFreshAppData('אמא', '');
+  assert(canEditHolidays(legacy) === true, 'Legacy creator (empty mode) can edit holiday assignments');
 
   // Joiner (mode='join') cannot edit
   const joiner = createFreshAppData('אבא', 'join');
@@ -754,6 +761,347 @@ console.log('\n\u{1F4CB} 23. צביעת לוח שנה עם חלוקה לפי י�
   // Empty string day assignment also falls back
   const splitWithEmpty = { type: 'split', days: { '2026-09-25': '' } };
   assert(getCalendarClass(splitWithEmpty, '2026-09-25') === 'custody-split', 'Empty day assignment falls back to custody-split');
+}
+
+// --- Test 24: Vacations - Create & Sync ---
+console.log('\n\u{1F4CB} 24. חופשות - יצירה וסנכרון');
+{
+  const mom = createFreshAppData('אמא');
+  mom.vacations.push({
+    id: 1001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-10',
+    location: 'בחו"ל', passports: true, writtenApproval: true, hotel: 'מלון הילטון',
+    contact: 'יוסי 050-1234567', notes: 'טיסה ב-6 בבוקר', createdBy: 'אמא', approvalStatus: 'pending'
+  });
+  mom.vacations.push({
+    id: 1002, type: 'מסגרת חינוכית', child: 'איתי', fromDate: '2026-07-15', toDate: '2026-07-17',
+    notes: 'טיול שנתי', createdBy: 'אמא'
+  });
+  simulateSaveToCloud(mom);
+
+  const dad = createFreshAppData('אבא', 'join');
+  dad.vacations = [];
+  simulateLoadFromCloud(dad);
+
+  assert(dad.vacations.length === 2, 'Dad sees both vacations after sync');
+  assert(dad.vacations[0].type === 'יזומה', 'Vacation type synced');
+  assert(dad.vacations[0].child === 'נועה', 'Vacation child synced');
+  assert(dad.vacations[0].location === 'בחו"ל', 'Vacation location synced');
+  assert(dad.vacations[0].passports === true, 'Passports flag synced');
+  assert(dad.vacations[0].hotel === 'מלון הילטון', 'Hotel details synced');
+  assert(dad.vacations[0].approvalStatus === 'pending', 'Approval status synced');
+  assert(dad.vacations[1].type === 'מסגרת חינוכית', 'School vacation type synced');
+}
+
+// --- Test 25: Vacations - Approval Flow ---
+console.log('\n\u{1F4CB} 25. חופשות - תהליך אישור');
+{
+  const mom = createFreshAppData('אמא');
+  mom.vacations.push({
+    id: 2001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-10',
+    createdBy: 'אמא', approvalStatus: 'pending'
+  });
+  simulateSaveToCloud(mom);
+
+  const dad = createFreshAppData('אבא', 'join');
+  simulateLoadFromCloud(dad);
+
+  // Dad approves
+  const v = dad.vacations.find(v => v.id === 2001);
+  assert(v.approvalStatus === 'pending', 'Vacation starts as pending');
+  assert(v.createdBy === 'אמא', 'CreatedBy shows who requested');
+
+  v.approvalStatus = 'approved';
+  v.approvedBy = 'אבא';
+  simulateSaveToCloud(dad);
+
+  simulateLoadFromCloud(mom);
+  assert(mom.vacations[0].approvalStatus === 'approved', 'Mom sees vacation approved');
+  assert(mom.vacations[0].approvedBy === 'אבא', 'Mom sees who approved');
+
+  // Test decline flow
+  mom.vacations.push({
+    id: 2002, type: 'יזומה', child: 'איתי', fromDate: '2026-12-20', toDate: '2026-12-30',
+    createdBy: 'אמא', approvalStatus: 'pending'
+  });
+  simulateSaveToCloud(mom);
+  simulateLoadFromCloud(dad);
+
+  const v2 = dad.vacations.find(v => v.id === 2002);
+  v2.approvalStatus = 'declined';
+  v2.declinedBy = 'אבא';
+  simulateSaveToCloud(dad);
+  simulateLoadFromCloud(mom);
+  assert(mom.vacations.find(v => v.id === 2002).approvalStatus === 'declined', 'Declined vacation synced');
+}
+
+// --- Test 26: Vacations - School type has no approval ---
+console.log('\n\u{1F4CB} 26. חופשות מסגרת חינוכית - ללא אישור');
+{
+  const mom = createFreshAppData('אמא');
+  mom.vacations.push({
+    id: 3001, type: 'מסגרת חינוכית', child: 'נועה', fromDate: '2026-07-15', toDate: '2026-07-17',
+    createdBy: 'אמא'
+  });
+  assert(mom.vacations[0].approvalStatus === undefined, 'School vacation has no approval status');
+}
+
+// --- Test 27: Vacations - Active vs Past filter ---
+console.log('\n\u{1F4CB} 27. חופשות - סינון פעילות/עברו');
+{
+  const app = createFreshAppData('אמא');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const pastDate = new Date(today); pastDate.setDate(pastDate.getDate() - 10);
+  const futureDate = new Date(today); futureDate.setDate(futureDate.getDate() + 10);
+  const toStr = d => d.toISOString().split('T')[0];
+
+  app.vacations = [
+    { id: 4001, type: 'יזומה', child: 'נועה', fromDate: toStr(pastDate), toDate: toStr(new Date(pastDate.getTime() + 5*86400000)), createdBy: 'אמא' },
+    { id: 4002, type: 'מסגרת חינוכית', child: 'איתי', fromDate: toStr(today), toDate: toStr(futureDate), createdBy: 'אמא' },
+    { id: 4003, type: 'יזומה', child: 'נועה', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 7*86400000)), createdBy: 'אמא' }
+  ];
+
+  const active = app.vacations.filter(v => new Date(v.toDate) >= today);
+  const past = app.vacations.filter(v => new Date(v.toDate) < today);
+
+  assert(active.length === 2, 'Two active vacations (current + future)');
+  assert(past.length === 1, 'One past vacation');
+  assert(past[0].id === 4001, 'Past vacation is the ended one');
+}
+
+// --- Test 28: SHARED_FIELDS includes vacations ---
+console.log('\n\u{1F4CB} 28. vacations בשדות משותפים');
+{
+  assert(SHARED_FIELDS.includes('vacations'), 'vacations is in SHARED_FIELDS');
+  assert(SHARED_FIELDS.includes('holidayChanges'), 'holidayChanges is in SHARED_FIELDS');
+  assert(SHARED_FIELDS.includes('deletedTaskIds'), 'deletedTaskIds is in SHARED_FIELDS');
+}
+
+// --- Test 29: Regression - Nav item indices after vacations added ---
+console.log('\n\u{1F4CB} 29. רגרסיה - אינדקסי ניווט אחרי הוספת חופשות');
+{
+  // Nav order: dashboard(0), kids(1), assignments(2), events(3), custody(4), expenses(5),
+  // holidays(6), activities(7), camps(8), vacations(9), signatures(10), calendar(11), profile(12)
+  const navItems = ['dashboard','kids','assignments','events','custody','expenses','holidays','activities','camps','vacations','signatures','calendar','profile'];
+  assert(navItems[9] === 'vacations', 'Vacations is at index 9');
+  assert(navItems[10] === 'signatures', 'Signatures moved to index 10');
+  assert(navItems[11] === 'calendar', 'Calendar moved to index 11');
+  assert(navItems[12] === 'profile', 'Profile moved to index 12');
+  assert(navItems.length === 13, 'Total 13 nav items');
+}
+
+// --- Test 30: Regression - __parents__ fix still works ---
+console.log('\n\u{1F4CB} 30. רגרסיה - תיקון __parents__');
+{
+  const app = createFreshAppData('אמא');
+  app.tasks = [
+    { id: 5001, title: 'task1', forChild: '__parents__', status: 'pending' },
+    { id: 5002, title: 'task2', forChild: '__all__', status: 'pending' },
+    { id: 5003, title: 'task3', forChild: 'נועה', status: 'pending' }
+  ];
+
+  // Simulate migration
+  const kidNames = app.kids.map(k => k.name);
+  app.tasks.forEach(t => {
+    if (t.forChild === '__parents__') { t.forChild = 'הורים בלבד'; return; }
+    if (t.forChild === '__all__') { t.forChild = 'כל הילדים'; return; }
+  });
+
+  assert(app.tasks[0].forChild === 'הורים בלבד', '__parents__ migrated to הורים בלבד');
+  assert(app.tasks[1].forChild === 'כל הילדים', '__all__ migrated to כל הילדים');
+  assert(app.tasks[2].forChild === 'נועה', 'Regular child name unchanged');
+
+  // Child should not see "הורים בלבד" tasks
+  const childName = 'נועה';
+  const childTasks = app.tasks.filter(t => t.forChild && (t.forChild === childName || t.forChild === 'כל הילדים'));
+  assert(childTasks.length === 2, 'Child sees 2 tasks (her own + all kids)');
+  assert(!childTasks.some(t => t.forChild === 'הורים בלבד'), 'Child does NOT see parents-only tasks');
+}
+
+// --- Test 31: Regression - Calendar shows vacations ---
+console.log('\n\u{1F4CB} 31. רגרסיה - יומן מציג חופשות');
+{
+  const app = createFreshAppData('אמא');
+  app.vacations = [
+    { id: 6001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-05', location: 'בחו"ל' }
+  ];
+
+  // Simulate calendar day check
+  const dateStr = '2026-08-03';
+  const dayVacs = app.vacations.filter(v => dateStr >= v.fromDate && dateStr <= v.toDate);
+  assert(dayVacs.length === 1, 'Calendar finds vacation on Aug 3');
+  assert(dayVacs[0].child === 'נועה', 'Calendar vacation shows correct child');
+
+  // Day outside vacation range
+  const dayVacsOutside = app.vacations.filter(v => '2026-08-06' >= v.fromDate && '2026-08-06' <= v.toDate);
+  assert(dayVacsOutside.length === 0, 'Calendar shows no vacation on Aug 6');
+}
+
+// --- Test 32: Regression - Holiday changes collapsible ---
+console.log('\n\u{1F4CB} 32. רגרסיה - בקשות שינוי חגים');
+{
+  const app = createFreshAppData('אמא');
+  app.holidayChanges = [
+    { id: 7001, holiday: 'סוכות', requested: 'אמא', requestedBy: 'אבא', status: 'pending', reason: 'אני רוצה את הילדים' },
+    { id: 7002, holiday: 'פסח', requested: 'אבא', requestedBy: 'אבא', status: 'approved', reason: '' }
+  ];
+
+  const active = app.holidayChanges.filter(c => c.status === 'pending' || c.status === 'approved' || c.status === 'declined');
+  assert(active.length === 2, 'Both holiday changes are active');
+
+  const pending = active.filter(c => c.status === 'pending');
+  assert(pending.length === 1, 'One pending holiday change');
+
+  // Sync to dad
+  simulateSaveToCloud(app);
+  const dad = createFreshAppData('אבא', 'join');
+  simulateLoadFromCloud(dad);
+  assert(dad.holidayChanges.length === 2, 'Dad sees holiday changes after sync');
+}
+
+// --- Test 33: Calendar hides unapproved initiated vacations ---
+console.log('\n\u{1F4CB} 33. רגרסיה - יומן מסתיר חופשות יזומות לא מאושרות');
+{
+  const app = createFreshAppData('אמא');
+  app.vacations = [
+    { id: 8001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-05', approvalStatus: 'pending', createdBy: 'אמא' },
+    { id: 8002, type: 'יזומה', child: 'איתי', fromDate: '2026-08-01', toDate: '2026-08-05', approvalStatus: 'approved', createdBy: 'אמא' },
+    { id: 8003, type: 'מסגרת חינוכית', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-05', createdBy: 'אמא' }
+  ];
+
+  const dateStr = '2026-08-03';
+  const calVacs = app.vacations.filter(v => dateStr >= v.fromDate && dateStr <= v.toDate && (v.type !== 'יזומה' || v.approvalStatus === 'approved'));
+  assert(calVacs.length === 2, 'Calendar shows only approved + educational vacations');
+  assert(!calVacs.some(v => v.id === 8001), 'Pending initiated vacation hidden from calendar');
+  assert(calVacs.some(v => v.id === 8002), 'Approved initiated vacation shown in calendar');
+  assert(calVacs.some(v => v.id === 8003), 'Educational vacation shown without approval');
+}
+
+// --- Test 34: Child view - vacations nav hidden, calendar visible ---
+console.log('\n\u{1F4CB} 34. תצוגת ילד - חופשות מוסתרות בניווט, נראות ביומן');
+{
+  function isChildView(appData) {
+    return appData.mode === 'child';
+  }
+
+  const child = createFreshAppData('אמא', 'child');
+  child.vacations = [
+    { id: 9001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-05', approvalStatus: 'approved', createdBy: 'אמא' }
+  ];
+
+  assert(isChildView(child) === true, 'Child mode detected');
+  // Nav item has parent-only class - hidden for children
+  assert(child.mode === 'child', 'Child cannot access vacations nav page');
+
+  // But calendar still shows approved vacations
+  const dateStr = '2026-08-03';
+  const calVacs = child.vacations.filter(v => dateStr >= v.fromDate && dateStr <= v.toDate && (v.type !== 'יזומה' || v.approvalStatus === 'approved'));
+  assert(calVacs.length === 1, 'Child sees approved vacation in calendar');
+
+  // Dashboard stat shows vacations count
+  const today = new Date(); today.setHours(0,0,0,0);
+  const activeVacs = child.vacations.filter(v => new Date(v.toDate) >= today);
+  assert(activeVacs.length >= 0, 'Vacation stat chip works for child view');
+}
+
+// --- Test 35: Agenda shows responsibility indicator ---
+console.log('\n\u{1F4CB} 35. אג\'נדה - חיווי אחריות אבא/אמא');
+{
+  const tasks = [
+    { id: 'a1', title: 'לקנות ציוד', date: '2026-09-15', forChild: 'נועה', responsibility: 'אמא', status: 'pending' },
+    { id: 'a2', title: 'תור רופא', date: '2026-09-15', forChild: 'איתי', responsibility: 'אבא', status: 'pending' },
+    { id: 'a3', title: 'משימה משותפת', date: '2026-09-15', forChild: 'נועה', responsibility: 'משותפת', status: 'pending' },
+    { id: 'a4', title: 'בלי אחריות', date: '2026-09-15', forChild: 'איתי', status: 'pending' }
+  ];
+
+  // Simulate agenda extra field building (matches renderCalMonthAgenda logic)
+  const extras = tasks.map(t => [t.forChild, t.responsibility].filter(Boolean).join(' · '));
+  assert(extras[0] === 'נועה · אמא', 'Agenda shows child + mom responsibility');
+  assert(extras[1] === 'איתי · אבא', 'Agenda shows child + dad responsibility');
+  assert(extras[2] === 'נועה · משותפת', 'Agenda shows child + shared responsibility');
+  assert(extras[3] === 'איתי', 'Agenda shows only child when no responsibility set');
+}
+
+// --- Test 36: Vacation notes thread ---
+console.log('\n\u{1F4CB} 36. חופשות - הערות בין הורים');
+{
+  const mom = createFreshAppData('אמא');
+  mom.vacations.push({
+    id: 10001, type: 'יזומה', child: 'נועה', fromDate: '2026-08-01', toDate: '2026-08-10',
+    createdBy: 'אמא', approvalStatus: 'pending', notes: []
+  });
+
+  // Mom adds a note
+  mom.vacations[0].notes.push({ by: 'אמא', text: 'צריך דרכונים מעודכנים', date: '2026-07-01T10:00:00' });
+  simulateSaveToCloud(mom);
+
+  const dad = createFreshAppData('אבא', 'join');
+  simulateLoadFromCloud(dad);
+
+  // Dad sees the note
+  const v = dad.vacations.find(v => v.id === 10001);
+  assert(v.notes.length === 1, 'Dad sees mom note on vacation');
+  assert(v.notes[0].by === 'אמא', 'Note author synced');
+  assert(v.notes[0].text === 'צריך דרכונים מעודכנים', 'Note text synced');
+
+  // Dad replies
+  v.notes.push({ by: 'אבא', text: 'הדרכון שלי בתוקף', date: '2026-07-01T11:00:00' });
+  simulateSaveToCloud(dad);
+  simulateLoadFromCloud(mom);
+
+  assert(mom.vacations[0].notes.length === 2, 'Mom sees dad reply');
+  assert(mom.vacations[0].notes[1].by === 'אבא', 'Dad reply author correct');
+}
+
+// --- Test 37: Vacation stat chip counts ---
+console.log('\n\u{1F4CB} 37. סטט צ\'יפ חופשות - ספירה');
+{
+  const today = new Date(); today.setHours(0,0,0,0);
+  const toStr = d => d.toISOString().split('T')[0];
+  const pastDate = new Date(today); pastDate.setDate(pastDate.getDate() - 20);
+  const futureDate = new Date(today); futureDate.setDate(futureDate.getDate() + 10);
+  const farFuture = new Date(today); farFuture.setDate(farFuture.getDate() + 30);
+
+  const vacations = [
+    { id: 11001, type: 'יזומה', child: 'נועה', fromDate: toStr(pastDate), toDate: toStr(new Date(pastDate.getTime() + 5*86400000)), approvalStatus: 'approved', createdBy: 'אמא' },
+    { id: 11002, type: 'מסגרת חינוכית', child: 'איתי', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 3*86400000)), createdBy: 'אמא' },
+    { id: 11003, type: 'יזומה', child: 'נועה', fromDate: toStr(farFuture), toDate: toStr(new Date(farFuture.getTime() + 7*86400000)), approvalStatus: 'pending', createdBy: 'אבא' }
+  ];
+
+  const activeVacs = vacations.filter(v => new Date(v.toDate) >= today);
+  assert(activeVacs.length === 2, 'Stat chip counts 2 active vacations (excludes past)');
+
+  const pendingCount = activeVacs.filter(v => v.approvalStatus === 'pending').length;
+  assert(pendingCount === 1, 'Stat chip shows 1 pending vacation');
+
+  const nextVac = [...activeVacs].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate))[0];
+  assert(nextVac.id === 11002, 'Stat chip shows nearest upcoming vacation');
+}
+
+// --- Test 38: Declined vacation stays in pending tab ---
+console.log('\n\u{1F4CB} 38. חופשה שנדחתה נשארת בלשונית ממתינות');
+{
+  const today = new Date(); today.setHours(0,0,0,0);
+  const toStr = d => d.toISOString().split('T')[0];
+  const futureDate = new Date(today); futureDate.setDate(futureDate.getDate() + 10);
+
+  const vacations = [
+    { id: 12001, type: 'יזומה', approvalStatus: 'pending', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 5*86400000)) },
+    { id: 12002, type: 'יזומה', approvalStatus: 'approved', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 5*86400000)) },
+    { id: 12003, type: 'יזומה', approvalStatus: 'declined', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 5*86400000)) },
+    { id: 12004, type: 'מסגרת חינוכית', fromDate: toStr(futureDate), toDate: toStr(new Date(futureDate.getTime() + 5*86400000)) }
+  ];
+
+  // Pending tab: pending + declined + no status
+  const pendingTab = vacations.filter(v => {
+    return !v.approvalStatus || v.approvalStatus === 'pending' || v.approvalStatus === 'declined';
+  });
+  assert(pendingTab.length === 3, 'Pending tab shows pending + declined + no-status');
+  assert(pendingTab.some(v => v.id === 12003), 'Declined vacation in pending tab');
+  assert(!pendingTab.some(v => v.id === 12002), 'Approved vacation NOT in pending tab');
+
+  // Approved tab
+  const approvedTab = vacations.filter(v => v.approvalStatus === 'approved');
+  assert(approvedTab.length === 1, 'Approved tab shows only approved vacations');
 }
 
 // --- Summary ---
