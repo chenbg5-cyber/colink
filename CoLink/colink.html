@@ -8376,10 +8376,16 @@ function renderHolidays() {
   const now = new Date();
   const saveBtn = document.getElementById('holidaysSaveBtn');
 
+  const isCreator = appData.mode !== 'join';
+
   if (currentHolidayFilter === 'upcoming') {
     const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7)).slice(0, 13);
-    if (saveBtn) saveBtn.style.display = '';
-    container.innerHTML = upcoming.map(h => {
+    if (saveBtn) saveBtn.style.display = isCreator ? '' : 'none';
+    let headerNote = '';
+    if (!isCreator) {
+      headerNote = '<div style="background:var(--primary-light);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:var(--text);text-align:center;">שיבוץ חגים נקבע על ידי יוצר/ת המשפחה. לשינויים יש לפנות אליו/ה.</div>';
+    }
+    container.innerHTML = headerNote + upcoming.map(h => {
       const raw = appData.holidayAssignments[h.name];
       const assignType = !raw ? 'unset' : (typeof raw === 'string' ? raw : (raw.type || 'unset'));
       const isSplitDays = typeof raw === 'object' && raw.days && h.endDate;
@@ -8396,8 +8402,8 @@ function renderHolidays() {
           daysHtml += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
             <span style="font-size:0.82rem;font-weight:500;">${dn} ${dd}</span>
             <div style="display:flex;gap:4px;">
-              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אמא')" style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:pointer;border:1.5px solid ${isMom?'rgba(108,92,231,0.8)':'var(--border)'};background:${isMom?'rgba(108,92,231,0.12)':'transparent'};color:${isMom?'rgba(108,92,231,1)':'var(--text-light)'};">אמא</button>
-              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אבא')" style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:pointer;border:1.5px solid ${isDad?'#00CEC9':'var(--border)'};background:${isDad?'rgba(0,206,201,0.12)':'transparent'};color:${isDad?'#00CEC9':'var(--text-light)'};">אבא</button>
+              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אמא')" ${isCreator?'':'disabled'} style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:${isCreator?'pointer':'not-allowed'};border:1.5px solid ${isMom?'rgba(108,92,231,0.8)':'var(--border)'};background:${isMom?'rgba(108,92,231,0.12)':'transparent'};color:${isMom?'rgba(108,92,231,1)':'var(--text-light)'};${isCreator?'':'opacity:0.6;'}">אמא</button>
+              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אבא')" ${isCreator?'':'disabled'} style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:${isCreator?'pointer':'not-allowed'};border:1.5px solid ${isDad?'#00CEC9':'var(--border)'};background:${isDad?'rgba(0,206,201,0.12)':'transparent'};color:${isDad?'#00CEC9':'var(--text-light)'};${isCreator?'':'opacity:0.6;'}">אבא</button>
             </div>
           </div>`;
           cur.setDate(cur.getDate() + 1);
@@ -8411,7 +8417,8 @@ function renderHolidays() {
             <p>${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''} · ${h.heb}</p>
           </div>
           <select onchange="setHolidayAssignment('${h.name}', this.value)"
-            style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
+            ${isCreator ? '' : 'disabled'}
+            style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;${isCreator ? '' : 'opacity:0.6;cursor:not-allowed;'}">
             <option value="unset" ${assignType === 'unset' ? 'selected' : ''}>לא הוגדר</option>
             <option value="אמא" ${assignType === 'אמא' ? 'selected' : ''}>אצל אמא</option>
             <option value="אבא" ${assignType === 'אבא' ? 'selected' : ''}>אצל אבא</option>
@@ -8466,6 +8473,7 @@ function renderHolidays() {
 }
 
 function setHolidayAssignment(name, value) {
+  if (appData.mode === 'join') { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   if (value === 'split') {
     const h = HOLIDAYS_2026.find(x => x.name === name);
     if (h && h.endDate) {
@@ -8489,6 +8497,7 @@ function setHolidayAssignment(name, value) {
 }
 
 function setHolidayDayAssignment(name, dateStr, value) {
+  if (appData.mode === 'join') { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   const a = appData.holidayAssignments[name];
   if (typeof a === 'object' && a.days) {
     a.days[dateStr] = value;
@@ -8950,7 +8959,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '188';
+const APP_VERSION = '189';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
