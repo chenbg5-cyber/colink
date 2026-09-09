@@ -8376,7 +8376,7 @@ function renderHolidays() {
   const now = new Date();
   const saveBtn = document.getElementById('holidaysSaveBtn');
 
-  const isCreator = appData.mode !== 'join' && appData.mode !== 'child';
+  const isCreator = !isChildView();
 
   if (currentHolidayFilter === 'upcoming') {
     const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7)).slice(0, 13);
@@ -8473,7 +8473,7 @@ function renderHolidays() {
 }
 
 function setHolidayAssignment(name, value) {
-  if (appData.mode === 'join' || appData.mode === 'child') { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
+  if (isChildView()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   if (value === 'split') {
     const h = HOLIDAYS_2026.find(x => x.name === name);
     if (h && h.endDate) {
@@ -8497,7 +8497,7 @@ function setHolidayAssignment(name, value) {
 }
 
 function setHolidayDayAssignment(name, dateStr, value) {
-  if (appData.mode === 'join' || appData.mode === 'child') { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
+  if (isChildView()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   const a = appData.holidayAssignments[name];
   if (typeof a === 'object' && a.days) {
     a.days[dateStr] = value;
@@ -8959,7 +8959,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '191';
+const APP_VERSION = '192';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
