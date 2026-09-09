@@ -2067,7 +2067,7 @@
     <div class="page" id="page-assignments">
       <div class="page-header">
         <h1>משימות</h1>
-        <button class="btn btn-primary btn-sm" onclick="openNewTask()">+ משימה חדשה</button>
+        <button class="btn btn-primary btn-sm parent-only" onclick="openNewTask()">+ משימה חדשה</button>
       </div>
       <div class="tabs">
         <button class="tab-btn active" onclick="filterTasks('pending', this)">ממתין</button>
@@ -5316,8 +5316,9 @@ function updateDashboard() {
   // Card 7: My assignments checklist
   const dashChecklist = document.getElementById('dashTodayChecklist');
   const childMode = isChildView();
+  const _childName = childMode ? (appData.user.firstName || appData.user.name || '') : '';
   const myTodayTasks = childMode
-    ? appData.tasks.filter(t => t.status !== 'done').sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'))
+    ? appData.tasks.filter(t => t.status !== 'done' && t.forChild && (t.forChild === _childName || t.forChild === 'כל הילדים')).sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'))
     : appData.tasks.filter(t => isMyTask(t) && isTaskPendingForMe(t)).sort((a,b) => new Date(a.date || '9999') - new Date(b.date || '9999'));
   if (myTodayTasks.length === 0) {
     dashChecklist.innerHTML = '<div class="empty-state"><p>אין משימות פתוחות</p></div>';
@@ -8892,7 +8893,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '183';
+const APP_VERSION = '184';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
