@@ -1854,7 +1854,7 @@
     </div>
     <div class="sidebar-nav">
       <button class="nav-item active" onclick="showPage('dashboard', this)">
-        <span class="nav-icon">▦</span> דשבורד
+        <span class="nav-icon">⌂</span> בית
       </button>
       <button class="nav-item" onclick="showPage('kids', this)">
         <span class="nav-icon">◉</span> הילדים שלנו
@@ -2356,6 +2356,10 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-kids" id="bottomBarKids"></div>
+    <div class="bottom-bar-actions-btn" onclick="showPage('dashboard', document.querySelector('.nav-item'))" role="button" aria-label="בית">
+      <div class="bottom-bar-icon" style="background:#6366f1;">⌂</div>
+      <div class="bottom-bar-label">בית</div>
+    </div>
     <div class="bottom-bar-actions-btn" onclick="showPage('calendar', document.querySelectorAll('.nav-item')[10])" role="button" aria-label="יומן">
       <div class="bottom-bar-icon" style="background:#34d399;">▣</div>
       <div class="bottom-bar-label">יומן</div>
@@ -8894,7 +8898,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '185';
+const APP_VERSION = '186';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
