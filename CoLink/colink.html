@@ -4645,7 +4645,8 @@ function populateKidSelects() {
     const val = el.value;
     el.innerHTML = '<option value="">בחר/י ילד/ה</option>' +
       (appData.kids.length > 1 ? '<option value="__all__">כל הילדים</option>' : '') +
-      appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
+      appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('') +
+      '<option value="__parents__">הורים בלבד</option>';
     el.value = val;
   });
   const expChild = document.getElementById('expenseForChild');
@@ -6508,7 +6509,7 @@ function addTask() {
     }
   } else {
     if (!appData.tasks) appData.tasks = [];
-    const childName = forChild === '__all__' ? 'כל הילדים' : forChild;
+    const childName = forChild === '__all__' ? 'כל הילדים' : forChild === '__parents__' ? 'הורים בלבד' : forChild;
     const newTask = {
       id: Date.now(),
       title, desc, responsibility: res, forChild: childName, priority, date: recurring ? '' : date, category, status,
@@ -8893,7 +8894,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '184';
+const APP_VERSION = '185';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
