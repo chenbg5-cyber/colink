@@ -8380,21 +8380,45 @@ function renderHolidays() {
     const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7)).slice(0, 13);
     if (saveBtn) saveBtn.style.display = '';
     container.innerHTML = upcoming.map(h => {
-      const assignment = appData.holidayAssignments[h.name] || 'unset';
+      const raw = appData.holidayAssignments[h.name];
+      const assignType = !raw ? 'unset' : (typeof raw === 'string' ? raw : (raw.type || 'unset'));
+      const isSplitDays = typeof raw === 'object' && raw.days && h.endDate;
+      let daysHtml = '';
+      if (isSplitDays) {
+        const cur = new Date(h.date);
+        const end = new Date(h.endDate);
+        while (cur <= end) {
+          const ds = cur.toISOString().split('T')[0];
+          const da = raw.days[ds] || '';
+          const dn = HEB_DAYS[cur.getDay()];
+          const dd = cur.getDate() + '/' + (cur.getMonth() + 1);
+          const isMom = da === 'אמא', isDad = da === 'אבא';
+          daysHtml += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:0.82rem;font-weight:500;">${dn} ${dd}</span>
+            <div style="display:flex;gap:4px;">
+              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אמא')" style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:pointer;border:1.5px solid ${isMom?'rgba(108,92,231,0.8)':'var(--border)'};background:${isMom?'rgba(108,92,231,0.12)':'transparent'};color:${isMom?'rgba(108,92,231,1)':'var(--text-light)'};">אמא</button>
+              <button onclick="setHolidayDayAssignment('${h.name}','${ds}','אבא')" style="padding:4px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;cursor:pointer;border:1.5px solid ${isDad?'#00CEC9':'var(--border)'};background:${isDad?'rgba(0,206,201,0.12)':'transparent'};color:${isDad?'#00CEC9':'var(--text-light)'};">אבא</button>
+            </div>
+          </div>`;
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
       return `
-        <div class="holiday-card">
+        <div class="holiday-card"${isSplitDays ? ' style="flex-direction:column;align-items:stretch;"' : ''}>
+          ${isSplitDays ? '<div style="display:flex;justify-content:space-between;align-items:center;">' : ''}
           <div class="holiday-info">
             <h4>${h.name}</h4>
             <p>${formatDate(h.date)}${h.endDate ? ' - ' + formatDate(h.endDate) : ''} · ${h.heb}</p>
           </div>
           <select onchange="setHolidayAssignment('${h.name}', this.value)"
             style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.85rem;">
-            <option value="unset" ${assignment === 'unset' ? 'selected' : ''}>לא הוגדר</option>
-            <option value="אמא" ${assignment === 'אמא' ? 'selected' : ''}>אצל אמא</option>
-            <option value="אבא" ${assignment === 'אבא' ? 'selected' : ''}>אצל אבא</option>
-            <option value="split" ${assignment === 'split' ? 'selected' : ''}>חלוקה</option>
-            <option value="regular" ${assignment === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
+            <option value="unset" ${assignType === 'unset' ? 'selected' : ''}>לא הוגדר</option>
+            <option value="אמא" ${assignType === 'אמא' ? 'selected' : ''}>אצל אמא</option>
+            <option value="אבא" ${assignType === 'אבא' ? 'selected' : ''}>אצל אבא</option>
+            ${h.endDate ? `<option value="split" ${assignType === 'split' ? 'selected' : ''}>חלוקה</option>` : ''}
+            <option value="regular" ${assignType === 'regular' ? 'selected' : ''}>לפי שהות רגילה</option>
           </select>
+          ${isSplitDays ? '</div><div style="margin-top:8px;border-top:1px solid var(--border);padding-top:4px;">' + daysHtml + '</div>' : ''}
         </div>
       `;
     }).join('') || '<p style="text-align:center;color:var(--text-light);padding:20px;">אין חגים קרובים</p>';
@@ -8421,7 +8445,8 @@ function renderHolidays() {
           </div>
           <div id="${id}" hidden>
             ${holidays.map(h => {
-              const assignment = appData.holidayAssignments[h.name] || 'unset';
+              const _raw = appData.holidayAssignments[h.name];
+              const assignment = !_raw ? 'unset' : (typeof _raw === 'string' ? _raw : (_raw.type || 'unset'));
               const assignLabel = assignment === 'unset' ? 'לא הוגדר' : assignment === 'split' ? 'חלוקה' : assignment === 'regular' ? 'לפי שהות' : 'אצל ' + assignment;
               const assignColor = assignment === 'אמא' ? 'rgba(108,92,231,0.8)' : assignment === 'אבא' ? '#00CEC9' : 'var(--text-light)';
               return `
@@ -8441,9 +8466,36 @@ function renderHolidays() {
 }
 
 function setHolidayAssignment(name, value) {
-  appData.holidayAssignments[name] = value;
+  if (value === 'split') {
+    const h = HOLIDAYS_2026.find(x => x.name === name);
+    if (h && h.endDate) {
+      const days = {};
+      const cur = new Date(h.date);
+      const end = new Date(h.endDate);
+      while (cur <= end) {
+        days[cur.toISOString().split('T')[0]] = '';
+        cur.setDate(cur.getDate() + 1);
+      }
+      appData.holidayAssignments[name] = { type: 'split', days };
+    } else {
+      appData.holidayAssignments[name] = value;
+    }
+  } else {
+    appData.holidayAssignments[name] = value;
+  }
   saveData();
+  renderHolidays();
   if (document.getElementById('calendarGrid')) renderCalendar();
+}
+
+function setHolidayDayAssignment(name, dateStr, value) {
+  const a = appData.holidayAssignments[name];
+  if (typeof a === 'object' && a.days) {
+    a.days[dateStr] = value;
+    saveData();
+    renderHolidays();
+    if (document.getElementById('calendarGrid')) renderCalendar();
+  }
 }
 
 function saveHolidaysExplicit() {
@@ -8485,7 +8537,9 @@ function renderCalendar() {
       const end = h.endDate || h.date;
       return dateStr >= start && dateStr <= end;
     });
-    const holidayAssign = holiday ? (appData.holidayAssignments[holiday.name] || 'unset') : 'unset';
+    const _hRaw = holiday ? appData.holidayAssignments[holiday.name] : null;
+    const _hType = !_hRaw ? 'unset' : (typeof _hRaw === 'string' ? _hRaw : (_hRaw.type || 'unset'));
+    const holidayAssign = (_hType === 'split' && typeof _hRaw === 'object' && _hRaw.days && _hRaw.days[dateStr]) ? _hRaw.days[dateStr] : _hType;
 
     let classes = 'cal-day';
     if (holiday && holidayAssign !== 'unset' && holidayAssign !== 'regular') {
@@ -8542,7 +8596,9 @@ function showCalDayDetails(dateStr) {
   let html = '';
   const holiday = HOLIDAYS_2026.find(h => dateStr >= h.date && dateStr <= (h.endDate || h.date));
   if (holiday) {
-    const assign = appData.holidayAssignments[holiday.name] || 'unset';
+    const _dRaw = appData.holidayAssignments[holiday.name];
+    const _dType = !_dRaw ? 'unset' : (typeof _dRaw === 'string' ? _dRaw : (_dRaw.type || 'unset'));
+    const assign = (_dType === 'split' && typeof _dRaw === 'object' && _dRaw.days && _dRaw.days[dateStr]) ? _dRaw.days[dateStr] : _dType;
     const assignLabels = { 'אמא': 'אצל אמא', 'אבא': 'אצל אבא', split: 'חלוקה', regular: 'לפי שהות רגילה', unset: 'לא הוגדר' };
     const assignColors = { 'אמא': 'rgba(108,92,231,1)', 'אבא': '#00CEC9', split: '#E17055', regular: 'var(--success)', unset: 'var(--text-muted)' };
     html += `<div style="margin-bottom:10px;padding:8px 12px;background:#FFF8E1;border-radius:8px;border-right:3px solid var(--warning);">`;
@@ -8894,7 +8950,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '186';
+const APP_VERSION = '187';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
