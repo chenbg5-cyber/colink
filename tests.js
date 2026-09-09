@@ -628,6 +628,134 @@ console.log('\n\u{1F4CB} 20. רגרסיה - חלוקת חגים לפי ימים'
   assert(dad.holidayAssignments['ראש השנה'] === 'אמא', 'Dad sees string assignment after sync');
 }
 
+// --- Test 21: Holiday permissions - creator vs joiner ---
+console.log('\n\u{1F4CB} 21. הרשאות שיבוץ חגים - יוצר מול מצטרף');
+{
+  function canEditHolidays(appData) {
+    return appData.mode === 'new';
+  }
+
+  // Creator (mode='new') can edit
+  const creator = createFreshAppData('אמא', 'new');
+  assert(canEditHolidays(creator) === true, 'Creator (mode=new) can edit holiday assignments');
+
+  // Joiner (mode='join') cannot edit
+  const joiner = createFreshAppData('אבא', 'join');
+  assert(canEditHolidays(joiner) === false, 'Joiner (mode=join) cannot edit holiday assignments');
+
+  // Creator sets holidays, joiner sees them but cant change
+  creator.holidayAssignments['ראש השנה'] = 'אמא';
+  creator.holidayAssignments['סוכות'] = {
+    type: 'split',
+    days: { '2026-09-25': 'אמא', '2026-09-26': 'אבא' }
+  };
+  simulateSaveToCloud(creator);
+
+  joiner.familyCode = 'ABC123';
+  simulateLoadFromCloud(joiner);
+  assert(joiner.holidayAssignments['ראש השנה'] === 'אמא', 'Joiner sees creator holiday assignment');
+  assert(joiner.holidayAssignments['סוכות'].days['2026-09-25'] === 'אמא', 'Joiner sees creator per-day split');
+  assert(canEditHolidays(joiner) === false, 'Joiner still cannot edit after loading shared data');
+
+  // Child also cannot edit
+  const child = createFreshAppData('אמא', 'child');
+  assert(canEditHolidays(child) === false, 'Child (mode=child) cannot edit holiday assignments');
+}
+
+// --- Test 22: Yom Kippur spans 2 days ---
+console.log('\n\u{1F4CB} 22. יום כיפור רב-יומי');
+{
+  const HOLIDAYS_SAMPLE = [
+    { name: 'יום כיפור', date: '2026-09-19', endDate: '2026-09-20', heb: 'ט׳-י׳ תשרי תשפ״ז' },
+    { name: 'פורים', date: '2026-03-05', heb: 'י״ד אדר תשפ״ו' },
+    { name: 'סוכות', date: '2026-09-25', endDate: '2026-10-01', heb: 'ט״ו-כ״א תשרי תשפ״ז' },
+  ];
+
+  const yk = HOLIDAYS_SAMPLE.find(h => h.name === 'יום כיפור');
+  assert(yk.endDate !== undefined, 'Yom Kippur has endDate (multi-day)');
+  assert(yk.date === '2026-09-19', 'Yom Kippur starts on erev (19th)');
+  assert(yk.endDate === '2026-09-20', 'Yom Kippur ends on the day (20th)');
+
+  // Count days
+  function countDays(h) {
+    if (!h.endDate) return 1;
+    const s = new Date(h.date), e = new Date(h.endDate);
+    return Math.round((e - s) / (1000*60*60*24)) + 1;
+  }
+  assert(countDays(yk) === 2, 'Yom Kippur spans exactly 2 days');
+  assert(countDays(HOLIDAYS_SAMPLE.find(h => h.name === 'פורים')) === 1, 'Purim is single day');
+  assert(countDays(HOLIDAYS_SAMPLE.find(h => h.name === 'סוכות')) === 7, 'Sukkot spans 7 days');
+
+  // Split on Yom Kippur creates 2-day object
+  function simulateSetSplit(name, holidays) {
+    const h = holidays.find(x => x.name === name);
+    if (h && h.endDate) {
+      const days = {};
+      const cur = new Date(h.date);
+      const end = new Date(h.endDate);
+      while (cur <= end) {
+        days[cur.toISOString().split('T')[0]] = '';
+        cur.setDate(cur.getDate() + 1);
+      }
+      return { type: 'split', days };
+    }
+    return 'split';
+  }
+
+  const ykSplit = simulateSetSplit('יום כיפור', HOLIDAYS_SAMPLE);
+  assert(typeof ykSplit === 'object', 'YK split creates object (not string)');
+  assert(Object.keys(ykSplit.days).length === 2, 'YK split has exactly 2 day entries');
+  assert('2026-09-19' in ykSplit.days, 'YK split includes erev date');
+  assert('2026-09-20' in ykSplit.days, 'YK split includes day date');
+
+  // Single-day holiday stays as string
+  const purimSplit = simulateSetSplit('פורים', HOLIDAYS_SAMPLE);
+  assert(purimSplit === 'split', 'Single-day holiday split stays as string');
+}
+
+// --- Test 23: Calendar coloring with per-day split ---
+console.log('\n\u{1F4CB} 23. צביעת לוח שנה עם חלוקה לפי ימים');
+{
+  function getCalendarClass(holidayRaw, dateStr) {
+    const _hType = !holidayRaw ? 'unset' : (typeof holidayRaw === 'string' ? holidayRaw : (holidayRaw.type || 'unset'));
+    const assign = (_hType === 'split' && typeof holidayRaw === 'object' && holidayRaw.days && holidayRaw.days[dateStr])
+      ? holidayRaw.days[dateStr] : _hType;
+    if (assign === 'אמא') return 'custody-mom';
+    if (assign === 'אבא') return 'custody-dad';
+    if (assign === 'split') return 'custody-split';
+    return 'regular';
+  }
+
+  // Full holiday assigned to mom
+  assert(getCalendarClass('אמא', '2026-09-11') === 'custody-mom', 'Full assignment mom colors as custody-mom');
+  assert(getCalendarClass('אבא', '2026-09-11') === 'custody-dad', 'Full assignment dad colors as custody-dad');
+  assert(getCalendarClass('split', '2026-09-11') === 'custody-split', 'Old string split colors as custody-split');
+  assert(getCalendarClass('regular', '2026-09-11') === 'regular', 'Regular assignment has no holiday coloring');
+  assert(getCalendarClass(null, '2026-09-11') === 'regular', 'Unset assignment has no holiday coloring');
+
+  // Per-day split: each day colored individually
+  const splitObj = {
+    type: 'split',
+    days: {
+      '2026-09-25': 'אמא',
+      '2026-09-26': 'אמא',
+      '2026-09-27': 'אבא',
+      '2026-09-28': 'אבא'
+    }
+  };
+  assert(getCalendarClass(splitObj, '2026-09-25') === 'custody-mom', 'Split day 1 (mom) colors as custody-mom');
+  assert(getCalendarClass(splitObj, '2026-09-26') === 'custody-mom', 'Split day 2 (mom) colors as custody-mom');
+  assert(getCalendarClass(splitObj, '2026-09-27') === 'custody-dad', 'Split day 3 (dad) colors as custody-dad');
+  assert(getCalendarClass(splitObj, '2026-09-28') === 'custody-dad', 'Split day 4 (dad) colors as custody-dad');
+
+  // Unassigned day within split object falls back to split coloring
+  assert(getCalendarClass(splitObj, '2026-09-29') === 'custody-split', 'Unassigned day in split falls back to custody-split');
+
+  // Empty string day assignment also falls back
+  const splitWithEmpty = { type: 'split', days: { '2026-09-25': '' } };
+  assert(getCalendarClass(splitWithEmpty, '2026-09-25') === 'custody-split', 'Empty day assignment falls back to custody-split');
+}
+
 // --- Summary ---
 console.log('\n============================');
 console.log(`  Results: ${passed} passed, ${failed} failed`);
