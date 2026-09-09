@@ -563,6 +563,71 @@ console.log('\n📋 19. רגרסיה - משימות הורים וילד');
   assert(momTasksAll.some(t => t.id === 6), 'Mom sees task with empty forChild');
 }
 
+// --- Test 20: Holiday split per-day assignment ---
+console.log('\n\u{1F4CB} 20. רגרסיה - חלוקת חגים לפי ימים');
+{
+  const app = createFreshAppData('אמא');
+
+  function getAssignType(raw) {
+    if (!raw) return 'unset';
+    if (typeof raw === 'string') return raw;
+    return raw.type || 'unset';
+  }
+
+  function getDayAssign(raw, dateStr) {
+    const type = getAssignType(raw);
+    if (type === 'split' && typeof raw === 'object' && raw.days && raw.days[dateStr]) return raw.days[dateStr];
+    return type;
+  }
+
+  // String assignments (backward compatibility)
+  app.holidayAssignments['ראש השנה'] = 'אמא';
+  app.holidayAssignments['יום כיפור'] = 'אבא';
+  app.holidayAssignments['פורים'] = 'split';
+  app.holidayAssignments['שבועות'] = 'regular';
+
+  assert(getAssignType(app.holidayAssignments['ראש השנה']) === 'אמא', 'String assignment backward compat: אמא');
+  assert(getAssignType(app.holidayAssignments['יום כיפור']) === 'אבא', 'String assignment backward compat: אבא');
+  assert(getAssignType(app.holidayAssignments['פורים']) === 'split', 'String assignment backward compat: split');
+  assert(getAssignType(app.holidayAssignments['שבועות']) === 'regular', 'String assignment backward compat: regular');
+  assert(getAssignType(app.holidayAssignments['סוכות']) === 'unset', 'Unset holiday returns unset');
+
+  // Object assignment (new per-day split)
+  app.holidayAssignments['סוכות'] = {
+    type: 'split',
+    days: {
+      '2026-09-25': 'אמא',
+      '2026-09-26': 'אמא',
+      '2026-09-27': 'אמא',
+      '2026-09-28': 'אבא',
+      '2026-09-29': 'אבא',
+      '2026-09-30': 'אבא',
+      '2026-10-01': 'אבא'
+    }
+  };
+
+  assert(getAssignType(app.holidayAssignments['סוכות']) === 'split', 'Object assignment type is split');
+  assert(getDayAssign(app.holidayAssignments['סוכות'], '2026-09-25') === 'אמא', 'Sukkot day 1: assigned to mom');
+  assert(getDayAssign(app.holidayAssignments['סוכות'], '2026-09-27') === 'אמא', 'Sukkot day 3: assigned to mom');
+  assert(getDayAssign(app.holidayAssignments['סוכות'], '2026-09-28') === 'אבא', 'Sukkot day 4: assigned to dad');
+  assert(getDayAssign(app.holidayAssignments['סוכות'], '2026-10-01') === 'אבא', 'Sukkot day 7: assigned to dad');
+  assert(getDayAssign(app.holidayAssignments['סוכות'], '2026-10-05') === 'split', 'Unassigned day in split falls back to split');
+  assert(getDayAssign(app.holidayAssignments['פורים'], '2026-03-17') === 'split', 'Old string split returns split for any date');
+
+  // Sync between parents preserves object format
+  simulateSaveToCloud(app);
+  const dad = createFreshAppData('אבא', 'join');
+  dad.familyCode = 'ABC123';
+  dad.custodyDays = [3, 4];
+  simulateLoadFromCloud(dad);
+
+  assert(typeof dad.holidayAssignments['סוכות'] === 'object', 'Dad receives object holiday assignment after sync');
+  assert(dad.holidayAssignments['סוכות'].type === 'split', 'Dad sees split type after sync');
+  assert(dad.holidayAssignments['סוכות'].days['2026-09-25'] === 'אמא', 'Dad sees per-day mom assignment after sync');
+  assert(dad.holidayAssignments['סוכות'].days['2026-09-28'] === 'אבא', 'Dad sees per-day dad assignment after sync');
+  assert(dad.holidayAssignments['ראש השנה'] === 'אמא', 'Dad sees string assignment after sync');
+}
+
 // --- Summary ---
 console.log('\n============================');
 console.log(`  Results: ${passed} passed, ${failed} failed`);
