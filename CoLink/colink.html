@@ -1825,7 +1825,7 @@
   <!-- Mobile header -->
   <div class="mobile-header">
     <button class="hamburger" onclick="toggleSidebar()" aria-label="תפריט ניווט">☰</button>
-    <div class="mobile-logo">CoLink</div>
+    <div class="mobile-logo" onclick="showPage('dashboard', document.querySelector('.nav-item'))" style="cursor:pointer;">CoLink</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button style="background:none;border:none;cursor:pointer;padding:4px;position:relative;" onclick="showPendingRequests()" id="headerPendingBtn" aria-label="בקשות ממתינות">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2356,10 +2356,6 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-kids" id="bottomBarKids"></div>
-    <div class="bottom-bar-actions-btn" onclick="showPage('dashboard', document.querySelector('.nav-item'))" role="button" aria-label="בית">
-      <div class="bottom-bar-icon" style="background:#6366f1;">⌂</div>
-      <div class="bottom-bar-label">בית</div>
-    </div>
     <div class="bottom-bar-actions-btn" onclick="showPage('calendar', document.querySelectorAll('.nav-item')[10])" role="button" aria-label="יומן">
       <div class="bottom-bar-icon" style="background:#34d399;">▣</div>
       <div class="bottom-bar-label">יומן</div>
