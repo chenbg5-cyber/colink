@@ -539,6 +539,24 @@
 
     .page-header h1 { font-size: 1.3rem; font-weight: 600; color: var(--text); }
 
+    .section-help-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin-right: 6px;
+      line-height: 1;
+    }
+
     /* Cards */
     .card {
       background: var(--card);
@@ -631,6 +649,7 @@
     .badge-pending { background: #FFF3E0; color: #E17055; }
     .badge-approved { background: #E6FFF8; color: #00B894; }
     .badge-rejected { background: #FFE8E8; color: #D63031; }
+    .badge-info { background: #E3F2FD; color: #1976D2; }
     .badge-new { background: #F0EEFF; color: var(--primary); }
 
     /* Modal */
@@ -1613,8 +1632,8 @@
 <div class="onboarding-overlay" id="authScreen" style="z-index:10000;">
   <div class="onboarding-card" style="text-align:center;">
     <div class="ob-logo">Co<span>Link</span></div>
-    <p style="color:var(--text);margin-bottom:6px;font-size:0.95rem;font-weight:500;">ניהול משפחתי משותף להורים גרושים</p>
-    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.8rem;line-height:1.5;">משימות, אירועים, משמורת, הוצאות, חתימות ועוד — הכל במקום אחד, מסונכרן בין שני ההורים</p>
+    <p style="color:var(--text);margin-bottom:6px;font-size:0.95rem;font-weight:500;">ניהול משפחתי משותף להורים ולילדים</p>
+    <p style="color:var(--text-light);margin-bottom:24px;font-size:0.8rem;line-height:1.5;">משימות, אירועים, משמורת, הוצאות, חתימות ועוד — הכל במקום אחד, מסונכרן בין ההורים ונגיש לילדים</p>
 
     <button onclick="signInWithGoogle()" id="googleSignInBtn" style="width:100%;margin-top:12px;padding:14px;font-size:1rem;font-family:inherit;border:2px solid var(--border);border-radius:12px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:22px;height:22px;">
@@ -1834,7 +1853,7 @@
         </svg>
         <span id="headerPendingBadge" style="position:absolute;top:-2px;right:-2px;background:#FF6B6B;color:white;font-size:0.6rem;min-width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">0</span>
       </button>
-      <button style="background:none;border:none;cursor:pointer;padding:4px;" onclick="showPage('profile', document.querySelectorAll('.nav-item')[11])" aria-label="פרופיל">
+      <button style="background:none;border:none;cursor:pointer;padding:4px;" onclick="showPage('profile', document.querySelectorAll('.nav-item')[12])" aria-label="פרופיל">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="11" stroke="var(--primary)" stroke-width="1.5" fill="#F0EEFF"/>
           <circle cx="12" cy="9" r="3.5" fill="var(--primary)"/>
@@ -1879,6 +1898,9 @@
       </button>
       <button class="nav-item" onclick="showPage('camps', this)">
         <span class="nav-icon">◈</span> קייטנות
+      </button>
+      <button class="nav-item parent-only" onclick="showPage('vacations', this)">
+        <span class="nav-icon">✈</span> חופשות
       </button>
       <button class="nav-item parent-only" onclick="showPage('signatures', this)">
         <span class="nav-icon">⊡</span> חתימות ואישורים
@@ -1973,6 +1995,14 @@
             <span class="stat-chip-summary" id="statNextHolidaySummary"></span>
           </div>
         </div>
+        <div class="stat-chip" id="statVacationsChip" style="display:none;" onclick="if(!isChildView()) showPage('vacations', document.querySelectorAll('.nav-item')[9])">
+          <span class="stat-chip-icon" style="font-size:1.1rem;background:#E3F2FD;">✈</span>
+          <div class="stat-chip-info">
+            <span class="stat-chip-value" id="statVacations">0</span>
+            <span class="stat-chip-label">חופשות</span>
+            <span class="stat-chip-summary" id="statVacationsSummary"></span>
+          </div>
+        </div>
         <div class="stat-chip" id="statSentPendingChip" style="display:none;cursor:pointer;" onclick="showSentPending()">
           <span class="stat-chip-icon" style="font-size:1.1rem;background:#FFF0F0;">◷</span>
           <div class="stat-chip-info">
@@ -2029,7 +2059,7 @@
       <div class="card card-compact" id="dashPendingSigsCard" style="display:none;">
         <div class="card-compact-header">
           <h3>✎ ממתינים לחתימה</h3>
-          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[10])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
         </div>
         <div id="dashPendingSigs"></div>
       </div>
@@ -2052,12 +2082,21 @@
         <div id="dashCamps"></div>
       </div>
 
+      <!-- Vacations summary -->
+      <div class="card card-compact" id="dashVacationsCard" style="display:none;">
+        <div class="card-compact-header">
+          <h3>✈ חופשות</h3>
+          <button class="btn btn-primary btn-sm" onclick="showPage('vacations', document.querySelectorAll('.nav-item')[9])" style="padding:4px 10px;font-size:1rem;line-height:1;">←</button>
+        </div>
+        <div id="dashVacations"></div>
+      </div>
+
     </div>
 
     <!-- Our Kids -->
     <div class="page" id="page-kids">
       <div class="page-header">
-        <h1>הילדים שלנו</h1>
+        <h1>הילדים שלנו <button onclick="showSectionHelp('kids')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm parent-only" onclick="openKidModal()">+ הוספת ילד/ה</button>
       </div>
       <div id="kidsDisplay"></div>
@@ -2066,7 +2105,7 @@
     <!-- Assignments -->
     <div class="page" id="page-assignments">
       <div class="page-header">
-        <h1>משימות</h1>
+        <h1>משימות <button onclick="showSectionHelp('assignments')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm parent-only" onclick="openNewTask()">+ משימה חדשה</button>
       </div>
       <div class="tabs">
@@ -2080,7 +2119,7 @@
     <!-- Events -->
     <div class="page" id="page-events">
       <div class="page-header">
-        <h1>אירועים</h1>
+        <h1>אירועים <button onclick="showSectionHelp('events')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm" onclick="openModal('eventModal')">+ אירוע חדש</button>
       </div>
       <div class="tabs">
@@ -2093,7 +2132,7 @@
     <!-- Custody -->
     <div class="page" id="page-custody">
       <div class="page-header">
-        <h1>פרטי משמורת</h1>
+        <h1>פרטי משמורת <button onclick="showSectionHelp('custody')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-secondary btn-sm" onclick="openModal('custodyChangeModal')">בקשת שינוי</button>
       </div>
       <div class="card" style="padding-bottom:8px;">
@@ -2123,49 +2162,82 @@
     <!-- Expenses -->
     <div class="page" id="page-expenses">
       <div class="page-header">
-        <h1>הוצאות וקיזוזים</h1>
-        <button class="btn btn-primary btn-sm" onclick="openModal('expenseModal')">+ הוצאה חדשה</button>
+        <h1>הוצאות <button onclick="showSectionHelp('expenses')" class="section-help-btn" title="עזרה">?</button></h1>
+        <button class="btn btn-primary btn-sm" onclick="openNewExpense()">+ הוצאה חדשה</button>
       </div>
-      <div class="card" style="overflow-x:auto;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>פירוט</th>
-              <th>סכום</th>
-              <th>קיזוז</th>
-              <th>ילד/ה</th>
-              <th>תאריך</th>
-              <th>קבלה</th>
-              <th>מבקש/ת</th>
-              <th>סטטוס</th>
-              <th>פעולות</th>
-            </tr>
-          </thead>
-          <tbody id="expensesTable"></tbody>
-        </table>
-        <div class="empty-state" id="expensesEmpty" style="display:none;">
-          <div class="empty-icon">—</div>
-          <p>אין הוצאות עדיין</p>
-        </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchExpenseTab('offsets', this)">קיזוזים</button>
+        <button class="tab-btn" onclick="switchExpenseTab('personal', this)">ניהול אישי</button>
       </div>
-      <div id="expenseSummaryCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="card" style="background:#E6FFF8;">
-          <div style="text-align:center;">
-            <div style="font-size:0.85rem;color:#00B894;font-weight:600;">מגיע לי</div>
-            <div style="font-size:1.4rem;font-weight:700;color:#00B894;" id="totalOwedToMe">₪0</div>
+      <div id="expenseTabOffsets">
+        <div class="card" style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>פירוט</th>
+                <th>סכום</th>
+                <th>קיזוז</th>
+                <th>ילד/ה</th>
+                <th>תאריך</th>
+                <th>קבלה</th>
+                <th>מבקש/ת</th>
+                <th>סטטוס</th>
+                <th>פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTable"></tbody>
+          </table>
+          <div class="empty-state" id="expensesEmpty" style="display:none;">
+            <div class="empty-icon">—</div>
+            <p>אין בקשות קיזוז</p>
           </div>
         </div>
-        <div class="card" style="background:#FFE8E8;">
-          <div style="text-align:center;">
-            <div style="font-size:0.85rem;color:#D63031;font-weight:600;">אני חייב/ת</div>
-            <div style="font-size:1.4rem;font-weight:700;color:#D63031;" id="totalIOwe">₪0</div>
+        <div id="expenseSummaryCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="card" style="background:#E6FFF8;">
+            <div style="text-align:center;">
+              <div style="font-size:0.85rem;color:#00B894;font-weight:600;">מגיע לי</div>
+              <div style="font-size:1.4rem;font-weight:700;color:#00B894;" id="totalOwedToMe">₪0</div>
+            </div>
+          </div>
+          <div class="card" style="background:#FFE8E8;">
+            <div style="text-align:center;">
+              <div style="font-size:0.85rem;color:#D63031;font-weight:600;">אני חייב/ת</div>
+              <div style="font-size:1.4rem;font-weight:700;color:#D63031;" id="totalIOwe">₪0</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="background:#F0EEFF;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;">מאזן</h3>
+            <span style="font-size:1.5rem;font-weight:700;color:var(--primary);" id="totalExpenses">₪0</span>
           </div>
         </div>
       </div>
-      <div class="card" style="background:#F0EEFF;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="margin:0;">מאזן</h3>
-          <span style="font-size:1.5rem;font-weight:700;color:var(--primary);" id="totalExpenses">₪0</span>
+      <div id="expenseTabPersonal" style="display:none;">
+        <div class="card" style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>פירוט</th>
+                <th>סכום</th>
+                <th>ילד/ה</th>
+                <th>תאריך</th>
+                <th>קבלה</th>
+                <th>פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="personalExpensesTable"></tbody>
+          </table>
+          <div class="empty-state" id="personalExpensesEmpty" style="display:none;">
+            <div class="empty-icon">—</div>
+            <p>אין הוצאות אישיות</p>
+          </div>
+        </div>
+        <div class="card" style="background:#E3F2FD;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;color:#1976D2;">סה"כ הוצאות אישיות</h3>
+            <span style="font-size:1.5rem;font-weight:700;color:#1976D2;" id="totalPersonalExpenses">₪0</span>
+          </div>
         </div>
       </div>
     </div>
@@ -2173,7 +2245,7 @@
     <!-- Holidays -->
     <div class="page" id="page-holidays">
       <div class="page-header">
-        <h1>חגים</h1>
+        <h1>חגים <button onclick="showSectionHelp('holidays')" class="section-help-btn" title="עזרה">?</button></h1>
       </div>
       <div class="tabs">
         <button class="tab-btn active" onclick="filterHolidays('upcoming', this)">קרובים</button>
@@ -2190,7 +2262,7 @@
     <!-- Calendar -->
     <div class="page" id="page-calendar">
       <div class="page-header">
-        <h1>יומן</h1>
+        <h1>יומן <button onclick="showSectionHelp('calendar')" class="section-help-btn" title="עזרה">?</button></h1>
       </div>
       <div class="card">
         <div class="cal-header">
@@ -2210,12 +2282,16 @@
         <h3 id="calDayDetailsTitle"></h3>
         <div id="calDayDetailsList"></div>
       </div>
+      <div class="card" id="calMonthAgenda">
+        <h3 style="margin-bottom:12px;">פירוט החודש</h3>
+        <div id="calMonthAgendaList"></div>
+      </div>
     </div>
 
     <!-- Activities -->
     <div class="page" id="page-activities">
       <div class="page-header">
-        <h1>חוגים</h1>
+        <h1>חוגים <button onclick="showSectionHelp('activities')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm parent-only" onclick="openActivityModal()">+ חוג חדש</button>
       </div>
       <div id="activitiesList"></div>
@@ -2228,7 +2304,7 @@
     <!-- Camps -->
     <div class="page" id="page-camps">
       <div class="page-header">
-        <h1>קייטנות קיץ</h1>
+        <h1>קייטנות קיץ <button onclick="showSectionHelp('camps')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm parent-only" onclick="openCampModal()">+ קייטנה חדשה</button>
       </div>
       <div class="tabs">
@@ -2243,10 +2319,28 @@
       </div>
     </div>
 
+    <!-- Vacations -->
+    <div class="page" id="page-vacations">
+      <div class="page-header">
+        <h1>חופשות <button onclick="showSectionHelp('vacations')" class="section-help-btn" title="עזרה">?</button></h1>
+        <button class="btn btn-primary btn-sm parent-only" onclick="openVacationModal()">+ חופשה חדשה</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterVacations('pending', this)">ממתינות</button>
+        <button class="tab-btn" onclick="filterVacations('approved', this)">אושרו</button>
+      </div>
+      <div id="vacationsList">
+        <div class="empty-state" id="vacationsEmpty">
+          <div class="empty-icon">--</div>
+          <p>אין חופשות עדיין</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Signatures -->
     <div class="page" id="page-signatures">
       <div class="page-header">
-        <h1>חתימות ואישורים</h1>
+        <h1>חתימות ואישורים <button onclick="showSectionHelp('signatures')" class="section-help-btn" title="עזרה">?</button></h1>
         <button class="btn btn-primary btn-sm" onclick="openModal('signatureModal')">+ מסמך חדש</button>
       </div>
       <div class="card">
@@ -2356,7 +2450,7 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-kids" id="bottomBarKids"></div>
-    <div class="bottom-bar-actions-btn" onclick="showPage('calendar', document.querySelectorAll('.nav-item')[10])" role="button" aria-label="יומן">
+    <div class="bottom-bar-actions-btn" onclick="showPage('calendar', document.querySelectorAll('.nav-item')[11])" role="button" aria-label="יומן">
       <div class="bottom-bar-icon" style="background:#34d399;">▣</div>
       <div class="bottom-bar-label">יומן</div>
     </div>
@@ -2373,7 +2467,7 @@
     <button onclick="closeActionsMenu();openModal('eventModal')"><span>◆</span> אירוע חדש</button>
     <button onclick="closeActionsMenu();openActivityModal()"><span>◎</span> חוג חדש</button>
     <button onclick="closeActionsMenu();openCampModal()"><span>◈</span> קייטנה חדשה</button>
-    <button onclick="closeActionsMenu();openModal('expenseModal')"><span>₪</span> הוצאה חדשה</button>
+    <button onclick="closeActionsMenu();openNewExpense()"><span>₪</span> הוצאה חדשה</button>
     <button onclick="closeActionsMenu();openModal('signatureModal')"><span>⊡</span> מסמך לחתימה</button>
     <button onclick="closeActionsMenu();openModal('custodyChangeModal')"><span>⇄</span> בקשת שינוי משמורת</button>
     <button onclick="closeActionsMenu();openKidModal()"><span>◉</span> הוספת ילד/ה</button>
@@ -2568,7 +2662,16 @@
 <!-- Expense Modal -->
 <div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-label="הוצאה">
   <div class="modal">
-    <h2>הוצאה חדשה</h2>
+    <h2 id="expenseModalTitle">הוצאה חדשה</h2>
+    <input type="hidden" id="expenseEditId" value="">
+    <div class="form-group">
+      <label>סוג הוצאה</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="expenseTypeOffset" class="btn btn-primary" onclick="setExpenseType('offset')" style="flex:1;font-size:0.9rem;">לקיזוז</button>
+        <button type="button" id="expenseTypePersonal" class="btn btn-secondary" onclick="setExpenseType('personal')" style="flex:1;font-size:0.9rem;">ניהול אישי</button>
+      </div>
+    </div>
+    <input type="hidden" id="expenseTypeValue" value="offset">
     <div class="form-group">
       <label>פירוט הוצאה <span class="required">*</span></label>
       <input type="text" id="expenseDetails" placeholder="למה ההוצאה?">
@@ -2587,33 +2690,35 @@
         <input type="date" id="expenseDate">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>אחוז קיזוז מההורה השני</label>
-        <select id="expenseSplit" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;" onchange="updateExpenseSplit()">
-          <option value="50" selected>50%</option>
-          <option value="30">30%</option>
-          <option value="40">40%</option>
-          <option value="60">60%</option>
-          <option value="70">70%</option>
-          <option value="100">100%</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>סכום לקיזוז</label>
-        <div id="expenseSplitPreview" style="padding:12px;background:var(--primary-light);border-radius:12px;font-weight:700;color:var(--primary);text-align:center;font-size:1.1rem;">₪0</div>
+    <div id="expenseOffsetFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label>אחוז קיזוז מההורה השני</label>
+          <select id="expenseSplit" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;" onchange="updateExpenseSplit()">
+            <option value="50" selected>50%</option>
+            <option value="30">30%</option>
+            <option value="40">40%</option>
+            <option value="60">60%</option>
+            <option value="70">70%</option>
+            <option value="100">100%</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>סכום לקיזוז</label>
+          <div id="expenseSplitPreview" style="padding:12px;background:var(--primary-light);border-radius:12px;font-weight:700;color:var(--primary);text-align:center;font-size:1.1rem;">₪0</div>
+        </div>
       </div>
     </div>
     <div class="form-group">
       <label>קבלה (אופציונלי)</label>
       <label class="file-input-label">
-        📎 צירוף קבלה
+        צירוף קבלה
         <input type="file" id="expenseInvoice" accept="image/*,.pdf">
         <span id="invoiceFileName"></span>
       </label>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary" onclick="addExpense()">שליחת בקשת קיזוז</button>
+      <button class="btn btn-primary" id="expenseSubmitBtn" onclick="addExpense()">שליחת בקשת קיזוז</button>
       <button class="btn btn-secondary" onclick="closeModal('expenseModal')">ביטול</button>
     </div>
   </div>
@@ -2661,6 +2766,33 @@
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addCustodyChange()">שליחת בקשה</button>
       <button class="btn btn-secondary" onclick="closeModal('custodyChangeModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="holidayChangeModal" role="dialog" aria-modal="true" aria-label="בקשת שינוי שיבוץ חגים">
+  <div class="modal">
+    <h2>בקשת שינוי שיבוץ חגים</h2>
+    <div class="form-group">
+      <label>חג</label>
+      <select id="holidayChangeName" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;"></select>
+    </div>
+    <div class="form-group">
+      <label>שיבוץ מבוקש</label>
+      <select id="holidayChangeValue" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
+        <option value="אמא">אצל אמא</option>
+        <option value="אבא">אצל אבא</option>
+        <option value="split">חלוקה</option>
+        <option value="regular">לפי שהות רגילה</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>סיבה / הערה</label>
+      <textarea id="holidayChangeReason" rows="3" placeholder="הסבירו את הבקשה..." style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addHolidayChange()">שליחת בקשה</button>
+      <button class="btn btn-secondary" onclick="closeModal('holidayChangeModal')">ביטול</button>
     </div>
   </div>
 </div>
@@ -2817,6 +2949,72 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="vacationModal" role="dialog" aria-modal="true" aria-label="חופשה">
+  <div class="modal">
+    <h2 id="vacationModalTitle">יצירת חופשה</h2>
+    <input type="hidden" id="vacEditId" value="">
+    <div class="form-group">
+      <label>סוג חופשה <span class="required">*</span></label>
+      <select id="vacType" onchange="toggleVacFields()">
+        <option value="">בחירה...</option>
+        <option value="יזומה">יזומה</option>
+        <option value="מסגרת חינוכית">מסגרת חינוכית</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>עבור <span class="required">*</span></label>
+      <select id="vacChild"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מתאריך <span class="required">*</span></label>
+        <input type="date" id="vacFromDate">
+      </div>
+      <div class="form-group">
+        <label>עד תאריך <span class="required">*</span></label>
+        <input type="date" id="vacToDate">
+      </div>
+    </div>
+    <div id="vacInitiatedFields" style="display:none;">
+      <div class="form-group">
+        <label>מיקום</label>
+        <select id="vacLocation">
+          <option value="בארץ">בארץ</option>
+          <option value="בחול">בחו"ל</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="vacPassports" style="width:auto;">
+          צריך דרכונים
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="vacWrittenApproval" style="width:auto;">
+          נדרש אישור כתוב מהצד השני
+        </label>
+      </div>
+      <div class="form-group">
+        <label>פרטי המקום / מלון</label>
+        <textarea id="vacHotel" rows="2" placeholder="שם המלון, כתובת..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>פרטי איש קשר</label>
+        <input type="text" id="vacContact" placeholder="שם, טלפון...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="vacNotes" rows="2" placeholder="מידע נוסף..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveVacation()">שליחה</button>
+      <button class="btn btn-secondary" onclick="closeModal('vacationModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="signatureModal" role="dialog" aria-modal="true" aria-label="מסמך לחתימה">
   <div class="modal">
     <h2>מסמך חדש לחתימה</h2>
@@ -2827,7 +3025,7 @@
     <div class="form-group">
       <label>קטגוריה</label>
       <select id="sigCategory" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;">
-        <option value="בית ספר">בית ספר</option>
+        <option value="מסגרת חינוכית">מסגרת חינוכית</option>
         <option value="רפואי">רפואי</option>
         <option value="חוגים">חוגים</option>
         <option value="טיול">טיול</option>
@@ -2935,7 +3133,7 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>בית ספר / גן</label>
+        <label>מסגרת חינוכית / גן</label>
         <input type="text" id="kidModalSchool" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
@@ -2996,6 +3194,14 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="sectionHelpModal" style="z-index:10002;" role="dialog" aria-modal="true" aria-label="עזרה">
+  <div class="modal" style="max-width:440px;max-height:70vh;overflow-y:auto;">
+    <h2 id="sectionHelpTitle"></h2>
+    <div id="sectionHelpBody" style="font-size:0.85rem;line-height:1.7;text-align:right;"></div>
+    <button class="btn btn-primary" onclick="closeModal('sectionHelpModal')" style="width:100%;margin-top:16px;">הבנתי</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="tipsModal" style="z-index:10002;" role="dialog" aria-modal="true" aria-label="טיפים ועזרה">
   <div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto;">
     <h2>טיפים ועזרה</h2>
@@ -3033,7 +3239,7 @@
       <ul style="padding-right:20px;">
         <li><strong>פרטי חשבון:</strong> שם, אימייל וכתובת תמונה מחשבון Google בעת ההתחברות</li>
         <li><strong>פרטי משפחה:</strong> שם משפחה, תפקיד (אמא/אבא), מספר טלפון</li>
-        <li><strong>פרטי ילדים:</strong> שם, תאריך לידה, מגדר, תעודת זהות, בית ספר, כיתה, מורה, תמונה</li>
+        <li><strong>פרטי ילדים:</strong> שם, תאריך לידה, מגדר, תעודת זהות, מסגרת חינוכית, כיתה, מורה, תמונה</li>
         <li><strong>נתונים משותפים:</strong> משימות, אירועים, הוצאות, פרטי משמורת, חוגים, קייטנות, חתימות, הקצאות חגים</li>
       </ul>
 
@@ -3504,7 +3710,7 @@ async function initFCM() {
   }
 }
 
-const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','campReminders','familyName','deletedTaskIds'];
+const SHARED_FIELDS = ['kids','tasks','events','expenses','custodyChanges','signatures','activities','camps','holidayAssignments','holidayChanges','campReminders','familyName','deletedTaskIds','deletedExpenseIds','vacations'];
 const CUSTODY_FIELDS = ['custodyDays','weekendMode','weekendStartWithMe','weekendStartDate','weekendFixedWith','weekendDays','alternatingDays','followWeekendDays'];
 let sharedDataListener = null;
 let ignoringSnapshot = false;
@@ -3607,7 +3813,11 @@ function listenToSharedData() {
               }
               return cs;
             });
-          } else if (f !== 'tasks' && f !== 'signatures') {
+          } else if (f === 'expenses' && Array.isArray(shared.expenses)) {
+            const _delExpenses = new Set([...(shared.deletedExpenseIds || []), ...(appData.deletedExpenseIds || [])]);
+            appData.deletedExpenseIds = [..._delExpenses];
+            appData.expenses = shared.expenses.filter(ex => !_delExpenses.has(ex.id));
+          } else if (f !== 'tasks' && f !== 'signatures' && f !== 'expenses') {
             if (Array.isArray(shared[f]) && shared[f].length === 0 && Array.isArray(appData[f]) && appData[f].length > 0) { /* keep local */ }
             else appData[f] = shared[f];
           }
@@ -3674,7 +3884,10 @@ let appData = {
   custodyChanges: [],
   signatures: [],
   holidayAssignments: {},
-  deletedTaskIds: []
+  holidayChanges: [],
+  vacations: [],
+  deletedTaskIds: [],
+  deletedExpenseIds: []
 };
 
 const HEB_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -3685,7 +3898,7 @@ const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','
 const HOLIDAYS_2026 = [
   // תשפ״ו (2025-2026)
   { name: 'ראש השנה', date: '2025-09-22', endDate: '2025-09-24', heb: 'א׳-ג׳ תשרי תשפ״ו' },
-  { name: 'יום כיפור', date: '2025-10-01', endDate: '2025-10-02', heb: 'י׳-י״א תשרי תשפ״ו' },
+  { name: 'יום כיפור', date: '2025-10-01', heb: 'י׳ תשרי תשפ״ו' },
   { name: 'סוכות', date: '2025-10-06', endDate: '2025-10-12', heb: 'ט״ו-כ״א תשרי תשפ״ו' },
   { name: 'שמחת תורה', date: '2025-10-13', heb: 'כ״ב תשרי תשפ״ו' },
   { name: 'חנוכה', date: '2025-12-14', endDate: '2025-12-22', heb: 'כ״ה כסלו - ב׳ טבת תשפ״ו' },
@@ -3713,7 +3926,7 @@ const HOLIDAYS_2026 = [
   { name: 'תשעה באב', date: '2027-07-01', heb: 'ט׳ באב תשפ״ז' },
   // תשפ״ח (2027-2028)
   { name: 'ראש השנה', date: '2027-09-30', endDate: '2027-10-02', heb: 'א׳-ג׳ תשרי תשפ״ח' },
-  { name: 'יום כיפור', date: '2027-10-09', endDate: '2027-10-10', heb: 'י׳-י״א תשרי תשפ״ח' },
+  { name: 'יום כיפור', date: '2027-10-09', heb: 'י׳ תשרי תשפ״ח' },
   { name: 'סוכות', date: '2027-10-14', endDate: '2027-10-20', heb: 'ט״ו-כ״א תשרי תשפ״ח' },
   { name: 'שמחת תורה', date: '2027-10-21', heb: 'כ״ב תשרי תשפ״ח' },
   { name: 'חנוכה', date: '2027-12-23', endDate: '2027-12-31', heb: 'כ״ה כסלו - ב׳ טבת תשפ״ח' },
@@ -3727,7 +3940,7 @@ const HOLIDAYS_2026 = [
   { name: 'תשעה באב', date: '2028-07-20', heb: 'ט׳ באב תשפ״ח' },
   // תשפ״ט (2028-2029)
   { name: 'ראש השנה', date: '2028-09-20', endDate: '2028-09-22', heb: 'א׳-ג׳ תשרי תשפ״ט' },
-  { name: 'יום כיפור', date: '2028-09-29', endDate: '2028-09-30', heb: 'י׳-י״א תשרי תשפ״ט' },
+  { name: 'יום כיפור', date: '2028-09-29', heb: 'י׳ תשרי תשפ״ט' },
   { name: 'סוכות', date: '2028-10-04', endDate: '2028-10-10', heb: 'ט״ו-כ״א תשרי תשפ״ט' },
   { name: 'שמחת תורה', date: '2028-10-11', heb: 'כ״ב תשרי תשפ״ט' },
   { name: 'חנוכה', date: '2028-12-12', endDate: '2028-12-20', heb: 'כ״ה כסלו - ב׳ טבת תשפ״ט' },
@@ -3740,7 +3953,7 @@ const HOLIDAYS_2026 = [
   { name: 'שבועות', date: '2029-05-18', heb: 'ו׳ סיוון תשפ״ט' },
   { name: 'תשעה באב', date: '2029-07-08', heb: 'ט׳ באב תשפ״ט' },
   { name: 'ראש השנה', date: '2029-09-10', endDate: '2029-09-12', heb: 'א׳-ג׳ תשרי תש״צ' },
-  { name: 'יום כיפור', date: '2029-09-19', endDate: '2029-09-20', heb: 'י׳-י״א תשרי תש״צ' },
+  { name: 'יום כיפור', date: '2029-09-19', heb: 'י׳ תשרי תש״צ' },
   { name: 'סוכות', date: '2029-09-24', endDate: '2029-09-30', heb: 'ט״ו-כ״א תשרי תש״צ' }
 ];
 
@@ -3826,6 +4039,8 @@ function migrateData() {
     });
     ['tasks','events','expenses'].forEach(col => {
       (appData[col] || []).forEach(item => {
+        if (item.forChild === '__parents__') { item.forChild = 'הורים בלבד'; return; }
+        if (item.forChild === '__all__') { item.forChild = 'כל הילדים'; return; }
         if (item.forChild && !kidNames.includes(item.forChild)) {
           const match = kidNames.find(n => item.forChild.includes(n) || n.includes(item.forChild));
           if (match) item.forChild = match;
@@ -4279,7 +4494,7 @@ async function leaveFamily() {
     mode: '', familyCode: '', familyName: '', user: { name: '', email: '', phone: '', role: '', partnerEmail: '' },
     custodyDays: [], weekendMode: '', weekendStartWithMe: null, weekendStartDate: '', weekendFixedWith: '',
     weekendDays: [5, 6], alternatingDays: [], followWeekendDays: [], kids: [], tasks: [], events: [], expenses: [],
-    custodyChanges: [], signatures: [], activities: [], camps: [], holidayAssignments: {}
+    custodyChanges: [], signatures: [], activities: [], camps: [], holidayAssignments: {}, holidayChanges: [], vacations: []
   };
   document.getElementById('appContainer').classList.remove('active');
   document.getElementById('onboarding').classList.remove('hidden');
@@ -4515,7 +4730,7 @@ function addKidCard() {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>בית ספר / גן</label>
+        <label>מסגרת חינוכית / גן</label>
         <input type="text" class="kid-school" placeholder="שם בית הספר">
       </div>
       <div class="form-group">
@@ -4760,6 +4975,7 @@ function updateApp() {
     populateActivityChildSelect();
   }
   renderCamps();
+  renderVacations();
   renderHolidays();
   renderCalendar();
   renderProfile();
@@ -4865,7 +5081,7 @@ function showPendingRequests() {
     if (pendingSigs.length > 0) {
       html += '<div style="margin-bottom:0.75rem;"><strong>⊡ חתימות ממתינות (' + pendingSigs.length + ')</strong>';
       pendingSigs.forEach(s => {
-        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[9])">';
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--border);font-size:0.85rem;cursor:pointer;" onclick="closeModal(\'pendingModal\');showPage(\'signatures\',document.querySelectorAll(\'.nav-item\')[10])">';
         html += esc(s.title || 'מסמך לחתימה') + (s.child ? ' · ' + esc(s.child) : '');
         html += '<div style="font-size:0.72rem;color:var(--text-light);">לחצ/י לחתימה</div>';
         html += '</div>';
@@ -5077,6 +5293,7 @@ function getTodayStr() {
 }
 
 function openBirthdayTask() {
+  if (isChildView()) return;
   document.getElementById('taskEditId').value = '';
   document.getElementById('taskModalTitle').textContent = 'משימה חדשה';
   document.getElementById('taskTitle').value = '';
@@ -5099,6 +5316,28 @@ function dismissTips() {
 
 function showTipsModal() {
   openModal('tipsModal');
+}
+
+const SECTION_HELP = {
+  kids: { title: 'הילדים שלנו', body: '<p>ניהול פרטי הילדים במשפחה.</p><p>שני ההורים יכולים להוסיף ולערוך פרטי ילדים. ניתן לשייך משימות, אירועים וחוגים לכל ילד/ה.</p><p>ילדים שהצטרפו לאפליקציה מקבלים <b>גישת צפייה בלבד</b> ורואים רק מידע הרלוונטי אליהם.</p>' },
+  assignments: { title: 'משימות', body: '<p>ניהול משימות משותף בין ההורים.</p><p>ניתן לשייך משימה לילד/ה ספציפי/ת, לכל הילדים, או להורים בלבד.</p><p>כל המשימות מסונכרנות בין שני ההורים. ילדים רואים רק משימות ששויכו אליהם.</p><p>ניתן להוסיף קבצים מצורפים, לקבוע תאריכי יעד ולהגדיר משימות חוזרות.</p>' },
+  events: { title: 'אירועים', body: '<p>ניהול אירועים ופגישות משפחתיים.</p><p>ניתן להוסיף אירועים עם תאריך, שעה ומיקום. כל האירועים מסונכרנים בין ההורים.</p><p>תזכורות נשלחות אוטומטית שבוע, יומיים וביום האירוע.</p>' },
+  custody: { title: 'משמורת', body: '<p>הגדרת ימי משמורת קבועים וסידורי סוף שבוע.</p><p><b>רק יוצר/ת המשפחה</b> יכול/ה לשנות את הגדרות המשמורת. ההורה המצטרף/ת יכול/ה לשלוח <b>בקשות שינוי</b> שהיוצר/ת יאשר/תאשר או ידחה.</p><p>לאחר אישור בקשה, היוצר/ת צריך/ה לעדכן ידנית את ימי המשמורת.</p>' },
+  expenses: { title: 'הוצאות וקיזוזים', body: '<p>מעקב הוצאות משותפות וקיזוזים בין ההורים.</p><p>ניתן לצרף קבלות, לסמן אחוז קיזוז ולעקוב אחר המאזן. כל ההוצאות מסונכרנות בין ההורים.</p><p><b>תיעוד אישי:</b> ניתן לבחור "ללא קיזוז" כדי לתעד הוצאות לעצמך בלבד, ללא בקשת אישור מההורה השני. הוצאות אישיות לא נכללות במאזן הקיזוזים.</p><p>ניתן לערוך ולמחוק הוצאות שיצרת. עריכה נעולה בזמן שההוצאה ממתינה לאישור.</p>' },
+  holidays: { title: 'חגים', body: '<p>שיבוץ הילדים לחגים ומועדים.</p><p><b>רק יוצר/ת המשפחה</b> יכול/ה לשבץ ולשנות שיבוץ חגים. ההורה המצטרף/ת יכול/ה לשלוח <b>בקשות שינוי שיבוץ</b>.</p><p>לאחר אישור בקשה, היוצר/ת צריך/ה לעדכן ידנית את השיבוץ.</p>' },
+  calendar: { title: 'יומן', body: '<p>תצוגת יומן חודשי המשלבת משמורת, משימות ואירועים.</p><p>צבעי הימים מציינים את סידורי המשמורת. ימי חג מסומנים במסגרת כתומה.</p><p>לחיצה על יום מציגה את כל המשימות והאירועים שלו.</p>' },
+  activities: { title: 'חוגים', body: '<p>ניהול חוגים ופעילויות חוץ-מסגרת חינוכיתיות.</p><p>ניתן לתעד שעות, ימים, מיקום ועלות של כל חוג. המידע מסונכרן בין ההורים.</p>' },
+  camps: { title: 'קייטנות', body: '<p>ניהול קייטנות ומחנות.</p><p>ניתן לתעד תאריכים, שעות, מיקום ועלויות. תזכורות נשלחות אוטומטית 5 ימים לפני תחילת הקייטנה ושעה לפני סיום.</p>' },
+  signatures: { title: 'חתימות ואישורים', body: '<p>מסמכים הדורשים חתימה דיגיטלית משני ההורים.</p><p>ניתן להעלות מסמכים, לחתום ישירות באפליקציה ולעקוב אחרי סטטוס החתימות.</p>' },
+  vacations: { title: 'חופשות', body: '<p>ניהול חופשות של הילדים - בין אם חופשת מסגרת חינוכית או חופשה יזומה.</p><p><b>חופשה יזומה</b> דורשת אישור מהצד השני. ניתן לציין מיקום (ארץ/חו"ל), צורך בדרכונים, פרטי מלון ואיש קשר.</p><p>חופשות מסונכרנות עם היומן ומוצגות בדשבורד.</p>' }
+};
+
+function showSectionHelp(section) {
+  const info = SECTION_HELP[section];
+  if (!info) return;
+  document.getElementById('sectionHelpTitle').textContent = info.title;
+  document.getElementById('sectionHelpBody').innerHTML = info.body;
+  openModal('sectionHelpModal');
 }
 
 function updateDashboard() {
@@ -5418,7 +5657,7 @@ function updateDashboard() {
       sigContainer.innerHTML = pendingSigs.map(s => {
         const whoSigned = s.signedBy.length > 0 ? s.signedBy.join(', ') + ' חתם/ה' : '';
         return `
-          <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[9])">
+          <div class="list-item" style="padding:8px 10px;cursor:pointer;" onclick="showPage('signatures', document.querySelectorAll('.nav-item')[10])">
             <div class="list-item-content">
               <div class="list-item-title" style="font-size:0.88rem;">${esc(s.title)}</div>
               <div class="list-item-meta">${esc(s.child) || ''} · עד ${new Date(s.deadline).toLocaleDateString('he-IL')}${whoSigned ? ' · ' + esc(whoSigned) : ''}</div>
@@ -5515,6 +5754,62 @@ function updateDashboard() {
         </div>`;
     }).join('');
   }
+  }
+
+  // Vacations stat chip
+  const vacChip = document.getElementById('statVacationsChip');
+  if (vacChip) {
+    const todayVacChip = new Date(); todayVacChip.setHours(0,0,0,0);
+    const activeVacsChip = (appData.vacations || []).filter(v => new Date(v.toDate) >= todayVacChip);
+    if (activeVacsChip.length === 0) {
+      vacChip.style.display = 'none';
+    } else {
+      vacChip.style.display = '';
+      document.getElementById('statVacations').textContent = activeVacsChip.length;
+      const nextVac = [...activeVacsChip].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate))[0];
+      const nFrom = new Date(nextVac.fromDate);
+      const pendingCount = activeVacsChip.filter(v => v.approvalStatus === 'pending').length;
+      const summaryEl = document.getElementById('statVacationsSummary');
+      if (summaryEl) {
+        let txt = nextVac.child + ' ' + nFrom.getDate() + '/' + (nFrom.getMonth() + 1);
+        if (pendingCount > 0) txt += ' · ' + pendingCount + ' ממתינות';
+        summaryEl.textContent = txt;
+      }
+    }
+  }
+
+  // Vacations dashboard card
+  const vacCard = document.getElementById('dashVacationsCard');
+  const vacContainer = document.getElementById('dashVacations');
+  const allVacs = appData.vacations || [];
+  if (vacCard) {
+    const todayVac = new Date(); todayVac.setHours(0,0,0,0);
+    const activeVacs = allVacs.filter(v => new Date(v.toDate) >= todayVac);
+    if (activeVacs.length === 0) {
+      vacCard.style.display = 'none';
+    } else {
+      vacCard.style.display = '';
+      const sortedVacs = [...activeVacs].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+      vacContainer.innerHTML = sortedVacs.map(v => {
+        const from = new Date(v.fromDate);
+        const to = new Date(v.toDate);
+        const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
+        const toStr = to.getDate() + '/' + (to.getMonth() + 1);
+        const started = from <= todayVac && to >= todayVac;
+        const statusLabel = started ? 'פעילה' : 'מתחילה ' + fromStr;
+        let approvalLabel = '';
+        if (v.type === 'יזומה' && v.approvalStatus === 'pending') approvalLabel = ' · ממתין לאישור';
+        else if (v.type === 'יזומה' && v.approvalStatus === 'declined') approvalLabel = ' · נדחה';
+        return `
+          <div class="list-item" style="padding:8px 10px;${isChildView() ? '' : 'cursor:pointer;'}" ${isChildView() ? '' : "onclick=\"showPage('vacations', document.querySelectorAll('.nav-item')[9])\""}>
+            <div class="list-item-content">
+              <div class="list-item-title" style="font-size:0.88rem;">חופשה ${esc(v.type)} · ${esc(v.child)}</div>
+              <div class="list-item-meta">${fromStr} - ${toStr} · ${statusLabel}${approvalLabel}</div>
+            </div>
+            <span style="color:var(--text-light);font-size:1rem;">←</span>
+          </div>`;
+      }).join('');
+    }
   }
 
   // Pending custody requests for me to review
@@ -5746,7 +6041,7 @@ function checkTaskReminders() {
 
       const icon = m === -1 ? '⚠️' : '📋';
       const subject = icon + ' ' + t.title + ' — ' + labels[m];
-      const roleLabel = t.responsibility === 'dad' ? 'אבא' : t.responsibility === 'mom' ? 'אמא' : 'שניהם';
+      const roleLabel = t.responsibility === 'dad' ? 'אבא' : t.responsibility === 'mom' ? 'אמא' : 'שני ההורים';
       const body = 'אחריות: ' + roleLabel + (t.forChild ? ' | ' + t.forChild : '');
 
       sendBirthdayNotification(subject, body);
@@ -5830,7 +6125,7 @@ function sendBirthdayNotification(subject, body) {
 }
 
 function sendTaskNotification(taskTitle, assignedTo) {
-  const roleLabel = assignedTo === 'dad' ? 'אבא' : assignedTo === 'mom' ? 'אמא' : 'שניהם';
+  const roleLabel = assignedTo === 'dad' ? 'אבא' : assignedTo === 'mom' ? 'אמא' : 'שני ההורים';
   const subject = '📋 משימה חדשה שויכה ל' + roleLabel;
   const body = taskTitle;
   safeNotify(subject, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
@@ -6500,7 +6795,8 @@ function addTask() {
     const task = appData.tasks.find(t => t.id === parseInt(editId));
     if (task) {
       task.title = title; task.desc = desc; task.responsibility = res;
-      task.forChild = forChild; task.priority = priority; task.date = recurring ? '' : date;
+      task.forChild = forChild === '__all__' ? 'כל הילדים' : forChild === '__parents__' ? 'הורים בלבד' : forChild;
+      task.priority = priority; task.date = recurring ? '' : date;
       task.category = category; task.status = status;
       task.recurring = recurring; task.recurringFreq = recurring ? recurringDetail : '';
       task.updatedAt = new Date().toISOString();
@@ -6908,6 +7204,7 @@ function isCustodyOwner() {
   return appData.custodySetBy === getMyRole();
 }
 
+
 function saveCustodyToCloud() {
   saveData();
   saveToCloud();
@@ -7296,39 +7593,99 @@ function notifyPartnerCustodyResponse(change, status, note) {
 }
 
 // ============ EXPENSES ============
+function setExpenseType(type) {
+  document.getElementById('expenseTypeValue').value = type;
+  const offsetBtn = document.getElementById('expenseTypeOffset');
+  const personalBtn = document.getElementById('expenseTypePersonal');
+  const offsetFields = document.getElementById('expenseOffsetFields');
+  const submitBtn = document.getElementById('expenseSubmitBtn');
+  const editId = document.getElementById('expenseEditId').value;
+  if (type === 'offset') {
+    offsetBtn.className = 'btn btn-primary';
+    personalBtn.className = 'btn btn-secondary';
+    offsetFields.style.display = '';
+    if (!editId) submitBtn.textContent = 'שליחת בקשת קיזוז';
+  } else {
+    offsetBtn.className = 'btn btn-secondary';
+    personalBtn.className = 'btn btn-primary';
+    offsetFields.style.display = 'none';
+    if (!editId) submitBtn.textContent = 'שמירת הוצאה';
+  }
+  updateExpenseSplit();
+}
+
 function updateExpenseSplit() {
   const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
-  const split = parseInt(document.getElementById('expenseSplit').value) || 50;
+  const split = parseInt(document.getElementById('expenseSplit').value);
+  const preview = document.getElementById('expenseSplitPreview');
   const splitAmount = Math.round(amount * split / 100);
-  document.getElementById('expenseSplitPreview').textContent = '₪' + splitAmount.toLocaleString();
+  if (preview) preview.textContent = '₪' + splitAmount.toLocaleString();
+}
+
+function openNewExpense() {
+  if (isChildView()) return;
+  populateExpenseChildSelect();
+  document.getElementById('expenseEditId').value = '';
+  document.getElementById('expenseModalTitle').textContent = 'הוצאה חדשה';
+  document.getElementById('expenseDetails').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseDate').value = '';
+  document.getElementById('expenseForChild').value = '';
+  document.getElementById('expenseSplit').value = '50';
+  document.getElementById('expenseSplitPreview').textContent = '₪0';
+  document.getElementById('expenseInvoice').value = '';
+  document.getElementById('invoiceFileName').textContent = '';
+  setExpenseType(currentExpenseTab === 'personal' ? 'personal' : 'offset');
+  openModal('expenseModal');
 }
 
 function addExpense() {
   if (isChildView()) return;
+  const editId = document.getElementById('expenseEditId').value;
   const details = document.getElementById('expenseDetails').value.trim();
   const amount = parseFloat(document.getElementById('expenseAmount').value);
   const date = document.getElementById('expenseDate').value || getTodayStr();
   const forChild = document.getElementById('expenseForChild').value;
-  const splitPercent = parseInt(document.getElementById('expenseSplit').value) || 50;
+  const expType = document.getElementById('expenseTypeValue').value;
+  const isPersonal = expType === 'personal';
+  const splitPercent = isPersonal ? 0 : (parseInt(document.getElementById('expenseSplit').value) || 50);
   const invoice = document.getElementById('expenseInvoice').files[0];
 
   if (!details || !amount) { showToast('נא למלא פירוט וסכום'); return; }
   if (!forChild) { showToast('נא לבחור ילד/ה'); return; }
 
   const splitAmount = Math.round(amount * splitPercent / 100);
-  const expId = Date.now();
 
   function finishExpense(invoiceData, invoiceName) {
-    const expObj = {
-      id: expId, details, amount, splitPercent, splitAmount, forChild, date,
-      requestedBy: getMyRole(), status: 'pending', createdAt: new Date().toISOString()
-    };
-    if (invoiceName) { expObj.invoiceName = invoiceName; expObj.invoiceData = invoiceData; }
-    appData.expenses.push(expObj);
-    saveData();
-    if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName).then(() => { expObj.invoiceCloudSaved = true; saveData(); }).catch(e => { console.warn('Invoice upload error:', e); showToast('שגיאה בשמירת קבלה בענן — נסו שוב מאוחר יותר'); });
-    closeModal('expenseModal');
-    showToast('בקשת קיזוז נשלחה');
+    if (editId) {
+      const existing = appData.expenses.find(e => e.id === parseInt(editId));
+      if (!existing) return;
+      existing.details = details;
+      existing.amount = amount;
+      existing.date = date;
+      existing.forChild = forChild;
+      existing.splitPercent = splitPercent;
+      existing.splitAmount = splitAmount;
+      if (isPersonal) { existing.status = 'personal'; }
+      if (invoiceName) { existing.invoiceName = invoiceName; existing.invoiceData = invoiceData; }
+      saveData();
+      if (invoiceData) uploadExpenseInvoice(existing.id, invoiceData, invoiceName).then(() => { existing.invoiceCloudSaved = true; saveData(); }).catch(() => {});
+      closeModal('expenseModal');
+      showToast('ההוצאה עודכנה');
+    } else {
+      const expId = Date.now();
+      const expObj = {
+        id: expId, details, amount, splitPercent, splitAmount, forChild, date,
+        requestedBy: getMyRole(), status: isPersonal ? 'personal' : 'pending', createdAt: new Date().toISOString()
+      };
+      if (invoiceName) { expObj.invoiceName = invoiceName; expObj.invoiceData = invoiceData; }
+      appData.expenses.push(expObj);
+      saveData();
+      if (invoiceData) uploadExpenseInvoice(expId, invoiceData, invoiceName).then(() => { expObj.invoiceCloudSaved = true; saveData(); }).catch(e => { console.warn('Invoice upload error:', e); showToast('שגיאה בשמירת קבלה בענן — נסו שוב מאוחר יותר'); });
+      closeModal('expenseModal');
+      showToast(isPersonal ? 'הוצאה נשמרה (תיעוד אישי)' : 'בקשת קיזוז נשלחה');
+    }
+    document.getElementById('expenseEditId').value = '';
     document.getElementById('expenseDetails').value = '';
     document.getElementById('expenseAmount').value = '';
     document.getElementById('expenseDate').value = '';
@@ -7355,6 +7712,39 @@ function addExpense() {
   } else {
     finishExpense(null, null);
   }
+}
+
+function editExpense(id) {
+  if (isChildView()) return;
+  const e = appData.expenses.find(ex => ex.id === id);
+  if (!e) return;
+  populateExpenseChildSelect();
+  document.getElementById('expenseEditId').value = e.id;
+  document.getElementById('expenseModalTitle').textContent = 'עריכת הוצאה';
+  document.getElementById('expenseSubmitBtn').textContent = 'שמירת שינויים';
+  document.getElementById('expenseDetails').value = e.details || '';
+  document.getElementById('expenseAmount').value = e.amount || '';
+  document.getElementById('expenseDate').value = e.date || '';
+  document.getElementById('expenseForChild').value = e.forChild || '';
+  const isPersonal = e.status === 'personal' || e.splitPercent === 0;
+  setExpenseType(isPersonal ? 'personal' : 'offset');
+  if (!isPersonal) document.getElementById('expenseSplit').value = String(e.splitPercent || 50);
+  updateExpenseSplit();
+  document.getElementById('expenseInvoice').value = '';
+  document.getElementById('invoiceFileName').textContent = e.invoiceName || '';
+  openModal('expenseModal');
+}
+
+function deleteExpense(id) {
+  if (isChildView()) return;
+  if (!confirm('למחוק את ההוצאה?')) return;
+  appData.expenses = appData.expenses.filter(e => e.id !== id);
+  if (!appData.deletedExpenseIds) appData.deletedExpenseIds = [];
+  appData.deletedExpenseIds.push(id);
+  saveData();
+  renderExpenses();
+  updateDashboard();
+  showToast('ההוצאה נמחקה');
 }
 
 function notifyPartnerExpense(details, amount, splitAmount, splitPercent, date, forChild) {
@@ -7388,82 +7778,119 @@ function populateExpenseChildSelect() {
     appData.kids.map(k => `<option value="${esc(k.name)}">${esc(k.name)}</option>`).join('');
 }
 
+let currentExpenseTab = 'offsets';
+
+function switchExpenseTab(tab, btn) {
+  currentExpenseTab = tab;
+  document.querySelectorAll('#page-expenses .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('expenseTabOffsets').style.display = tab === 'offsets' ? '' : 'none';
+  document.getElementById('expenseTabPersonal').style.display = tab === 'personal' ? '' : 'none';
+  renderExpenses();
+}
+
 function renderExpenses() {
+  const myRole = getMyRole();
+  const offsetExpenses = (appData.expenses || []).filter(e => e.status !== 'personal' && e.splitPercent !== 0);
+  const personalExpenses = (appData.expenses || []).filter(e => e.status === 'personal' || e.splitPercent === 0);
+
+  // Offsets tab
   const tbody = document.getElementById('expensesTable');
   const empty = document.getElementById('expensesEmpty');
-  if (!tbody) return;
-
-  if (appData.expenses.length === 0) {
-    tbody.innerHTML = '';
-    if (empty) empty.style.display = 'block';
-    const toe = document.getElementById('totalOwedToMe');
-    const tio = document.getElementById('totalIOwe');
-    const te = document.getElementById('totalExpenses');
-    if (toe) toe.textContent = '₪0';
-    if (tio) tio.textContent = '₪0';
-    if (te) te.textContent = '₪0';
-    return;
+  if (tbody) {
+    if (offsetExpenses.length === 0) {
+      tbody.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+    } else {
+      if (empty) empty.style.display = 'none';
+      const sorted = [...offsetExpenses].sort((a, b) => {
+        const ap = a.status === 'pending' ? 0 : 1;
+        const bp = b.status === 'pending' ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        return (b.id || 0) - (a.id || 0);
+      });
+      const EXPENSE_LIMIT = 5;
+      const expTableEl = tbody.closest('table').parentElement;
+      if (!expTableEl.hasAttribute('data-expanded')) expTableEl.dataset.expanded = 'false';
+      const isExpanded = expTableEl.dataset.expanded === 'true';
+      const visible = isExpanded ? sorted : sorted.slice(0, EXPENSE_LIMIT);
+      const hasMore = sorted.length > EXPENSE_LIMIT;
+      tbody.innerHTML = visible.map(e => {
+        const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
+        const statusLabel = e.status === 'pending' ? 'ממתין' : e.status === 'approved' ? 'מאושר' : 'נדחה';
+        const isMine = e.requestedBy === myRole;
+        const splitAmt = e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100);
+        const canAct = !isMine && e.status === 'pending';
+        const canEdit = isMine && e.status !== 'pending';
+        const canDelete = isMine;
+        return `<tr>
+          <td>${esc(e.details)}</td>
+          <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
+          <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
+          <td>${esc(e.forChild) || '-'}</td>
+          <td>${formatDate(e.date)}</td>
+          <td style="text-align:center;">${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);font-size:1.2rem;" onclick="viewExpenseInvoice(${e.id})" title="${esc(e.invoiceName)}">📄</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
+          <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
+          <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+          <td><div style="display:flex;gap:4px;align-items:center;">
+            ${canAct ? `<div class="expense-status"><button onclick="updateExpenseStatus(${e.id},'approved')" title="אישור">✓</button><button onclick="updateExpenseStatus(${e.id},'rejected')" title="דחייה">✕</button></div>` : ''}
+            ${isMine ? `<button onclick="editExpense(${e.id})" title="${canEdit ? 'עריכה' : 'לא ניתן לערוך בזמן המתנה לאישור'}" style="background:none;border:none;cursor:${canEdit ? 'pointer' : 'not-allowed'};font-size:1rem;opacity:${canEdit ? '0.7' : '0.3'};padding:2px;" ${canEdit ? '' : 'disabled'}>&#9998;</button>` : ''}
+            ${canDelete ? `<button onclick="deleteExpense(${e.id})" title="מחיקה" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.7;padding:2px;color:var(--danger);">&#128465;</button>` : ''}
+            ${!canAct && !isMine ? `<span style="font-size:0.7rem;color:var(--text-light);">${e.status === 'pending' ? 'ממתין' : 'טופל'}</span>` : ''}
+          </div></td>
+        </tr>`;
+      }).join('');
+      let toggleEl = expTableEl.querySelector('.expense-toggle-btn');
+      if (toggleEl) toggleEl.remove();
+      if (hasMore) {
+        toggleEl = document.createElement('div');
+        toggleEl.className = 'expense-toggle-btn';
+        toggleEl.style.cssText = 'text-align:center;padding:8px;';
+        toggleEl.innerHTML = `<button onclick="this.closest('[data-expanded]').dataset.expanded=this.closest('[data-expanded]').dataset.expanded==='true'?'false':'true';renderExpenses();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${isExpanded ? 'הצג פחות' : 'הצג עוד ' + (sorted.length - EXPENSE_LIMIT) + ' הוצאות'}</button>`;
+        expTableEl.appendChild(toggleEl);
+      }
+    }
   }
 
-  if (empty) empty.style.display = 'none';
-  const myRole = getMyRole();
-  const sorted = [...appData.expenses].sort((a, b) => {
-    const ap = a.status === 'pending' ? 0 : 1;
-    const bp = b.status === 'pending' ? 0 : 1;
-    if (ap !== bp) return ap - bp;
-    return (b.id || 0) - (a.id || 0);
-  });
-  const EXPENSE_LIMIT = 5;
-  const expTableEl = document.getElementById('expensesTable').closest('table').parentElement;
-  const isExpanded = expTableEl.dataset.expanded === 'true';
-  const visible = isExpanded ? sorted : sorted.slice(0, EXPENSE_LIMIT);
-  const hasMore = sorted.length > EXPENSE_LIMIT;
-  tbody.innerHTML = visible.map(e => {
-    const statusClass = e.status === 'pending' ? 'badge-pending' : e.status === 'approved' ? 'badge-approved' : 'badge-rejected';
-    const statusLabel = e.status === 'pending' ? 'ממתין' : e.status === 'approved' ? 'מאושר' : 'נדחה';
-    const isMine = e.requestedBy === myRole;
-    const splitAmt = e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100);
-    const canAct = !isMine && e.status === 'pending';
-    return `
-      <tr>
-        <td>${esc(e.details)}</td>
-        <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
-        <td style="font-weight:600;color:var(--primary);">₪${splitAmt.toLocaleString()} (${e.splitPercent || 50}%)</td>
-        <td>${esc(e.forChild) || '-'}</td>
-        <td>${formatDate(e.date)}</td>
-        <td style="text-align:center;">${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);font-size:1.2rem;" onclick="viewExpenseInvoice(${e.id})" title="${esc(e.invoiceName)}">📄</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
-        <td style="font-size:0.75rem;">${isMine ? 'אני' : 'ההורה השני'}</td>
-        <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-        <td>
-          ${canAct ? `<div class="expense-status">
-            <button onclick="updateExpenseStatus(${e.id},'approved')" title="אישור">✓</button>
-            <button onclick="updateExpenseStatus(${e.id},'rejected')" title="דחייה">✕</button>
-          </div>` : e.status !== 'pending' ? `<span style="font-size:0.7rem;color:var(--text-light);">טופל</span>` : `<span style="font-size:0.7rem;color:var(--text-light);">ממתין</span>`}
-        </td>
-      </tr>
-    `;
-  }).join('');
-  let toggleEl = expTableEl.querySelector('.expense-toggle-btn');
-  if (toggleEl) toggleEl.remove();
-  if (hasMore) {
-    toggleEl = document.createElement('div');
-    toggleEl.className = 'expense-toggle-btn';
-    toggleEl.style.cssText = 'text-align:center;padding:8px;';
-    toggleEl.innerHTML = `<button onclick="this.closest('[data-expanded]').dataset.expanded=this.closest('[data-expanded]').dataset.expanded==='true'?'false':'true';renderExpenses();" style="background:none;border:none;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">${isExpanded ? 'הצג פחות' : 'הצג עוד ' + (sorted.length - EXPENSE_LIMIT) + ' הוצאות'}</button>`;
-    expTableEl.appendChild(toggleEl);
-  }
-
-  const activeMine = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy === myRole);
-  const activeTheirs = appData.expenses.filter(e => e.status !== 'rejected' && e.requestedBy && e.requestedBy !== myRole);
+  const activeMine = offsetExpenses.filter(e => e.status !== 'rejected' && e.requestedBy === myRole);
+  const activeTheirs = offsetExpenses.filter(e => e.status !== 'rejected' && e.requestedBy && e.requestedBy !== myRole);
   const owedToMe = activeMine.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
   const iOwe = activeTheirs.reduce((s, e) => s + (e.splitAmount || Math.round(e.amount * (e.splitPercent || 50) / 100)), 0);
   const balance = owedToMe - iOwe;
-
-  document.getElementById('totalOwedToMe').textContent = '₪' + owedToMe.toLocaleString();
-  document.getElementById('totalIOwe').textContent = '₪' + iOwe.toLocaleString();
+  const toe = document.getElementById('totalOwedToMe');
+  const tio = document.getElementById('totalIOwe');
   const balEl = document.getElementById('totalExpenses');
-  balEl.textContent = (balance >= 0 ? '+' : '') + '₪' + balance.toLocaleString();
-  balEl.style.color = balance >= 0 ? '#00B894' : '#D63031';
+  if (toe) toe.textContent = '₪' + owedToMe.toLocaleString();
+  if (tio) tio.textContent = '₪' + iOwe.toLocaleString();
+  if (balEl) { balEl.textContent = (balance >= 0 ? '+' : '') + '₪' + balance.toLocaleString(); balEl.style.color = balance >= 0 ? '#00B894' : '#D63031'; }
+
+  // Personal tab
+  const pTbody = document.getElementById('personalExpensesTable');
+  const pEmpty = document.getElementById('personalExpensesEmpty');
+  if (pTbody) {
+    const myPersonal = personalExpenses.filter(e => e.requestedBy === myRole);
+    if (myPersonal.length === 0) {
+      pTbody.innerHTML = '';
+      if (pEmpty) pEmpty.style.display = 'block';
+    } else {
+      if (pEmpty) pEmpty.style.display = 'none';
+      const sorted = [...myPersonal].sort((a, b) => (b.id || 0) - (a.id || 0));
+      pTbody.innerHTML = sorted.map(e => `<tr>
+        <td>${esc(e.details)}</td>
+        <td style="font-weight:600;">₪${e.amount.toLocaleString()}</td>
+        <td>${esc(e.forChild) || '-'}</td>
+        <td>${formatDate(e.date)}</td>
+        <td style="text-align:center;">${e.invoiceName ? `<span style="cursor:pointer;color:var(--primary);font-size:1.2rem;" onclick="viewExpenseInvoice(${e.id})" title="${esc(e.invoiceName)}">📄</span>` : '<span style="color:var(--text-light);font-size:0.75rem;">—</span>'}</td>
+        <td><div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="editExpense(${e.id})" title="עריכה" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.7;padding:2px;">&#9998;</button>
+          <button onclick="deleteExpense(${e.id})" title="מחיקה" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.7;padding:2px;color:var(--danger);">&#128465;</button>
+        </div></td>
+      </tr>`).join('');
+    }
+    const personalTotal = myPersonal.reduce((s, e) => s + e.amount, 0);
+    const pTotalEl = document.getElementById('totalPersonalExpenses');
+    if (pTotalEl) pTotalEl.textContent = '₪' + personalTotal.toLocaleString();
+  }
 }
 
 // ============ SIGNATURES ============
@@ -7603,7 +8030,7 @@ function addSignature() {
         if (sigObj.fileData) uploadSignatureFile(sigObj.id, sigObj.fileData, sigObj.fileName).then(() => { sigObj.fileCloudSaved = true; saveData(); }).catch(() => {});
         closeModal('signatureModal');
         document.getElementById('sigTitle').value = '';
-        document.getElementById('sigCategory').value = 'בית ספר';
+        document.getElementById('sigCategory').value = 'מסגרת חינוכית';
         document.getElementById('sigForChild').value = '';
         document.getElementById('sigDeadline').value = '';
         document.getElementById('sigDualSign').checked = true;
@@ -8358,6 +8785,261 @@ function renderCamps() {
   }).join('');
 }
 
+// ============ VACATIONS ============
+let currentVacFilter = 'pending';
+
+function toggleVacFields() {
+  const type = document.getElementById('vacType').value;
+  document.getElementById('vacInitiatedFields').style.display = type === 'יזומה' ? '' : 'none';
+}
+
+function populateVacChildSelect() {
+  const sel = document.getElementById('vacChild');
+  sel.innerHTML = '<option value="">בחירה...</option>';
+  (appData.kids || []).forEach(k => {
+    sel.innerHTML += `<option value="${esc(k.name)}">${esc(k.name)}</option>`;
+  });
+  sel.innerHTML += '<option value="כל הילדים">כל הילדים</option>';
+}
+
+function openVacationModal(id) {
+  if (isChildView()) return;
+  document.getElementById('vacEditId').value = id || '';
+  document.getElementById('vacationModalTitle').textContent = id ? 'עריכת חופשה' : 'יצירת חופשה';
+  document.getElementById('vacType').value = '';
+  document.getElementById('vacChild').value = '';
+  document.getElementById('vacFromDate').value = '';
+  document.getElementById('vacToDate').value = '';
+  document.getElementById('vacLocation').value = 'בארץ';
+  document.getElementById('vacPassports').checked = false;
+  document.getElementById('vacWrittenApproval').checked = false;
+  document.getElementById('vacHotel').value = '';
+  document.getElementById('vacContact').value = '';
+  document.getElementById('vacNotes').value = '';
+  document.getElementById('vacInitiatedFields').style.display = 'none';
+  populateVacChildSelect();
+
+  if (id) {
+    const v = (appData.vacations || []).find(v => v.id === id);
+    if (v) {
+      document.getElementById('vacType').value = v.type || '';
+      document.getElementById('vacChild').value = v.child || '';
+      document.getElementById('vacFromDate').value = v.fromDate || '';
+      document.getElementById('vacToDate').value = v.toDate || '';
+      if (v.type === 'יזומה') {
+        document.getElementById('vacInitiatedFields').style.display = '';
+        document.getElementById('vacLocation').value = v.location || 'בארץ';
+        document.getElementById('vacPassports').checked = !!v.passports;
+        document.getElementById('vacWrittenApproval').checked = !!v.writtenApproval;
+        document.getElementById('vacHotel').value = v.hotel || '';
+        document.getElementById('vacContact').value = v.contact || '';
+      }
+      document.getElementById('vacNotes').value = v.notes || '';
+    }
+  }
+  openModal('vacationModal');
+}
+
+function saveVacation() {
+  const type = document.getElementById('vacType').value;
+  const child = document.getElementById('vacChild').value;
+  const fromDate = document.getElementById('vacFromDate').value;
+  const toDate = document.getElementById('vacToDate').value;
+  if (!type || !child || !fromDate || !toDate) {
+    showToast('נא למלא סוג חופשה, עבור מי ותאריכים');
+    return;
+  }
+
+  const editId = document.getElementById('vacEditId').value;
+  const data = {
+    type,
+    child,
+    fromDate,
+    toDate,
+    notes: document.getElementById('vacNotes').value.trim()
+  };
+
+  if (type === 'יזומה') {
+    data.location = document.getElementById('vacLocation').value;
+    data.passports = document.getElementById('vacPassports').checked;
+    data.writtenApproval = document.getElementById('vacWrittenApproval').checked;
+    data.hotel = document.getElementById('vacHotel').value.trim();
+    data.contact = document.getElementById('vacContact').value.trim();
+  }
+
+  if (!appData.vacations) appData.vacations = [];
+
+  if (editId) {
+    const idx = appData.vacations.findIndex(v => v.id === parseInt(editId));
+    if (idx > -1) {
+      const existing = appData.vacations[idx];
+      Object.assign(existing, data);
+    }
+  } else {
+    data.id = Date.now();
+    data.createdBy = getMyRole();
+    if (type === 'יזומה') {
+      data.approvalStatus = 'pending';
+    }
+    appData.vacations.push(data);
+  }
+
+  saveData();
+  closeModal('vacationModal');
+  showToast(editId ? 'החופשה עודכנה' : 'החופשה נוספה');
+  renderVacations();
+  updateDashboard();
+}
+
+async function deleteVacation(id) {
+  if (isChildView()) return;
+  if (!await colinkConfirm('למחוק את החופשה?')) return;
+  appData.vacations = (appData.vacations || []).filter(v => v.id !== id);
+  saveData();
+  renderVacations();
+  updateDashboard();
+  showToast('החופשה נמחקה');
+}
+
+function approveVacation(id) {
+  const v = (appData.vacations || []).find(v => v.id === id);
+  if (!v) return;
+  v.approvalStatus = 'approved';
+  v.approvedBy = getMyRole();
+  v.approvedAt = new Date().toISOString();
+  saveData();
+  renderVacations();
+  updateDashboard();
+  showToast('החופשה אושרה');
+}
+
+function declineVacation(id) {
+  const v = (appData.vacations || []).find(v => v.id === id);
+  if (!v) return;
+  v.approvalStatus = 'declined';
+  v.declinedBy = getMyRole();
+  v.declinedAt = new Date().toISOString();
+  saveData();
+  renderVacations();
+  updateDashboard();
+  showToast('החופשה נדחתה');
+}
+
+function addVacationNote(id) {
+  const input = document.getElementById('vacNote' + id);
+  if (!input || !input.value.trim()) return;
+  const v = (appData.vacations || []).find(v => v.id === id);
+  if (!v) return;
+  if (!v.notes_thread) v.notes_thread = [];
+  v.notes_thread.push({ by: getMyRole(), text: input.value.trim(), at: new Date().toISOString() });
+  saveData();
+  renderVacations();
+}
+
+function filterVacations(filter, btn) {
+  currentVacFilter = filter;
+  document.querySelectorAll('#page-vacations .tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderVacations();
+}
+
+function renderVacations() {
+  const container = document.getElementById('vacationsList');
+  if (!container) return;
+
+  const vacations = appData.vacations || [];
+  const childMode = isChildView();
+  const sorted = [...vacations].sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const myRole = getMyRole();
+
+  const filtered = sorted.filter(v => {
+    if (currentVacFilter === 'approved') return v.approvalStatus === 'approved' || (v.type !== 'יזומה' && new Date(v.toDate) < today);
+    return !v.approvalStatus || v.approvalStatus === 'pending' || v.approvalStatus === 'declined';
+  });
+
+  if (filtered.length === 0) {
+    const msg = vacations.length === 0 ? 'אין חופשות עדיין' : currentVacFilter === 'approved' ? 'אין חופשות מאושרות' : 'אין חופשות ממתינות';
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">--</div><p>' + msg + '</p></div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(v => {
+    const from = new Date(v.fromDate);
+    const to = new Date(v.toDate);
+    const fromStr = from.getDate() + '/' + (from.getMonth() + 1);
+    const toStr = to.getDate() + '/' + (to.getMonth() + 1);
+    const ended = to < today;
+    const active = from <= today && to >= today;
+    const statusText = ended ? 'עברה' : active ? 'פעילה' : 'קרובה';
+    const statusColor = ended ? '#aaa' : active ? '#00B894' : 'var(--primary)';
+    const isInitiated = v.type === 'יזומה';
+    const isMine = v.createdBy === myRole;
+
+    let approvalHtml = '';
+    if (isInitiated && v.approvalStatus) {
+      const statusMap = { pending: 'ממתין לאישור', approved: 'אושר', declined: 'נדחה' };
+      const statusColors = { pending: '#E17055', approved: 'var(--success)', declined: '#e74c3c' };
+      approvalHtml += `<div style="margin-top:6px;"><span style="font-size:0.78rem;font-weight:600;color:${statusColors[v.approvalStatus]};">${statusMap[v.approvalStatus]}</span></div>`;
+      if (v.approvalStatus === 'pending' && !isMine && !childMode) {
+        approvalHtml += `<div style="display:flex;gap:6px;margin-top:8px;">`;
+        approvalHtml += `<button onclick="approveVacation(${v.id})" style="padding:4px 14px;border-radius:8px;border:none;background:#00B894;color:white;font-family:inherit;font-size:0.8rem;cursor:pointer;">אישור</button>`;
+        approvalHtml += `<button onclick="declineVacation(${v.id})" style="padding:4px 14px;border-radius:8px;border:none;background:#D63031;color:white;font-family:inherit;font-size:0.8rem;cursor:pointer;">דחייה</button>`;
+        approvalHtml += `</div>`;
+      }
+      if (v.notes_thread && v.notes_thread.length > 0) {
+        approvalHtml += `<div style="margin-top:6px;border-top:1px solid #FFE0B2;padding-top:6px;">`;
+        v.notes_thread.forEach(n => {
+          const isNotemine = n.by === myRole;
+          approvalHtml += `<div style="font-size:0.78rem;padding:4px 8px;margin-bottom:3px;border-radius:6px;background:${isNotemine ? 'rgba(108,92,231,0.08)' : 'rgba(0,206,201,0.08)'};">`;
+          approvalHtml += `<strong>${esc(n.by)}:</strong> ${esc(n.text)}`;
+          approvalHtml += `</div>`;
+        });
+        approvalHtml += `</div>`;
+      }
+      if (!childMode) {
+        approvalHtml += `<div style="display:flex;gap:4px;margin-top:8px;">`;
+        approvalHtml += `<input type="text" id="vacNote${v.id}" placeholder="הוספת הערה..." style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.78rem;">`;
+        approvalHtml += `<button onclick="addVacationNote(${v.id})" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary);color:white;font-family:inherit;font-size:0.78rem;cursor:pointer;">שלח</button>`;
+        approvalHtml += `</div>`;
+      }
+    }
+
+    const actionsHtml = childMode ? '' : `
+      <div style="display:flex;gap:6px;margin-right:8px;">
+        <button class="icon-btn" onclick="openVacationModal(${v.id})" title="עריכה" style="font-size:1.1rem;">✎</button>
+        <button class="icon-btn" onclick="deleteVacation(${v.id})" title="מחיקה" style="font-size:1.1rem;">🗑</button>
+      </div>`;
+
+    let detailsHtml = '';
+    if (isInitiated) {
+      if (v.location) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ${esc(v.location)}</div>`;
+      if (v.passports) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ צריך דרכונים</div>`;
+      if (v.writtenApproval) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ נדרש אישור כתוב</div>`;
+      if (v.hotel) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ${esc(v.hotel)}</div>`;
+      if (v.contact) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ איש קשר: ${esc(v.contact)}</div>`;
+    }
+    if (v.notes) detailsHtml += `<div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▸ ${esc(v.notes)}</div>`;
+
+    return `
+      <div class="card" style="${ended ? 'opacity:0.5;' : ''}margin-bottom:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <strong style="font-size:1rem;">חופשה ${esc(v.type)}</strong>
+              <span style="background:${statusColor};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem;">${statusText}</span>
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">◉ ${esc(v.child)}</div>
+            <div style="font-size:0.85rem;color:var(--text-light);margin-bottom:4px;">▪ ${fromStr} - ${toStr}</div>
+            ${detailsHtml}
+            ${approvalHtml}
+          </div>
+          ${actionsHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
 // ============ HOLIDAYS ============
 let currentHolidayFilter = 'upcoming';
 
@@ -8376,16 +9058,19 @@ function renderHolidays() {
   const now = new Date();
   const saveBtn = document.getElementById('holidaysSaveBtn');
 
-  const isCreator = !isChildView();
+  const isCreator = !isChildView() && isCustodyOwner();
 
   if (currentHolidayFilter === 'upcoming') {
     const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= new Date(now.getTime() - 86400000 * 7)).slice(0, 13);
     if (saveBtn) saveBtn.style.display = isCreator ? '' : 'none';
     let headerNote = '';
-    if (!isCreator) {
-      headerNote = '<div style="background:var(--primary-light);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:var(--text);text-align:center;">שיבוץ חגים נקבע על ידי יוצר/ת המשפחה. לשינויים יש לפנות אליו/ה.</div>';
+    if (!isCreator && !isChildView()) {
+      headerNote = '<div style="background:var(--primary-light);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:var(--text);text-align:center;">שיבוץ חגים נקבע על ידי יוצר/ת המשפחה.<br><button onclick="openHolidayChangeModal()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-family:inherit;font-size:0.82rem;cursor:pointer;font-weight:600;">שליחת בקשת שינוי</button></div>';
+    } else if (isChildView()) {
+      headerNote = '<div style="background:var(--primary-light);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:var(--text);text-align:center;">שיבוץ חגים נקבע על ידי יוצר/ת המשפחה.</div>';
     }
-    container.innerHTML = headerNote + upcoming.map(h => {
+    const changesHtml = renderHolidayChanges();
+    container.innerHTML = headerNote + changesHtml + upcoming.map(h => {
       const raw = appData.holidayAssignments[h.name];
       const assignType = !raw ? 'unset' : (typeof raw === 'string' ? raw : (raw.type || 'unset'));
       const isSplitDays = typeof raw === 'object' && raw.days && h.endDate;
@@ -8472,8 +9157,118 @@ function renderHolidays() {
   }
 }
 
+function openHolidayChangeModal() {
+  const select = document.getElementById('holidayChangeName');
+  const now = new Date();
+  const upcoming = HOLIDAYS_2026.filter(h => new Date(h.endDate || h.date) >= now);
+  select.innerHTML = upcoming.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+  openModal('holidayChangeModal');
+}
+
+function addHolidayChange() {
+  const name = document.getElementById('holidayChangeName').value;
+  const value = document.getElementById('holidayChangeValue').value;
+  const reason = document.getElementById('holidayChangeReason').value.trim();
+  if (!name) { showToast('נא לבחור חג'); return; }
+  if (!appData.holidayChanges) appData.holidayChanges = [];
+  const labels = { 'אמא': 'אצל אמא', 'אבא': 'אצל אבא', split: 'חלוקה', regular: 'לפי שהות רגילה' };
+  appData.holidayChanges.push({
+    id: Date.now(), holiday: name, requested: value, requestedLabel: labels[value] || value,
+    reason, requestedBy: getMyRole(), status: 'pending', createdAt: new Date().toISOString()
+  });
+  saveData();
+  closeModal('holidayChangeModal');
+  document.getElementById('holidayChangeReason').value = '';
+  showToast('בקשת שינוי שיבוץ נשלחה');
+  renderHolidays();
+}
+
+function renderHolidayChanges() {
+  if (isChildView()) return '';
+  if (!appData.holidayChanges || appData.holidayChanges.length === 0) return '';
+  const myRole = getMyRole();
+  const isOwner = isCustodyOwner();
+  const active = appData.holidayChanges.filter(c => c.status === 'pending' || c.status === 'approved' || c.status === 'declined');
+  if (active.length === 0) return '';
+  const pendingCount = active.filter(c => c.status === 'pending').length;
+  let html = '<div style="margin-bottom:16px;">';
+  html += `<div onclick="document.getElementById('hcList').style.display=document.getElementById('hcList').style.display==='none'?'block':'none';this.querySelector('.hc-arrow').textContent=document.getElementById('hcList').style.display==='none'?'◀':'▼'" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0;user-select:none;">`;
+  html += `<h4 style="margin:0;font-size:0.9rem;">בקשות שינוי שיבוץ (${active.length})</h4>`;
+  html += `<div style="display:flex;align-items:center;gap:6px;">`;
+  if (pendingCount > 0) html += `<span style="background:#E17055;color:white;border-radius:10px;padding:1px 8px;font-size:0.72rem;font-weight:600;">${pendingCount} ממתינות</span>`;
+  html += `<span class="hc-arrow" style="font-size:0.7rem;color:var(--text-muted);">◀</span>`;
+  html += `</div></div>`;
+  html += `<div id="hcList" style="display:none;">`;
+  active.sort((a, b) => (b.id || 0) - (a.id || 0)).forEach(c => {
+    const isMine = c.requestedBy === myRole;
+    const statusMap = { pending: 'ממתין לאישור', approved: 'אושר', declined: 'נדחה' };
+    const statusColors = { pending: '#E17055', approved: 'var(--success)', declined: '#e74c3c' };
+    html += `<div style="background:#FFF8E1;border-radius:10px;padding:10px 14px;margin-bottom:8px;border:1px solid #FFE0B2;">`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;">`;
+    html += `<div style="font-weight:600;font-size:0.85rem;">${esc(c.holiday)} &larr; ${esc(c.requestedLabel || c.requested)}</div>`;
+    html += `<span style="font-size:0.75rem;font-weight:600;color:${statusColors[c.status] || '#E17055'};">${statusMap[c.status] || c.status}</span>`;
+    html += `</div>`;
+    if (c.reason) html += `<div style="font-size:0.8rem;color:var(--text-light);margin-top:4px;">${esc(c.reason)}</div>`;
+    html += `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">${isMine ? 'הבקשה שלי' : 'בקשה מההורה השני'}</div>`;
+    if (c.notes && c.notes.length > 0) {
+      html += `<div style="margin-top:6px;border-top:1px solid #FFE0B2;padding-top:6px;">`;
+      c.notes.forEach(n => {
+        const isNotemine = n.by === myRole;
+        html += `<div style="font-size:0.78rem;padding:4px 8px;margin-bottom:3px;border-radius:6px;background:${isNotemine ? 'rgba(108,92,231,0.08)' : 'rgba(0,206,201,0.08)'};">`;
+        html += `<strong>${esc(n.by)}:</strong> ${esc(n.text)}`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+    if (c.status === 'pending') {
+      if (!isMine && isOwner && !isChildView()) {
+        html += `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">`;
+        html += `<button onclick="respondHolidayChange(${c.id},'approved')" style="padding:4px 14px;border-radius:8px;border:none;background:#00B894;color:white;font-family:inherit;font-size:0.8rem;cursor:pointer;">אישור</button>`;
+        html += `<button onclick="respondHolidayChange(${c.id},'declined')" style="padding:4px 14px;border-radius:8px;border:none;background:#D63031;color:white;font-family:inherit;font-size:0.8rem;cursor:pointer;">דחייה</button>`;
+        html += `</div>`;
+      }
+      html += `<div style="display:flex;gap:4px;margin-top:8px;">`;
+      html += `<input type="text" id="hcNote${c.id}" placeholder="הוספת הערה..." style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.78rem;">`;
+      html += `<button onclick="addHolidayChangeNote(${c.id})" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary);color:white;font-family:inherit;font-size:0.78rem;cursor:pointer;">שלח</button>`;
+      html += `</div>`;
+    }
+    if (c.status === 'approved' && isMine) {
+      html += `<div style="margin-top:6px;padding:6px 10px;background:rgba(0,184,148,0.1);border-radius:6px;font-size:0.78rem;color:var(--success);">הבקשה אושרה. רק יוצר/ת המשפחה יכול/ה לעדכן את השיבוץ בפועל.</div>`;
+    }
+    html += `</div>`;
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function addHolidayChangeNote(id) {
+  const input = document.getElementById('hcNote' + id);
+  if (!input || !input.value.trim()) return;
+  const change = (appData.holidayChanges || []).find(c => c.id === id);
+  if (!change) return;
+  if (!change.notes) change.notes = [];
+  change.notes.push({ by: getMyRole(), text: input.value.trim(), at: new Date().toISOString() });
+  saveData();
+  renderHolidays();
+}
+
+function respondHolidayChange(id, status) {
+  const change = (appData.holidayChanges || []).find(c => c.id === id);
+  if (!change) return;
+  if (change.requestedBy === getMyRole()) { showToast('לא ניתן לאשר בקשה שאתה שלחת'); return; }
+  change.status = status;
+  change.respondedAt = new Date().toISOString();
+  saveData();
+  renderHolidays();
+  if (status === 'approved') {
+    showCenterNotice('הבקשה אושרה', 'על מנת שהשינוי ייכנס לתוקף, יש לעדכן את שיבוץ החגים בהתאם.');
+  } else {
+    showToast('הבקשה נדחתה');
+  }
+}
+
 function setHolidayAssignment(name, value) {
-  if (isChildView()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
+  if (isChildView() || !isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   if (value === 'split') {
     const h = HOLIDAYS_2026.find(x => x.name === name);
     if (h && h.endDate) {
@@ -8497,7 +9292,7 @@ function setHolidayAssignment(name, value) {
 }
 
 function setHolidayDayAssignment(name, dateStr, value) {
-  if (isChildView()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
+  if (isChildView() || !isCustodyOwner()) { showToast('רק יוצר/ת המשפחה יכול/ה לשנות שיבוץ חגים'); return; }
   const a = appData.holidayAssignments[name];
   if (typeof a === 'object' && a.days) {
     a.days[dateStr] = value;
@@ -8551,10 +9346,9 @@ function renderCalendar() {
     const holidayAssign = (_hType === 'split' && typeof _hRaw === 'object' && _hRaw.days && _hRaw.days[dateStr]) ? _hRaw.days[dateStr] : _hType;
 
     let classes = 'cal-day';
-    if (holiday && holidayAssign !== 'unset' && holidayAssign !== 'regular') {
+    if (holiday && holidayAssign !== 'unset' && holidayAssign !== 'regular' && holidayAssign !== 'split') {
       if (holidayAssign === 'אמא') classes += ' custody-mom';
       else if (holidayAssign === 'אבא') classes += ' custody-dad';
-      else if (holidayAssign === 'split') classes += ' custody-split';
     } else {
       if (isMyCustody) classes += ' ' + _calClassMine;
       else classes += ' ' + _calClassPartner;
@@ -8564,7 +9358,8 @@ function renderCalendar() {
 
     const dayTasks = (appData.tasks || []).filter(t => t.date === dateStr && t.status !== 'done');
     const dayEvents = (appData.events || []).filter(e => e.date === dateStr);
-    const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday;
+    const dayVacs = (appData.vacations || []).filter(v => dateStr >= v.fromDate && dateStr <= v.toDate && (v.type !== 'יזומה' || v.approvalStatus === 'approved'));
+    const hasItems = dayTasks.length > 0 || dayEvents.length > 0 || !!holiday || dayVacs.length > 0;
     let labels = '';
     const isMobile = window.innerWidth < 600;
     const maxItems = isMobile ? 1 : 2;
@@ -8582,7 +9377,13 @@ function renderCalendar() {
         labelCount++;
       });
     }
-    const totalItems = dayEvents.length + dayTasks.length + (holiday ? 1 : 0);
+    if (labelCount < maxItems) {
+      dayVacs.slice(0, maxItems - labelCount).forEach(v => {
+        labels += `<div class="cal-day-label" style="color:#2196F3;font-size:0.6rem;">✈ ${esc(v.child)}</div>`;
+        labelCount++;
+      });
+    }
+    const totalItems = dayEvents.length + dayTasks.length + dayVacs.length + (holiday ? 1 : 0);
     if (totalItems > labelCount) labels += `<div class="cal-day-label" style="color:var(--text-muted);">+${totalItems - labelCount}</div>`;
 
     html += `<div class="${classes}" style="${hasItems ? 'cursor:pointer;' : ''}" title="${holiday ? esc(holiday.name) : ''}" ${hasItems ? `onclick="showCalDayDetails('${dateStr}')"` : ''}>
@@ -8592,6 +9393,68 @@ function renderCalendar() {
   }
 
   grid.innerHTML = html;
+  renderCalMonthAgenda();
+}
+
+function renderCalMonthAgenda() {
+  const list = document.getElementById('calMonthAgendaList');
+  if (!list) return;
+  const year = currentCalYear;
+  const month = currentCalMonth;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const items = [];
+  for (let d = 1; d <= lastDay; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const date = new Date(year, month, d);
+    const dayName = HEB_DAYS[date.getDay()];
+
+    const holiday = HOLIDAYS_2026.find(h => dateStr >= h.date && dateStr <= (h.endDate || h.date));
+    if (holiday) {
+      const _r = appData.holidayAssignments[holiday.name];
+      const _t = !_r ? 'unset' : (typeof _r === 'string' ? _r : (_r.type || 'unset'));
+      const assign = (_t === 'split' && typeof _r === 'object' && _r.days && _r.days[dateStr]) ? _r.days[dateStr] : _t;
+      const assignLabels = { 'אמא': 'אצל אמא', 'אבא': 'אצל אבא', split: 'חלוקה', regular: 'שהות רגילה', unset: '' };
+      items.push({ dateStr, day: d, dayName, type: 'holiday', title: holiday.name, extra: assignLabels[assign] || '' });
+    }
+    (appData.tasks || []).filter(t => t.date === dateStr).forEach(t => {
+      const taskExtras = [t.forChild, t.responsibility].filter(Boolean).join(' · ');
+      items.push({ dateStr, day: d, dayName, type: 'task', title: t.title, extra: taskExtras, done: t.status === 'done', id: t.id });
+    });
+    (appData.events || []).filter(e => e.date === dateStr).forEach(e => {
+      items.push({ dateStr, day: d, dayName, type: 'event', title: e.title, extra: [e.time, e.forChild, e.location].filter(Boolean).join(' · ') });
+    });
+    (appData.vacations || []).filter(v => dateStr >= v.fromDate && dateStr <= v.toDate && (v.type !== 'יזומה' || v.approvalStatus === 'approved')).forEach(v => {
+      const isFirst = v.fromDate === dateStr;
+      if (isFirst) items.push({ dateStr, day: d, dayName, type: 'vacation', title: 'חופשה ' + v.type, extra: v.child + (v.location ? ' · ' + v.location : '') });
+    });
+  }
+
+  if (items.length === 0) {
+    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:16px 0;">אין פריטים בחודש זה</p>';
+    return;
+  }
+
+  let html = '';
+  let lastDay2 = '';
+  items.forEach(item => {
+    const dateLabel = item.day + '/' + (month + 1);
+    if (dateLabel !== lastDay2) {
+      if (lastDay2) html += '<div style="height:8px;"></div>';
+      html += `<div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px;">${item.dayName}, ${dateLabel}</div>`;
+      lastDay2 = dateLabel;
+    }
+    const colors = { holiday: 'var(--warning)', task: '#6C63FF', event: '#f59e0b', vacation: '#2196F3' };
+    const icons = { holiday: '✡', task: '☐', event: '◆', vacation: '✈' };
+    const color = colors[item.type];
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:0.82rem;${item.done ? 'opacity:0.5;text-decoration:line-through;' : ''}">`;
+    html += `<span style="color:${color};font-size:0.7rem;min-width:14px;text-align:center;">${icons[item.type]}</span>`;
+    html += `<span style="flex:1;">${esc(item.title)}</span>`;
+    if (item.extra) html += `<span style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">${esc(item.extra)}</span>`;
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
 }
 
 function showCalDayDetails(dateStr) {
@@ -8631,6 +9494,19 @@ function showCalDayDetails(dateStr) {
     events.forEach(e => {
       html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;">';
       html += esc(e.title) + (e.time ? ' · ' + esc(e.time) : '') + (e.forChild ? ' · ' + esc(e.forChild) : '') + (e.location ? ' · ' + esc(e.location) : '');
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  const vacs = (appData.vacations || []).filter(v => dateStr >= v.fromDate && dateStr <= v.toDate && (v.type !== 'יזומה' || v.approvalStatus === 'approved'));
+  if (vacs.length > 0) {
+    html += '<div style="margin-top:8px;"><strong style="color:#2196F3;">✈ חופשות</strong>';
+    vacs.forEach(v => {
+      const from = new Date(v.fromDate);
+      const to = new Date(v.toDate);
+      html += '<div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.85rem;">';
+      html += esc(v.type) + ' · ' + esc(v.child) + ' · ' + from.getDate() + '/' + (from.getMonth()+1) + '-' + to.getDate() + '/' + (to.getMonth()+1);
+      if (v.location) html += ' · ' + esc(v.location);
       html += '</div>';
     });
     html += '</div>';
@@ -8959,7 +9835,7 @@ history.pushState({ page: 'app' }, '');
 init();
 
 // Version-based force refresh
-const APP_VERSION = '193';
+const APP_VERSION = '206';
 const storedVersion = localStorage.getItem('colink_version');
 if (storedVersion && storedVersion !== APP_VERSION) {
   try { localStorage.setItem('colink_version', APP_VERSION); } catch(e) {}
